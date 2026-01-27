@@ -27,6 +27,7 @@ import {
   IMPORT_DEFAULT_ADMIN_USERNAME,
   IMPORT_DEFAULT_ADMIN_PASSWORD,
 } from '../config.js';
+import * as q from '../db/queries.js';
 import { createSchema } from '../db/schema.js';
 
 loadEnv();
@@ -82,13 +83,17 @@ function run(): void {
   outputSuccess('Schema created.');
   output('');
 
-  const hash = bcrypt.hashSync(IMPORT_DEFAULT_ADMIN_PASSWORD, 10);
-  db.prepare(
-    'INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)',
-  ).run(IMPORT_DEFAULT_ADMIN_USERNAME, hash);
-  outputSuccess(
-    `Default admin user created (username: ${IMPORT_DEFAULT_ADMIN_USERNAME}).`,
-  );
+  if (!q.userExists(db, IMPORT_DEFAULT_ADMIN_USERNAME)) {
+    const hash = bcrypt.hashSync(IMPORT_DEFAULT_ADMIN_PASSWORD, 10);
+    q.createUser(db, IMPORT_DEFAULT_ADMIN_USERNAME, hash, true);
+    outputSuccess(
+      `Default admin user created (username: ${IMPORT_DEFAULT_ADMIN_USERNAME}).`,
+    );
+  } else {
+    outputSuccess(
+      `Default admin user already exists (username: ${IMPORT_DEFAULT_ADMIN_USERNAME}).`,
+    );
+  }
   output('');
 
   const heroesPath = path.join(CSV_IMPORT_DIR, 'heroes.csv');
