@@ -1,0 +1,32 @@
+# Database & data
+data/
+
+# Import data (user-specific)
+import/*.csv
+!import/*.csv.example
+
+# Lockout
+data/lockout.json
+
+# Node
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+icons/icons.af
