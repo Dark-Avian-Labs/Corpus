@@ -33,7 +33,7 @@
     "lusca": "^1.7.0"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
+    "@types/bcrypt": "^6.0.0",
     "@types/better-sqlite3": "^7.6.11",
     "@types/cookie-parser": "^1.4.7",
     "@types/express": "^5.0.6",
