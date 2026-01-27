@@ -68,6 +68,7 @@ app.use(
   }),
 );
 
+// Cookie parser and body parsers (required before session middleware)
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -96,6 +97,23 @@ app.use(
   }),
 );
 
+// CSRF protection must come immediately after session middleware
+// All routes registered after this point are protected by CSRF
+const { csrfSynchronisedProtection, generateToken } = csrfSync({
+  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+});
+
+// Generate CSRF token for each request and make it available via req.csrfToken()
+app.use((req, res, next) => {
+  const token = generateToken(req);
+  req.csrfToken = () => token;
+  next();
+});
+
+// Apply CSRF protection - all subsequent routes are protected
+app.use(csrfSynchronisedProtection);
+
+// Static routes (excluded from CSRF - GET only, no state changes)
 const iconsPath = __dirname.includes('dist')
   ? path.join(process.cwd(), 'dist', 'icons')
   : path.join(process.cwd(), 'icons');
@@ -107,17 +125,6 @@ app.get('/favicon.ico', generalLimiter, (req, res) => {
     if (err) res.status(404).end();
   });
 });
-
-const { csrfSynchronisedProtection, generateToken } = csrfSync({
-  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-});
-// Generate CSRF token for each request and make it available via req.csrfToken()
-app.use((req, res, next) => {
-  const token = generateToken(req);
-  req.csrfToken = () => token;
-  next();
-});
-app.use(csrfSynchronisedProtection);
 
 app.use('/api', apiLimiter, apiRouter);
 registerPageRoutes(app);
