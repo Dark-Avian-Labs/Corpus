@@ -38,12 +38,11 @@ import {
 } from '../middleware/rateLimit.js';
 
 function getBackgroundArt(): string {
-  // Check dist/background.txt first (production), then root background.txt (development)
   const distPath = path.join(process.cwd(), 'dist', 'background.txt');
   const rootPath = path.join(process.cwd(), 'background.txt');
-  
+
   const backgroundPath = fs.existsSync(distPath) ? distPath : rootPath;
-  
+
   if (!fs.existsSync(backgroundPath)) return '';
   try {
     return fs.readFileSync(backgroundPath, 'utf-8');

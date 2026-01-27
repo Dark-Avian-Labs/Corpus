@@ -70,7 +70,6 @@ app.use(lusca.csrf());
 app.use('/api', apiLimiter, apiRouter);
 registerPageRoutes(app);
 
-// Serve icons from dist/icons if running compiled version, otherwise from root icons
 const iconsPath = __dirname.includes('dist')
   ? path.join(process.cwd(), 'dist', 'icons')
   : path.join(process.cwd(), 'icons');

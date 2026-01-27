@@ -25,13 +25,11 @@ function copyRecursive(srcDir, dstDir) {
   }
 }
 
-// Copy views
 const viewsSrc = 'src/views';
 const viewsDst = 'dist/views';
 copyRecursive(viewsSrc, viewsDst);
 console.log(`Copied views from ${viewsSrc} to ${viewsDst}`);
 
-// Copy icons
 const iconsSrc = 'icons';
 const iconsDst = 'dist/icons';
 if (existsSync(iconsSrc)) {
@@ -39,7 +37,6 @@ if (existsSync(iconsSrc)) {
   console.log(`Copied icons from ${iconsSrc} to ${iconsDst}`);
 }
 
-// Copy background.txt
 const backgroundSrc = 'background.txt';
 const backgroundDst = 'dist/background.txt';
 if (existsSync(backgroundSrc)) {
