@@ -70,7 +70,11 @@ app.use(lusca.csrf());
 app.use('/api', apiLimiter, apiRouter);
 registerPageRoutes(app);
 
-app.use('/icons', express.static(path.join(process.cwd(), 'icons')));
+// Serve icons from dist/icons if running compiled version, otherwise from root icons
+const iconsPath = __dirname.includes('dist')
+  ? path.join(process.cwd(), 'dist', 'icons')
+  : path.join(process.cwd(), 'icons');
+app.use('/icons', express.static(iconsPath));
 
 app.get('/favicon.ico', generalLimiter, (req, res) => {
   const favicon = path.join(process.cwd(), 'favicon.ico');

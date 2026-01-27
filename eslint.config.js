@@ -118,4 +118,8 @@ export default [
     files: ['src/scripts/**'],
     rules: { 'n/no-process-exit': 'off' },
   },
+  {
+    files: ['import/**'],
+    rules: { 'n/no-process-exit': 'off' },
+  },
 ];
