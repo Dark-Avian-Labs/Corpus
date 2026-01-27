@@ -163,7 +163,7 @@ function run(): void {
   outputSuccess('Import complete.');
   output('');
   output('Default admin user created.');
-  output(`  Username: ${IMPORT_DEFAULT_ADMIN_USERNAME}`);
+  output('  Username: (see IMPORT_DEFAULT_ADMIN_USERNAME in .env)');
   output('  Password: (check .env file)');
   output('');
   output('Change the password after first login!');
