@@ -40,7 +40,21 @@ app.set('views', viewsPath);
 
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        fontSrc: ["'self'"],
+        connectSrc: ["'self'"],
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        upgradeInsecureRequests: [],
+      },
+    },
   }),
 );
 
@@ -72,12 +86,6 @@ app.use(
   }),
 );
 
-const { csrfSynchronisedProtection } = csrfSync();
-app.use(csrfSynchronisedProtection);
-
-app.use('/api', apiLimiter, apiRouter);
-registerPageRoutes(app);
-
 const iconsPath = __dirname.includes('dist')
   ? path.join(process.cwd(), 'dist', 'icons')
   : path.join(process.cwd(), 'icons');
@@ -89,6 +97,14 @@ app.get('/favicon.ico', generalLimiter, (req, res) => {
     if (err) res.status(404).end();
   });
 });
+
+const { csrfSynchronisedProtection } = csrfSync({
+  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+});
+app.use(csrfSynchronisedProtection);
+
+app.use('/api', apiLimiter, apiRouter);
+registerPageRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`Epic7 Collection Tracker running at http://localhost:${PORT}`);
