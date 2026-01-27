@@ -8,7 +8,8 @@
  * - heroes.csv: Name;Class;Element;Stars (header row, then data)
  * - artifacts.csv: Name;Class;Stars (header row, then data)
  *
- * Usage: npm run import
+ * Usage: npx tsx import/import.ts
+ *    or: npm run import
  */
 
 import { config as loadEnv } from '@dotenvx/dotenvx';
@@ -16,7 +17,6 @@ import bcrypt from 'bcrypt';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
-
 import {
   CSV_IMPORT_DIR,
   CSV_DELIMITER,
@@ -26,9 +26,9 @@ import {
   ELEMENTS,
   IMPORT_DEFAULT_ADMIN_USERNAME,
   IMPORT_DEFAULT_ADMIN_PASSWORD,
-} from '../config.js';
-import * as q from '../db/queries.js';
-import { createSchema } from '../db/schema.js';
+} from '../src/config.js';
+import * as q from '../src/db/queries.js';
+import { createSchema } from '../src/db/schema.js';
 
 loadEnv();
 

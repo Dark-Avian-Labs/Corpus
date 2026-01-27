@@ -1,14 +1,11 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
-const src = 'src/views';
-const dst = 'dist/views';
-
-if (!existsSync(src)) {
-  throw new Error(`Source directory ${src} does not exist`);
-}
-
 function copyRecursive(srcDir, dstDir) {
+  if (!existsSync(srcDir)) {
+    throw new Error(`Source directory ${srcDir} does not exist`);
+  }
+
   if (!existsSync(dstDir)) {
     mkdirSync(dstDir, { recursive: true });
   }
@@ -28,5 +25,16 @@ function copyRecursive(srcDir, dstDir) {
   }
 }
 
-copyRecursive(src, dst);
-console.log(`Copied views from ${src} to ${dst}`);
+// Copy views
+const viewsSrc = 'src/views';
+const viewsDst = 'dist/views';
+copyRecursive(viewsSrc, viewsDst);
+console.log(`Copied views from ${viewsSrc} to ${viewsDst}`);
+
+// Copy icons
+const iconsSrc = 'icons';
+const iconsDst = 'dist/icons';
+if (existsSync(iconsSrc)) {
+  copyRecursive(iconsSrc, iconsDst);
+  console.log(`Copied icons from ${iconsSrc} to ${iconsDst}`);
+}

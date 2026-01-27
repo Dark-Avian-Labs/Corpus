@@ -46,7 +46,7 @@ function err(res: Response, message: string, status = 400): void {
 
 function getDbOrFail(res: Response): ReturnType<typeof getDb> | null {
   if (!fs.existsSync(SQLITE_DB_PATH)) {
-    err(res, 'Database not found. Please run import first.', 500);
+    err(res, 'Database not found. Please initialize the database.', 500);
     return null;
   }
   try {
