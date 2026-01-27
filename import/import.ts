@@ -87,13 +87,9 @@ function run(): void {
   if (!q.userExists(db, IMPORT_DEFAULT_ADMIN_USERNAME)) {
     const hash = bcrypt.hashSync(IMPORT_DEFAULT_ADMIN_PASSWORD, 10);
     q.createUser(db, IMPORT_DEFAULT_ADMIN_USERNAME, hash, true);
-    outputSuccess(
-      `Default admin user created (username: ${IMPORT_DEFAULT_ADMIN_USERNAME}).`,
-    );
+    outputSuccess('Default admin user created.');
   } else {
-    outputSuccess(
-      `Default admin user already exists (username: ${IMPORT_DEFAULT_ADMIN_USERNAME}).`,
-    );
+    outputSuccess('Default admin user already exists.');
   }
   output('');
 
