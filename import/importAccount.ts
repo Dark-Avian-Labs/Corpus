@@ -65,12 +65,12 @@ function run(): void {
     outputError(
       'Set TARGET_ACCOUNT_ID in .env or pass account ID as first argument.',
     );
-    process.exit(1);
+    throw new Error('Account ID is required');
   }
 
   if (!fs.existsSync(SQLITE_DB_PATH)) {
     outputError('Database not found. Run npm run import first.');
-    process.exit(1);
+    throw new Error('Database not found');
   }
 
   const db = new Database(SQLITE_DB_PATH);
@@ -93,7 +93,7 @@ function run(): void {
       );
     }
     db.close();
-    process.exit(1);
+    throw new Error(`Account ID ${accountId} not found`);
   }
 
   outputSuccess(`Account: ${account.account_name}`);
@@ -173,4 +173,12 @@ function run(): void {
   outputSuccess('Account data import complete.');
 }
 
-run();
+try {
+  run();
+} catch (error) {
+  console.error(
+    'Import failed:',
+    error instanceof Error ? error.message : error,
+  );
+  process.exit(1);
+}

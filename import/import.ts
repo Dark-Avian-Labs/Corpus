@@ -17,6 +17,7 @@ import bcrypt from 'bcrypt';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
+
 import {
   CSV_IMPORT_DIR,
   CSV_DELIMITER,
@@ -75,7 +76,7 @@ function run(): void {
         e instanceof Error ? e.message : String(e)
       }`,
     );
-    process.exit(1);
+    throw new Error('Database connection failed');
   }
 
   output('Creating schema...');
@@ -174,4 +175,12 @@ function run(): void {
   output('Run the app: npm run dev or npm start');
 }
 
-run();
+try {
+  run();
+} catch (error) {
+  console.error(
+    'Import failed:',
+    error instanceof Error ? error.message : error,
+  );
+  process.exit(1);
+}
