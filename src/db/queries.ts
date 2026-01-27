@@ -108,7 +108,6 @@ export function setActiveAccount(
     db.prepare('UPDATE game_accounts SET is_active = 0 WHERE user_id = ?').run(
       userId,
     );
-    // Add authorization check: ensure account belongs to user
     db.prepare(
       'UPDATE game_accounts SET is_active = 1 WHERE id = ? AND user_id = ?',
     ).run(accountId, userId);

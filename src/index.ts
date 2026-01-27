@@ -68,7 +68,6 @@ app.use(
   }),
 );
 
-// Cookie parser and body parsers (required before session middleware)
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -97,47 +96,18 @@ app.use(
   }),
 );
 
-// CSRF protection using csrf-sync. This must come after the session middleware
-// so that it can use the session as its storage.
-const {
-  csrfSynchronisedProtection,
-  csrfSynchronisedProtectionConfig,
-} = csrfSync();
-
-// Apply CSRF verification middleware to all routes by default.
-app.use(csrfSynchronisedProtection);
-
-// Expose a CSRF token for use in templates and front-end requests.
-app.use((req, res, next) => {
-  try {
-    const token = csrfSynchronisedProtectionConfig.csrfSync(req, res);
-    // Make available to EJS views
-    (res.locals as any).csrfToken = token;
-    // Also expose via a header for XHR/fetch clients
-    res.setHeader('X-CSRF-Token', token);
-  } catch {
-    // If token generation fails, continue; verification middleware will still protect.
-  }
-  next();
-});
-
-// CSRF protection must come immediately after session middleware
-// All routes registered after this point are protected by CSRF
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
 });
 
-// Generate CSRF token for each request and make it available via req.csrfToken()
 app.use((req, res, next) => {
   const token = generateToken(req);
   req.csrfToken = () => token;
   next();
 });
 
-// Apply CSRF protection - all subsequent routes are protected
 app.use(csrfSynchronisedProtection);
 
-// Static routes (excluded from CSRF - GET only, no state changes)
 const iconsPath = __dirname.includes('dist')
   ? path.join(process.cwd(), 'dist', 'icons')
   : path.join(process.cwd(), 'icons');

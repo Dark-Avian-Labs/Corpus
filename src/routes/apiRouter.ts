@@ -108,7 +108,6 @@ export function apiRouter(
       }
       await handleAction(action, req, res);
     } catch (error) {
-      // Forward async errors to Express error handler
       next(error);
     }
   });

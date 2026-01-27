@@ -70,8 +70,6 @@ function ensureLockoutDir(): void {
 function getLockoutData(): LockoutData {
   const now = Date.now();
 
-  // Only reload from disk if cache is clean (not dirty) and TTL expired
-  // This prevents losing in-memory lockout attempts after a failed write
   if (
     lockoutCache === null ||
     (!lockoutCacheDirty && now - lockoutCacheLastLoad > LOCKOUT_CACHE_TTL)
@@ -112,8 +110,6 @@ function saveLockoutData(data: LockoutData): void {
         );
         lockoutCacheDirty = false;
       } catch (error) {
-        // Keep dirty flag true to prevent reload from overwriting in-memory data
-        // Will retry on next save operation
         console.error('Failed to write lockout data:', error);
       }
     }
