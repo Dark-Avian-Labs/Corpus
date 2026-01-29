@@ -48,22 +48,32 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ['self'],
+        // prettier-ignore
+        defaultSrc: ['\'self\''],
+        // prettier-ignore
         styleSrc: [
-          'self',
+          '\'self\'',
           (req, res) => `'nonce-${(res as express.Response).locals.nonce}'`,
         ],
+        // prettier-ignore
         scriptSrc: [
-          'self',
+          '\'self\'',
           (req, res) => `'nonce-${(res as express.Response).locals.nonce}'`,
         ],
-        imgSrc: ['self', 'data:', 'https:'],
-        fontSrc: ['self'],
-        connectSrc: ['self'],
-        frameSrc: ['none'],
-        objectSrc: ['none'],
-        baseUri: ['self'],
-        formAction: ['self'],
+        // prettier-ignore
+        imgSrc: ['\'self\'', '\'data:\'', '\'https:\''],
+        // prettier-ignore
+        fontSrc: ['\'self\''],
+        // prettier-ignore
+        connectSrc: ['\'self\''],
+        // prettier-ignore
+        frameSrc: ['\'none\''],
+        // prettier-ignore
+        objectSrc: ['\'none\''],
+        // prettier-ignore
+        baseUri: ['\'self\''],
+        // prettier-ignore
+        formAction: ['\'self\''],
         upgradeInsecureRequests: [],
       },
     },
