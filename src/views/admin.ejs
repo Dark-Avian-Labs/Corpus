@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <style nonce="<%= typeof nonce !== 'undefined' ? nonce : '' %>">
+    <style>
     :root{--text:#e5e7eb;--muted:#9ca3af;--accent:#0ea5e9;--success:#22c55e;--warning:#f59e0b;--danger:#ef4444;--shadow:0 2px 2px rgba(0,0,0,0.15)}
     *{box-sizing:border-box}html,body{height:100%}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:24px;color:var(--text);background:linear-gradient(to bottom,#272b36 0%,#050507 100%);background-size:100% 100%;background-attachment:fixed;min-height:100vh;display:flex;flex-direction:column;align-items:center}
