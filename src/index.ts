@@ -52,7 +52,7 @@ app.use(
         defaultSrc: ['\'self\''],
         // prettier-ignore
         styleSrc: [
-          '\'self\'',
+          '\'self\'', '\'unsafe-inline\'',
           (req, res) => `'nonce-${(res as express.Response).locals.nonce}'`,
         ],
         // prettier-ignore
@@ -61,7 +61,7 @@ app.use(
           (req, res) => `'nonce-${(res as express.Response).locals.nonce}'`,
         ],
         // prettier-ignore
-        imgSrc: ['\'self\'', '\'data:\'', '\'https:\''],
+        imgSrc: ['\'self\'', 'data:', 'https:'],
         // prettier-ignore
         fontSrc: ['\'self\''],
         // prettier-ignore
