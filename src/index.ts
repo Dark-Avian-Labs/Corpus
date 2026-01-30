@@ -106,8 +106,18 @@ app.use(
   }),
 );
 
+function getCsrfTokenFromRequest(req: unknown): string | undefined {
+  const r = req as express.Request;
+  const fromHeader = r.headers?.['x-csrf-token'];
+  if (typeof fromHeader === 'string') return fromHeader;
+  const body = r.body as { _csrf?: string } | undefined;
+  if (body && typeof body._csrf === 'string') return body._csrf;
+  return undefined;
+}
+
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+  getTokenFromRequest: getCsrfTokenFromRequest,
 });
 
 app.use((req, res, next) => {

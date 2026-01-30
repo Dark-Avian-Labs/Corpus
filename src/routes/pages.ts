@@ -130,21 +130,35 @@ export function registerPageRoutes(app: Application): void {
           accountName = first.account_name;
         }
 
-        const s = req.session as unknown as {
-          user_id?: number;
-          username?: string;
-          is_admin?: boolean;
-          account_id?: number | null;
-          account_name?: string | null;
-          login_time?: number;
-        };
-        s.user_id = user.id;
-        s.username = user.username;
-        s.is_admin = Boolean(user.is_admin);
-        s.account_id = accountId;
-        s.account_name = accountName;
-        s.login_time = Math.floor(Date.now() / 1000);
-        return res.redirect('/');
+        req.session.regenerate((err) => {
+          if (err) {
+            return res.render('login', {
+              appName: APP_NAME,
+              art,
+              error: 'Login failed. Please try again.',
+              lockedOut: false,
+              lockoutRemaining: 0,
+              dbExists: dbExists(),
+              csrfToken: req.csrfToken?.() ?? '',
+            });
+          }
+          const s = req.session as unknown as {
+            user_id?: number;
+            username?: string;
+            is_admin?: boolean;
+            account_id?: number | null;
+            account_name?: string | null;
+            login_time?: number;
+          };
+          s.user_id = user.id;
+          s.username = user.username;
+          s.is_admin = Boolean(user.is_admin);
+          s.account_id = accountId;
+          s.account_name = accountName;
+          s.login_time = Math.floor(Date.now() / 1000);
+          return res.redirect('/');
+        });
+        return undefined;
       }
 
       return res.render('login', {
