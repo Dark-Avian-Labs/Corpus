@@ -25,6 +25,7 @@ const viewsPath = __dirname.includes('dist')
   : path.join(process.cwd(), 'src', 'views');
 
 const app = express();
+const HOST = process.env.HOST ?? '127.0.0.1';
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 const SESSION_SECRET = process.env.SESSION_SECRET ?? 'epic7-tracker-dev-secret';
 const TRUST_PROXY =
@@ -132,6 +133,6 @@ app.get('/favicon.ico', generalLimiter, (req, res) => {
 app.use('/api', apiLimiter, apiRouter);
 registerPageRoutes(app);
 
-app.listen(PORT, () => {
-  console.log(`Epic7 Collection Tracker running at http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Epic7 Collection Tracker running at http://${HOST}:${PORT}`);
 });
