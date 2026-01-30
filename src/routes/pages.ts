@@ -130,17 +130,21 @@ export function registerPageRoutes(app: Application): void {
           accountName = first.account_name;
         }
 
+        const loginErrorPayload = () =>
+          res.render('login', {
+            appName: APP_NAME,
+            art,
+            error: 'Login failed. Please try again.',
+            lockedOut: false,
+            lockoutRemaining: 0,
+            dbExists: dbExists(),
+            csrfToken: req.csrfToken?.() ?? '',
+          });
+
         req.session.regenerate((err) => {
           if (err) {
-            return res.render('login', {
-              appName: APP_NAME,
-              art,
-              error: 'Login failed. Please try again.',
-              lockedOut: false,
-              lockoutRemaining: 0,
-              dbExists: dbExists(),
-              csrfToken: req.csrfToken?.() ?? '',
-            });
+            loginErrorPayload();
+            return;
           }
           const s = req.session as unknown as {
             user_id?: number;
@@ -156,7 +160,13 @@ export function registerPageRoutes(app: Application): void {
           s.account_id = accountId;
           s.account_name = accountName;
           s.login_time = Math.floor(Date.now() / 1000);
-          return res.redirect('/');
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              return loginErrorPayload();
+            }
+            return res.redirect('/');
+          });
+          return;
         });
         return undefined;
       }
