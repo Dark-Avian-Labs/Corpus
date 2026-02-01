@@ -83,7 +83,10 @@
             <div class="header-actions">
                 <a href="/register" class="btn btn-primary">+ Create User</a>
                 <a href="/" class="btn btn-secondary">Back to Tracker</a>
-                <a href="/logout" class="btn btn-secondary">Logout</a>
+                <form method="POST" action="/logout" style="display:inline;">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="btn btn-secondary">Logout</button>
+                </form>
             </div>
         </header>
         <div class="tabs">

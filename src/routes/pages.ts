@@ -183,11 +183,16 @@ export function registerPageRoutes(app: Application): void {
     },
   );
 
-  app.get('/logout', (req: Request, res: Response) => {
-    req.session.destroy(() => {
-      res.redirect('/login');
-    });
-  });
+  app.post(
+    '/logout',
+    generalLimiter,
+    requireAuth,
+    (req: Request, res: Response) => {
+      req.session.destroy(() => {
+        res.redirect('/login');
+      });
+    },
+  );
 
   app.get('/', generalLimiter, requireAuth, (req: Request, res: Response) => {
     const s = req.session as unknown as { is_admin?: boolean };

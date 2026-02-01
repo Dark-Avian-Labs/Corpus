@@ -1,5 +1,4 @@
 import argon2 from 'argon2';
-import bcrypt from 'bcrypt';
 import fs from 'fs';
 import path from 'path';
 
@@ -26,13 +25,6 @@ let lockoutCacheLastLoad = 0;
 const LOCKOUT_CACHE_TTL = 5000;
 
 /**
- * Check if a hash is a bcrypt hash (starts with $2a$, $2b$, or $2y$)
- */
-function isBcryptHash(hash: string): boolean {
-  return /^\$2[ayb]\$/.test(hash);
-}
-
-/**
  * Hash a password using argon2id (OWASP recommended)
  * Uses OWASP recommended parameters: 19 MiB memory, 2 iterations, 1 parallelism
  */
@@ -46,15 +38,12 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 /**
- * Verify a password against a hash (supports both argon2 and bcrypt for migration)
+ * Verify a password against an argon2 hash
  */
 async function verifyPassword(
   password: string,
   hash: string,
 ): Promise<boolean> {
-  if (isBcryptHash(hash)) {
-    return await bcrypt.compare(password, hash);
-  }
   try {
     return await argon2.verify(hash, password);
   } catch {
@@ -215,15 +204,6 @@ export async function attemptLogin(
         success: false,
         error: `Invalid username or password. ${remaining} attempt(s) remaining.`,
       };
-    }
-
-    if (isBcryptHash(user.password_hash)) {
-      try {
-        const newHash = await hashPassword(password);
-        q.updateUserPassword(db, user.id, newHash);
-      } catch (error) {
-        console.error('Failed to upgrade password hash:', error);
-      }
     }
 
     clearFailedAttempts(ip);

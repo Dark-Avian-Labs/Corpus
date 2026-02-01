@@ -28,6 +28,15 @@ const app = express();
 const HOST = process.env.HOST ?? '127.0.0.1';
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 const SESSION_SECRET = process.env.SESSION_SECRET ?? 'epic7-tracker-dev-secret';
+const DEV_SESSION_SECRET = 'epic7-tracker-dev-secret';
+if (
+  process.env.NODE_ENV === 'production' &&
+  SESSION_SECRET === DEV_SESSION_SECRET
+) {
+  throw new Error(
+    'Security: Set SESSION_SECRET to a strong random value in production.',
+  );
+}
 const TRUST_PROXY =
   process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true';
 const SECURE_COOKIES =
@@ -143,6 +152,16 @@ app.get('/favicon.ico', generalLimiter, (req, res) => {
 app.use('/api', apiLimiter, apiRouter);
 registerPageRoutes(app);
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`Epic7 Collection Tracker running at http://${HOST}:${PORT}`);
 });
+
+function shutdown(): void {
+  server.close(() => {
+    sessionDb.close();
+    // eslint-disable-next-line n/no-process-exit -- intentional graceful shutdown
+    process.exit(0);
+  });
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
