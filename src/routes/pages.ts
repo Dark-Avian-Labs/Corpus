@@ -13,6 +13,7 @@ import {
 } from '../auth.js';
 import {
   APP_NAME,
+  SECURE_COOKIES,
   SQLITE_DB_PATH,
   HERO_CLASSES,
   ARTIFACT_CLASSES,
@@ -183,11 +184,27 @@ export function registerPageRoutes(app: Application): void {
     },
   );
 
-  app.get('/logout', (req: Request, res: Response) => {
-    req.session.destroy(() => {
-      res.redirect('/login');
-    });
-  });
+  app.post(
+    '/logout',
+    generalLimiter,
+    requireAuth,
+    (req: Request, res: Response) => {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destroy error:', err);
+          res.status(500).send('Failed to log out.');
+          return;
+        }
+        res.clearCookie('connect.sid', {
+          path: '/',
+          httpOnly: true,
+          secure: SECURE_COOKIES,
+          sameSite: 'lax',
+        });
+        res.redirect('/login');
+      });
+    },
+  );
 
   app.get('/', generalLimiter, requireAuth, (req: Request, res: Response) => {
     const s = req.session as unknown as { is_admin?: boolean };

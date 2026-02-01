@@ -37,6 +37,7 @@
     .header-link{padding:8px 16px;font-size:14px;color:var(--muted);text-decoration:none;border:1px solid rgba(255,255,255,0.08);border-radius:1rem;transition:all .2s;background:transparent;font-family:inherit;cursor:pointer}
     .header-link:hover{color:var(--text);border-color:rgba(255,255,255,0.2)}
     .header-link.active{color:var(--accent);border-color:var(--accent);background:rgba(14,165,233,0.1)}
+    .header-link-form{margin:0;padding:0;display:inline}
     .tabs{display:flex;gap:4px;margin-bottom:16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:1rem;padding:6px;backdrop-filter:blur(12px)}
     .tab{padding:10px 24px;font-size:14px;color:var(--muted);background:transparent;border:none;border-radius:.75rem;cursor:pointer;transition:all .2s}
     .tab:hover{color:var(--text);background:rgba(255,255,255,0.05)}
@@ -131,7 +132,10 @@
                 <button class="header-link" id="edit-mode-btn">Edit Mode</button>
                 <button class="header-link" id="add-item-btn">+ Add Item</button>
                 <% if (isAdmin) { %><a href="/admin" class="header-link">Admin</a><% } %>
-                <a href="/logout" class="header-link">Logout</a>
+                <form method="POST" action="/logout" class="header-link-form" style="display:inline;">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="header-link">Logout</button>
+                </form>
             </div>
         </header>
         <div class="tabs" id="tabs">

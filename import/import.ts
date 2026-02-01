@@ -1,17 +1,3 @@
-/**
- * Epic7 Collection Tracker – Import
- *
- * Creates DB schema, imports base heroes from heroes.csv and base artifacts from artifacts.csv.
- * Creates a default admin user if none exist.
- *
- * CSV format:
- * - heroes.csv: Name;Class;Element;Stars (header row, then data)
- * - artifacts.csv: Name;Class;Stars (header row, then data)
- *
- * Usage: npx tsx import/import.ts
- *    or: npm run import
- */
-
 import { config as loadEnv } from '@dotenvx/dotenvx';
 import argon2 from 'argon2';
 import Database from 'better-sqlite3';

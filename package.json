@@ -23,7 +23,6 @@
   "dependencies": {
     "@dotenvx/dotenvx": "^1.52.0",
     "argon2": "^0.44.0",
-    "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.6.2",
     "better-sqlite3-session-store": "^0.1.0",
     "cookie-parser": "^1.4.7",
@@ -36,7 +35,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
-    "@types/bcrypt": "^6.0.0",
     "@types/better-sqlite3": "^7.6.11",
     "@types/cookie-parser": "^1.4.7",
     "@types/express": "^5.0.6",

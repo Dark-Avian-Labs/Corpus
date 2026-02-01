@@ -1,15 +1,3 @@
-/**
- * Epic7 – Import account data (hero ratings, artifact gauge) into a game account
- *
- * Expects Heros.csv (Hero,Class,Element,Stars,Imprint) and Artifacts.csv
- * (Artifact,Class,Stars,Limit Break) in the import folder. Comma-delimited.
- *
- * Set TARGET_ACCOUNT_ID in .env or pass as first CLI arg.
- *
- * Usage: npx tsx import/importAccount.ts [accountId]
- *    or: npm run import-account
- */
-
 import { config as loadEnv } from '@dotenvx/dotenvx';
 import Database from 'better-sqlite3';
 import fs from 'fs';

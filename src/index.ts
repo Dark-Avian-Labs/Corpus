@@ -28,6 +28,20 @@ const app = express();
 const HOST = process.env.HOST ?? '127.0.0.1';
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 const SESSION_SECRET = process.env.SESSION_SECRET ?? 'epic7-tracker-dev-secret';
+const DEV_SESSION_SECRET = 'epic7-tracker-dev-secret';
+const MIN_SESSION_SECRET_LENGTH = 32;
+
+if (process.env.NODE_ENV === 'production') {
+  if (
+    !SESSION_SECRET ||
+    SESSION_SECRET.length < MIN_SESSION_SECRET_LENGTH ||
+    SESSION_SECRET === DEV_SESSION_SECRET
+  ) {
+    throw new Error(
+      'Security: In production, set SESSION_SECRET to a strong random value (at least 32 characters).',
+    );
+  }
+}
 const TRUST_PROXY =
   process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true';
 const SECURE_COOKIES =
@@ -143,6 +157,44 @@ app.get('/favicon.ico', generalLimiter, (req, res) => {
 app.use('/api', apiLimiter, apiRouter);
 registerPageRoutes(app);
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`Epic7 Collection Tracker running at http://${HOST}:${PORT}`);
 });
+
+const SHUTDOWN_TIMEOUT_MS = 10_000;
+
+function shutdown(): void {
+  let closed = false;
+  function exit(): void {
+    if (closed) return;
+    closed = true;
+    try {
+      sessionDb.close();
+    } catch (err) {
+      console.error('Error closing session DB:', err);
+    }
+    // eslint-disable-next-line n/no-process-exit -- intentional graceful shutdown
+    process.exit(0);
+  }
+
+  const timeout = setTimeout(() => {
+    console.warn('Shutdown timeout: forcing exit');
+    if (typeof server.closeIdleConnections === 'function') {
+      server.closeIdleConnections();
+    }
+    exit();
+  }, SHUTDOWN_TIMEOUT_MS);
+
+  server.close((err) => {
+    clearTimeout(timeout);
+    if (err) {
+      console.error('Error closing server:', err);
+    }
+    if (typeof server.closeIdleConnections === 'function') {
+      server.closeIdleConnections();
+    }
+    exit();
+  });
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
