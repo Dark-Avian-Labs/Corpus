@@ -48,7 +48,7 @@ TypeScript/Node.js web app for tracking Epic Seven heroes and artifacts. Multi-u
    npm start      # production (after npm run build)
    ```
 
-   By default the app runs at **http://127.0.0.1:3001** (`HOST` and `PORT` in `.env`).
+   By default the app runs at **<http://127.0.0.1:3001>** (`HOST` and `PORT` in `.env`).
 
 ## Routes
 

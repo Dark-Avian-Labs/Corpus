@@ -156,11 +156,39 @@ const server = app.listen(PORT, HOST, () => {
   console.log(`Epic7 Collection Tracker running at http://${HOST}:${PORT}`);
 });
 
+const SHUTDOWN_TIMEOUT_MS = 10_000;
+
 function shutdown(): void {
-  server.close(() => {
-    sessionDb.close();
+  let closed = false;
+  function exit(): void {
+    if (closed) return;
+    closed = true;
+    try {
+      sessionDb.close();
+    } catch (err) {
+      console.error('Error closing session DB:', err);
+    }
     // eslint-disable-next-line n/no-process-exit -- intentional graceful shutdown
     process.exit(0);
+  }
+
+  const timeout = setTimeout(() => {
+    console.warn('Shutdown timeout: forcing exit');
+    if (typeof server.closeIdleConnections === 'function') {
+      server.closeIdleConnections();
+    }
+    exit();
+  }, SHUTDOWN_TIMEOUT_MS);
+
+  server.close((err) => {
+    clearTimeout(timeout);
+    if (err) {
+      console.error('Error closing server:', err);
+    }
+    if (typeof server.closeIdleConnections === 'function') {
+      server.closeIdleConnections();
+    }
+    exit();
   });
 }
 process.on('SIGTERM', shutdown);

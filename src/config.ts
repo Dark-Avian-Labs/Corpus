@@ -25,6 +25,8 @@ export const CSV_IMPORT_DIR = path.resolve(
 export const CSV_DELIMITER = (process.env.CSV_DELIMITER ?? ';') as string;
 export const DEBUG_MODE =
   process.env.DEBUG_MODE === 'true' || process.env.DEBUG_MODE === '1';
+export const SECURE_COOKIES =
+  process.env.SECURE_COOKIES === '1' || process.env.SECURE_COOKIES === 'true';
 export const IMPORT_DEFAULT_ADMIN_USERNAME =
   process.env.IMPORT_DEFAULT_ADMIN_USERNAME ?? 'admin';
 export const IMPORT_DEFAULT_ADMIN_PASSWORD =
