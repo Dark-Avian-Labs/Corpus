@@ -29,13 +29,18 @@ const HOST = process.env.HOST ?? '127.0.0.1';
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 const SESSION_SECRET = process.env.SESSION_SECRET ?? 'epic7-tracker-dev-secret';
 const DEV_SESSION_SECRET = 'epic7-tracker-dev-secret';
-if (
-  process.env.NODE_ENV === 'production' &&
-  SESSION_SECRET === DEV_SESSION_SECRET
-) {
-  throw new Error(
-    'Security: Set SESSION_SECRET to a strong random value in production.',
-  );
+const MIN_SESSION_SECRET_LENGTH = 32;
+
+if (process.env.NODE_ENV === 'production') {
+  if (
+    !SESSION_SECRET ||
+    SESSION_SECRET.length < MIN_SESSION_SECRET_LENGTH ||
+    SESSION_SECRET === DEV_SESSION_SECRET
+  ) {
+    throw new Error(
+      'Security: In production, set SESSION_SECRET to a strong random value (at least 32 characters).',
+    );
+  }
 }
 const TRUST_PROXY =
   process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true';

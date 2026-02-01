@@ -24,10 +24,6 @@ let lockoutCacheDirty = false;
 let lockoutCacheLastLoad = 0;
 const LOCKOUT_CACHE_TTL = 5000;
 
-/**
- * Hash a password using argon2id (OWASP recommended)
- * Uses OWASP recommended parameters: 19 MiB memory, 2 iterations, 1 parallelism
- */
 async function hashPassword(password: string): Promise<string> {
   return await argon2.hash(password, {
     type: argon2.argon2id,
@@ -37,9 +33,6 @@ async function hashPassword(password: string): Promise<string> {
   });
 }
 
-/**
- * Verify a password against an argon2 hash
- */
 async function verifyPassword(
   password: string,
   hash: string,
