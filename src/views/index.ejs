@@ -139,10 +139,6 @@
     .table-scroll { max-height: calc(100vh - 280px); overflow-y: auto; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     th, td { padding: 12px 16px; text-align: left; }
-    th:first-child, td.item-name { width: 1%; min-width: 0; }
-    th[data-column-name="Helminth"], td[data-column-name="Helminth"] { width: 150px; }
-    th[data-column-name]:not([data-column-name="Name"]):not([data-column-name="Helminth"]),
-    td[data-column-name]:not([data-column-name="Name"]):not([data-column-name="Helminth"]) { width: 200px; }
     thead { position: sticky; top: 0; z-index: 10; }
     thead th {
         background: rgba(30, 35, 45, 0.92);
@@ -319,9 +315,18 @@
 
     function renderTable() {
         if (!currentData) return;
+        const table = document.querySelector('.table-container table');
         const thead = document.getElementById('table-head');
         const tbody = document.getElementById('table-body');
-        thead.innerHTML = `<tr><th data-column-name="Name">Name</th>${currentData.columns.map(col => `<th data-column-name="${escapeHtml(col.name)}">${escapeHtml(col.name)}</th>`).join('')}</tr>`;
+        const colWidth = (col) => col.name === 'Helminth' ? '150px' : '200px';
+        let colgroup = table.querySelector('colgroup');
+        if (!colgroup) {
+            colgroup = document.createElement('colgroup');
+            table.insertBefore(colgroup, table.firstChild);
+        }
+        colgroup.innerHTML = `<col style="width: auto">${currentData.columns.map(col => `<col style="width: ${colWidth(col)}">`).join('')}`;
+
+        thead.innerHTML = `<tr><th>Name</th>${currentData.columns.map(col => `<th>${escapeHtml(col.name)}</th>`).join('')}</tr>`;
         let rows = currentData.rows;
         if (searchTerm) rows = rows.filter(row => row.name.toLowerCase().includes(searchTerm));
         if (rows.length === 0) {
@@ -330,20 +335,20 @@
         }
         tbody.innerHTML = rows.map(row => `
             <tr data-row-id="${row.id}">
-                <td class="item-name" data-column-name="Name">${escapeHtml(row.name)}</td>
+                <td class="item-name">${escapeHtml(row.name)}</td>
                 ${currentData.columns.map(col => {
                     const value = row.values[col.id] || '';
                     const isHelminth = col.name === 'Helminth';
                     if (isHelminth) {
                         const displayText = value === 'Yes' ? '✓' : '—';
-                        return `<td class="status-cell helminth-cell" data-column-name="Helminth">
+                        return `<td class="status-cell helminth-cell">
                             <button type="button" class="status-btn helminth-btn ${value === 'Yes' ? 'yes' : 'empty'}" data-row-id="${row.id}" data-column-id="${col.id}" data-column-name="Helminth" data-value="${escapeHtml(value)}">${displayText}</button>
                         </td>`;
                     }
                     const statusClass = value.toLowerCase() || 'empty';
                     const isUnavailable = value === 'Unavailable';
                     const displayText = value || '—';
-                    return `<td class="status-cell" data-column-name="${escapeHtml(col.name)}">
+                    return `<td class="status-cell">
                         <button type="button" class="status-btn ${statusClass}" data-row-id="${row.id}" data-column-id="${col.id}" data-column-name="${escapeHtml(col.name)}" data-value="${escapeHtml(value)}" ${isUnavailable ? 'disabled' : ''}>${displayText}</button>
                     </td>`;
                 }).join('')}
