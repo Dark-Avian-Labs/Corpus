@@ -308,13 +308,12 @@ app.post('/login', loginLimiter, redirectIfAuthenticated, async (req, res) => {
     req.session.save((saveErr) => {
       if (saveErr) return res.redirect('/login');
       const nextPath = typeof req.body?.next === 'string' ? req.body.next : '';
+      const allowedPaths = new Set([
+        '/',
+        ...Object.keys(GAME_REGISTRY).map((id) => `/games/${id}`),
+      ]);
       const safeNext =
-        nextPath &&
-        nextPath.startsWith('/') &&
-        !nextPath.startsWith('//') &&
-        !nextPath.includes('\\')
-          ? nextPath
-          : '';
+        nextPath && allowedPaths.has(nextPath.split('?')[0]) ? nextPath : '';
       if (safeNext) return res.redirect(safeNext);
       const games = getGamesForUser(user.id);
       if (games.length === 1) return res.redirect(`/games/${games[0]}`);
