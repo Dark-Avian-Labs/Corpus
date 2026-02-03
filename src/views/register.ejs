@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
-    :root { --text: #e5e7eb; --muted: #9ca3af; --accent: #0ea5e9; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; }
+    :root { --text: #e5e7eb; --muted: #9ca3af; --accent: #0ea5e9; --accent-weak: color-mix(in srgb, var(--accent) 10%, transparent); --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; }
+    <%- include('partials/shared-design-system') %>
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body {
@@ -28,10 +29,6 @@
     }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     h1 { margin: 0; font-size: 1.25rem; }
-    .admin-badge {
-        padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--warning);
-        background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 6px;
-    }
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 14px; }
     .form-group input[type="text"], .form-group input[type="password"] {
@@ -43,11 +40,7 @@
     .form-group-inline { display: flex; align-items: center; gap: 8px; }
     .form-group-inline input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
     .form-group-inline label { margin-bottom: 0; cursor: pointer; }
-    .btn {
-        width: 100%; padding: 12px 16px; font-size: 14px; font-weight: 500; color: var(--text);
-        background: var(--accent); border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s;
-    }
-    .btn:hover { background: #0284c7; }
+    .register-box .btn { width: 100%; font-weight: 500; }
     .error {
         background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
         color: var(--danger); padding: 12px; border-radius: 8px; margin-bottom: 16px;
@@ -72,7 +65,7 @@
                 <span class="admin-badge">ADMIN</span>
             </div>
             <% if (error) { %><div class="error"><%= error %></div><% } %>
-            <% if (success) { %><div class="success"><%= success %></div><% } %>
+            <% if (success) { %><div class="success"><%- success %></div><% } %>
             <form method="POST" action="/register">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <div class="form-group">
@@ -91,7 +84,7 @@
                     <input type="checkbox" id="is_admin" name="is_admin">
                     <label for="is_admin">Grant administrator privileges</label>
                 </div>
-                <button type="submit" class="btn">Create User</button>
+                <button type="submit" class="btn btn-primary">Create User</button>
             </form>
             <div class="links">
                 <a href="/admin">Admin Panel</a>

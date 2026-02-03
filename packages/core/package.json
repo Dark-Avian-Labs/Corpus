@@ -1,0 +1,40 @@
+{
+  "name": "@corpus/core",
+  "version": "2.0.0",
+  "description": "Corpus core: auth, session, central DB, middleware",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "check-format": "prettier --check ."
+  },
+  "dependencies": {
+    "@dotenvx/dotenvx": "^1.51.4",
+    "argon2": "^0.44.0",
+    "better-sqlite3": "^12.6.2",
+    "better-sqlite3-session-store": "^0.1.0",
+    "express": "^5.2.1",
+    "express-session": "^1.18.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/express": "^5.0.6",
+    "@types/express-session": "^1.18.0",
+    "@types/node": "^25.2.0",
+    "typescript": "^5.9.3"
+  },
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "engines": {
+    "node": ">=25.0.0",
+    "npm": ">=11.0.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  }
+}

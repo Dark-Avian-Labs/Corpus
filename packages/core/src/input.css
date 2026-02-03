@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+
+/* Scan root app and game package EJS views (paths relative to this file) */
+@source "../../../src/**/*.{ejs,html,js,ts,jsx,tsx}";
+@source "../../games/warframe/src/**/*.{ejs,html,js,ts,jsx,tsx}";
+@source "../../games/epic7/src/**/*.{ejs,html,js,ts,jsx,tsx}";
+
+/* Per-game theme colors (for use in views via var(--color-*) or utility classes) */
+@theme {
+  --color-warframe-primary: #0ea5e9;
+  --color-warframe-bg: #0b0f14;
+  --color-epic7-primary: #6366f1;
+  --color-epic7-bg: #0f0f23;
+}

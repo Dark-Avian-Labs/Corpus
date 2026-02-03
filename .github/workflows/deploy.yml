@@ -1,4 +1,4 @@
-name: Deploy Warframe Collection Tracker
+name: Deploy Corpus - Game Collection Tracker
 
 permissions:
   contents: read
@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'packages/**'
       - 'scripts/**'
       - 'package*.json'
       - 'ecosystem.config.cjs'
@@ -19,7 +20,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -33,11 +33,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build TypeScript
+      - name: Build project
         run: npm run build
 
       - name: List built files (debug)
-        run: ls -la dist/
+        run: |
+          ls -la dist/
+          if [ -d dist/static ]; then ls -la dist/static/; fi
 
       - name: Setup SSH
         run: |
@@ -70,7 +72,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "cd ${{ secrets.SERVER_PATH }} && source ~/.nvm/nvm.sh && pm2 restart 'Warframe Collection' --update-env"
+            "cd ${{ secrets.SERVER_PATH }} && source ~/.nvm/nvm.sh && pm2 restart 'Corpus' --update-env"
 
       - name: Cleanup SSH key
         if: always()

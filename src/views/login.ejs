@@ -7,10 +7,11 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
     :root {
-        --bg: #0b0f14;
         --text: #e5e7eb;
         --muted: #9ca3af;
         --accent: #0ea5e9;
+        --accent-weak: color-mix(in srgb, var(--accent) 10%, transparent);
+        --accent-weak-border: color-mix(in srgb, var(--accent) 30%, transparent);
         --danger: #ef4444;
     }
     * { box-sizing: border-box; }
@@ -73,20 +74,10 @@
     }
     .form-group input:focus { border-color: var(--accent); }
     .form-group input:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn {
-        width: 100%;
-        padding: 12px 16px;
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--text);
-        background: var(--accent);
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-    .btn:hover:not(:disabled) { background: #0284c7; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    <%- include('partials/shared-design-system') %>
+    .login-box .btn { width: 100%; font-weight: 500; }
+    .login-box .btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+    .login-box .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .error {
         background: rgba(239, 68, 68, 0.1);
         border: 1px solid rgba(239, 68, 68, 0.3);
@@ -98,8 +89,8 @@
         text-align: center;
     }
     .info-box {
-        background: rgba(14,165,233,0.1);
-        border: 1px solid rgba(14,165,233,0.3);
+        background: var(--accent-weak);
+        border: 1px solid var(--accent-weak-border);
         color: var(--accent);
         padding: 12px;
         border-radius: 8px;
@@ -134,13 +125,13 @@
                     <label for="password">Password</label>
                     <input type="password" id="password" name="password" required <%= lockedOut ? 'disabled' : '' %> autocomplete="current-password">
                 </div>
-                <button type="submit" class="btn" <%= lockedOut ? 'disabled' : '' %>>Log In</button>
+                <button type="submit" class="btn btn-primary" <%= lockedOut ? 'disabled' : '' %>>Log In</button>
             </form>
             <% if (lockedOut) { %>
             <div class="lockout-timer">
                 Locked out. Try again in <span id="countdown"><%= Math.ceil(lockoutRemaining / 60) %></span> minute(s).
             </div>
-            <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
+            <script<% if (typeof cspNonce !== 'undefined' && cspNonce) { %> nonce="<%= cspNonce %>"<% } %>>
                 let remaining = <%= lockoutRemaining %>;
                 const countdown = document.getElementById('countdown');
                 const interval = setInterval(() => {

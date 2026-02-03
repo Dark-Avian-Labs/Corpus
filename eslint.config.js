@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', '*.php', 'tests/**', '*.cjs'],
+    ignores: ['**/dist/**', '**/node_modules/**', '*.php', 'tests/**', '*.cjs'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
@@ -115,7 +115,7 @@ export default [
     },
   },
   {
-    files: ['src/scripts/**'],
+    files: ['src/scripts/**', '**/scripts/**/*.mjs'],
     rules: { 'n/no-process-exit': 'off' },
   },
 ];

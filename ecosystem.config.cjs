@@ -3,7 +3,7 @@ const path = require('path');
 module.exports = {
   apps: [
     {
-      name: 'Warframe Collection',
+      name: 'Corpus',
       script: './dist/index.js',
       cwd: path.dirname(__filename),
       interpreter: 'node',

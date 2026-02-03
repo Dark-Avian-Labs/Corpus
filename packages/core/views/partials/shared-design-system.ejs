@@ -1,0 +1,57 @@
+/* ==========================================================================
+   Corpus design system – single source of truth for all games.
+   Set :root { --accent, --accent-weak, --muted, --text, --danger, --danger-rgb, --warning }
+   per app. --danger-rgb = comma-separated R,G,B (e.g. 239, 68, 68) for rgba() use. New games: include this partial once; use only these classes.
+
+   Classes:
+   - .btn .btn-primary or .btn .btn-accent  → accent (primary) button
+   - .btn .btn-secondary                    → normal/secondary button
+   - .btn .btn-danger                       → danger button
+   - .btn .btn-cancel                       → cancel/neutral
+   - .btn .btn-sm                           → small variant
+   - .header-link                           → header nav (add .active for accent)
+   - .header-link-form                      → wrapper for form in header
+   - .badge / .admin-badge                  → badge (admin uses .admin-badge)
+   ========================================================================== */
+
+/* --- Buttons (base) --- */
+.btn{padding:0 16px;font-size:14px;line-height:1.2;height:40px;box-sizing:border-box;border:1px solid rgba(255,255,255,0.08);border-radius:1rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;font-family:inherit}
+.btn:focus{outline:2px solid var(--accent);outline-offset:2px}
+.btn:focus:not(:focus-visible){outline:none}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;box-sizing:border-box}
+
+/* Accent button (primary action – Add Hero, Done Editing active state, etc.) */
+.btn-primary,.btn-accent{color:var(--accent);background:var(--accent-weak);border-color:var(--accent)}
+.btn-primary:hover,.btn-accent:hover{background:color-mix(in srgb, var(--accent) 20%, transparent);border-color:var(--accent);color:var(--accent)}
+
+/* Normal/secondary button */
+.btn-secondary{color:var(--muted);background:transparent}
+.btn-secondary:hover{color:var(--text);border-color:rgba(255,255,255,0.2)}
+
+/* Danger button (background/border use --danger-rgb so changing --danger updates all) */
+.btn-danger{color:var(--danger, #ef4444);background:rgba(var(--danger-rgb, 239, 68, 68), 0.1);border-color:rgba(var(--danger-rgb, 239, 68, 68), 0.3)}
+.btn-danger:hover{background:rgba(var(--danger-rgb, 239, 68, 68), 0.2)}
+
+/* Cancel / neutral */
+.btn-cancel{color:var(--muted);background:transparent;border:1px solid rgba(255,255,255,0.1)}
+.btn-cancel:hover{color:var(--text);border-color:rgba(255,255,255,0.2)}
+
+/* Small button */
+.btn-sm{padding:5px 10px;font-size:12px;height:auto;border-radius:6px}
+
+/* --- Header links (tracker header: Edit Mode, Corpus, Admin, Logout) --- */
+.header-link{padding:0 16px;font-size:14px;line-height:1.2;height:40px;box-sizing:border-box;display:inline-flex;align-items:center;color:var(--muted);text-decoration:none;border:1px solid rgba(255,255,255,0.08);border-radius:1rem;transition:all .2s;background:transparent;font-family:inherit;cursor:pointer}
+.header-link:hover{color:var(--text);border-color:rgba(255,255,255,0.2)}
+.header-link.active{color:var(--accent);border-color:var(--accent);background:var(--accent-weak)}
+.header-link.active:hover{background:color-mix(in srgb, var(--accent) 20%, transparent);border-color:var(--accent);color:var(--accent)}
+.header-link:focus-visible,.header-link.active:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:1rem;box-sizing:border-box}
+.header-link:focus-visible{color:var(--text);border-color:rgba(255,255,255,0.3)}
+.header-link.active:focus-visible{color:var(--accent);border-color:var(--accent);background:var(--accent-weak)}
+.header-link-form{margin:0;padding:0;display:inline}
+
+/* --- Badge (e.g. ADMIN label) – align with title text in header --- */
+.badge,.admin-badge{padding:4px 10px;font-size:12px;font-weight:600;border-radius:6px;line-height:1}
+.admin-badge{color:var(--warning);background:color-mix(in srgb, var(--warning) 15%, transparent);border:1px solid color-mix(in srgb, var(--warning) 30%, transparent)}
+/* Header left block: title + badge vertically centered with each other */
+.header-left{display:flex;align-items:center;gap:12px}
+.header-left h1{margin:0;line-height:1.3}

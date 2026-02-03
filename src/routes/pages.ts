@@ -1,6 +1,5 @@
-import { Application, Request, Response } from 'express';
+import { Application, NextFunction, Request, Response } from 'express';
 import fs from 'fs';
-import path from 'path';
 
 import {
   attemptLogin,
@@ -20,44 +19,23 @@ import {
   loginLimiter,
   adminLimiter,
 } from '../middleware/rateLimit.js';
-
-function getBackgroundArt(): string {
-  const distPath = path.join(process.cwd(), 'dist', 'background.txt');
-  const rootPath = path.join(process.cwd(), 'background.txt');
-
-  const backgroundPath = fs.existsSync(distPath) ? distPath : rootPath;
-
-  if (!fs.existsSync(backgroundPath)) return '';
-  try {
-    return fs.readFileSync(backgroundPath, 'utf-8');
-  } catch {
-    return '';
-  }
-}
-
-function esc(s: unknown): string {
-  if (s == null) return '';
-  const str = String(s);
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
+import { escapeHtml } from '../escapeHtml.js';
 
 function dbExists(): boolean {
   return fs.existsSync(SQLITE_DB_PATH);
 }
 
-export function registerPageRoutes(app: Application): void {
-  const art = getBackgroundArt();
+function getArt(res: Response): string {
+  return res.locals.art ?? '';
+}
 
+export function registerPageRoutes(app: Application): void {
   app.get(
     '/login',
     generalLimiter,
     redirectIfAuthenticated,
     (req: Request, res: Response) => {
+      const art = getArt(res);
       const ip = getClientIP(req);
       const lockedOut = isLockedOut(ip);
       const lockoutRemaining = getLockoutRemaining(ip);
@@ -69,7 +47,7 @@ export function registerPageRoutes(app: Application): void {
         lockoutRemaining,
         dbExists: dbExists(),
         csrfToken: res.locals.csrfToken ?? '',
-        esc,
+        esc: escapeHtml,
       });
     },
   );
@@ -79,6 +57,7 @@ export function registerPageRoutes(app: Application): void {
     loginLimiter,
     redirectIfAuthenticated,
     async (req: Request, res: Response) => {
+      const art = getArt(res);
       const ip = getClientIP(req);
       const lockedOut = isLockedOut(ip);
       const lockoutRemaining = getLockoutRemaining(ip);
@@ -92,7 +71,7 @@ export function registerPageRoutes(app: Application): void {
           lockoutRemaining,
           dbExists: dbExists(),
           csrfToken: res.locals.csrfToken ?? '',
-          esc,
+          esc: escapeHtml,
         });
       }
 
@@ -113,7 +92,7 @@ export function registerPageRoutes(app: Application): void {
             lockoutRemaining: 0,
             dbExists: dbExists(),
             csrfToken: res.locals.csrfToken ?? '',
-            esc,
+            esc: escapeHtml,
           });
 
         req.session.regenerate((err) => {
@@ -149,7 +128,7 @@ export function registerPageRoutes(app: Application): void {
         lockoutRemaining: getLockoutRemaining(ip),
         dbExists: dbExists(),
         csrfToken: res.locals.csrfToken ?? '',
-        esc,
+        esc: escapeHtml,
       });
     },
   );
@@ -165,25 +144,40 @@ export function registerPageRoutes(app: Application): void {
     },
   );
 
-  app.get('/', generalLimiter, requireAuth, (req: Request, res: Response) => {
-    res.render('index', {
-      appName: APP_NAME,
-      art,
-      isAdmin: Boolean(req.session.is_admin),
-      esc,
-      csrfToken: res.locals.csrfToken ?? '',
-    });
-  });
+  app.get(
+    '/',
+    generalLimiter,
+    requireAuth,
+    (req: Request, res: Response, next: NextFunction) => {
+      const csrfToken = res.locals.csrfToken;
+      if (typeof csrfToken !== 'string' || csrfToken === '') {
+        return next(
+          new Error(
+            'CSRF token missing: index view requires a valid csrfToken.',
+          ),
+        );
+      }
+      const art = getArt(res);
+      res.render('index', {
+        appName: APP_NAME,
+        art,
+        isAdmin: Boolean(req.session.is_admin),
+        esc: escapeHtml,
+        csrfToken,
+      });
+    },
+  );
 
   app.get(
     '/admin',
     adminLimiter,
     requireAdmin,
     (req: Request, res: Response) => {
+      const art = getArt(res);
       res.render('admin', {
         appName: APP_NAME,
         art,
-        esc,
+        esc: escapeHtml,
         csrfToken: res.locals.csrfToken ?? '',
       });
     },
@@ -194,6 +188,7 @@ export function registerPageRoutes(app: Application): void {
     adminLimiter,
     requireAdmin,
     (req: Request, res: Response) => {
+      const art = getArt(res);
       res.render('register', {
         appName: APP_NAME,
         art,
@@ -209,6 +204,7 @@ export function registerPageRoutes(app: Application): void {
     adminLimiter,
     requireAdmin,
     async (req: Request, res: Response) => {
+      const art = getArt(res);
       const username = String(req.body?.username ?? '').trim();
       const password = String(req.body?.password ?? '');
       const confirmPassword = String(req.body?.confirm_password ?? '');
@@ -224,7 +220,7 @@ export function registerPageRoutes(app: Application): void {
       } else {
         const result = await createUser(username, password, isAdminUser);
         if (result.success) {
-          success = `User '${esc(username)}' created successfully!`;
+          success = `User '${escapeHtml(username)}' created successfully!`;
         } else {
           error = result.error;
         }

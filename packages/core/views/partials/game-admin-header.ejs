@@ -1,0 +1,28 @@
+<header>
+    <div class="header-left">
+        <h1><%= typeof pageTitle !== 'undefined' ? pageTitle : (typeof appName !== 'undefined' ? appName : '') %></h1>
+        <span class="admin-badge">ADMIN</span>
+    </div>
+    <div class="header-actions">
+        <% if (typeof corpusAdmin !== 'undefined' && corpusAdmin) { %>
+        <a href="<%= typeof basePath !== 'undefined' && basePath ? basePath + '/register' : '/register' %>" class="btn btn-primary">+ Create user</a>
+        <a href="<%= typeof basePath !== 'undefined' && basePath ? basePath + '/' : '/' %>" class="btn btn-secondary">Game picker</a>
+        <% } else { %>
+        <% if (typeof showExtraActions !== 'undefined' && showExtraActions) { %>
+        <button type="button" class="btn btn-primary" id="add-btn">+ Add Item</button>
+        <div class="search-wrapper">
+            <input type="text" class="search-box" id="search" placeholder="Search..." aria-label="Search games">
+            <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">×</button>
+        </div>
+        <% } %>
+        <% } %>
+        <a href="<%= typeof basePath !== 'undefined' && basePath ? basePath : '/' %>" class="btn btn-secondary"><%= typeof backToLabel !== 'undefined' ? backToLabel : 'Back to View' %></a>
+        <a href="<%= typeof basePath !== 'undefined' && basePath ? basePath + '/admin' : '/admin' %>" class="btn btn-secondary">Corpus Admin</a>
+        <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
+        <form method="POST" action="<%= typeof basePath !== 'undefined' && basePath ? basePath : '' %>/logout" class="inline-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit" class="btn btn-secondary">Logout</button>
+        </form>
+        <% } %>
+    </div>
+</header>

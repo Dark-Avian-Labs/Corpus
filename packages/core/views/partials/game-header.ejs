@@ -1,0 +1,29 @@
+<header>
+    <h1><%= typeof pageTitle !== 'undefined' ? pageTitle : (typeof appName !== 'undefined' ? appName : '') %></h1>
+    <div class="header-actions">
+        <% if (typeof showAccountSelector !== 'undefined' && showAccountSelector) { %>
+        <div class="account-selector">
+            <button class="account-btn" id="account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="account-dropdown"><span id="current-account-name">Loading...</span></button>
+            <div class="account-dropdown" id="account-dropdown" role="menu" aria-hidden="true">
+                <div id="account-list"></div>
+                <div class="account-dropdown-divider"></div>
+                <div class="account-dropdown-action" id="manage-accounts-btn" role="menuitem">Manage Accounts</div>
+            </div>
+        </div>
+        <% } %>
+        <button type="button" class="header-link" id="edit-mode-btn">Edit Mode</button>
+        <button type="button" class="header-link" id="add-item-btn">+ Add Item</button>
+        <div class="search-wrapper">
+            <input type="text" class="search-box" id="search" aria-label="Search" placeholder="<%= typeof searchPlaceholder !== 'undefined' ? searchPlaceholder : 'Search...' %>">
+            <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">×</button>
+        </div>
+        <a href="/" class="header-link">Corpus</a>
+        <% if (typeof isAdmin !== 'undefined' && isAdmin) { %><a href="<%= typeof basePath !== 'undefined' && basePath ? basePath + '/admin' : '/admin' %>" class="header-link">Admin</a><% } %>
+        <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
+        <form method="POST" action="/logout" class="header-link-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit" class="header-link">Logout</button>
+        </form>
+        <% } %>
+    </div>
+</header>
