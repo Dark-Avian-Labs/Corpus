@@ -318,9 +318,7 @@ app.post('/login', loginLimiter, redirectIfAuthenticated, async (req, res) => {
         !nextPathOnly.startsWith('//') &&
         !nextPathOnly.includes('://');
       const safeNext =
-        rawNext && isRelativePath && allowedPaths.has(nextPathOnly)
-          ? rawNext
-          : '';
+        isRelativePath && allowedPaths.has(nextPathOnly) ? nextPathOnly : '';
       if (safeNext) return res.redirect(safeNext);
       const games = getGamesForUser(user.id);
       if (games.length === 1) return res.redirect(`/games/${games[0]}`);
