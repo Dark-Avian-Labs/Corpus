@@ -77,8 +77,7 @@ async function init() {
     artifactCancel.addEventListener('click', () => {
       if (artifactModal) artifactModal.classList.remove('active');
     });
-  if (artifactForm)
-    artifactForm.addEventListener('submit', handleAddArtifact);
+  if (artifactForm) artifactForm.addEventListener('submit', handleAddArtifact);
   if (artifactModal)
     artifactModal.addEventListener('click', (e) => {
       if (e.target.id === 'artifact-modal')

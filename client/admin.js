@@ -20,7 +20,9 @@
     document.body.appendChild(toast);
     setTimeout(function () {
       toast.style.opacity = '0';
-      setTimeout(function () { toast.remove(); }, 400);
+      setTimeout(function () {
+        toast.remove();
+      }, 400);
     }, 3500);
   }
 
@@ -48,22 +50,26 @@
             enabled,
           }),
         })
-          .then(function (r) {
-            if (!r.ok) {
+          .then(
+            function (r) {
+              if (!r.ok) {
+                this.checked = !enabled;
+                showAdminToast(
+                  `Failed to update game access (HTTP ${r.status}). Change reverted.`,
+                  true,
+                );
+              }
+            }.bind(this),
+          )
+          .catch(
+            function () {
               this.checked = !enabled;
               showAdminToast(
-                `Failed to update game access (HTTP ${r.status}). Change reverted.`,
+                'Network error – could not persist game access change. Change reverted.',
                 true,
               );
-            }
-          }.bind(this))
-          .catch(function () {
-            this.checked = !enabled;
-            showAdminToast(
-              'Network error – could not persist game access change. Change reverted.',
-              true,
-            );
-          }.bind(this));
+            }.bind(this),
+          );
       });
     });
   document.querySelectorAll('.btn-delete-user').forEach(function (btn) {
