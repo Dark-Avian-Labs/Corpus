@@ -315,7 +315,6 @@
     overflow: hidden;
     box-shadow: var(--shadow-panel);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
   }
 
   .table-scroll {
@@ -360,7 +359,6 @@
   thead th {
     background: var(--color-surface-thead);
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     color: var(--color-muted);
     font-weight: 600;
     border-bottom: 1px solid var(--color-glass-border);
@@ -399,7 +397,6 @@
     border-radius: 1rem;
     padding: 6px;
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
   }
 
   .tab {
@@ -453,7 +450,6 @@
     outline: none;
     width: 200px;
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     font-family: inherit;
   }
 
@@ -1010,6 +1006,7 @@
   }
 
   .stars-cell img {
+    display: inline;
     vertical-align: middle;
     margin-right: 2px;
     width: 28px;
@@ -1061,7 +1058,6 @@
     padding: 20px;
     margin-bottom: 20px;
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
   }
 
   .panel-header {
@@ -1086,7 +1082,6 @@
     border-radius: 1rem;
     padding: 32px;
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
   }
 
   .auth-card .btn {
