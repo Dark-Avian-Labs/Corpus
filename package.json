@@ -1,7 +1,7 @@
 {
   "name": "corpus",
-  "version": "2.0.0",
-  "description": "Corpus – game collection tracker",
+  "version": "2.1.0",
+  "description": "Corpus - game collection tracker",
   "private": true,
   "scripts": {
     "build": "npm run build --workspaces --if-present && tsc && node scripts/copy-all-views.mjs && npm run build:tailwind && node scripts/copy-tailwind-static.mjs",
@@ -17,9 +17,9 @@
     "packages/games/epic7"
   ],
   "dependencies": {
-    "@corpus/core": "2.0.0",
-    "@corpus/game-epic7": "2.0.0",
-    "@corpus/game-warframe": "2.0.0",
+    "@corpus/core": "2.1.0",
+    "@corpus/game-epic7": "2.1.0",
+    "@corpus/game-warframe": "2.1.0",
     "cookie-parser": "^1.4.7",
     "csrf-sync": "^4.2.1",
     "express": "^5.2.1",
