@@ -57,6 +57,6 @@
         </div>
     </div>
     <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">window.WARFRAME_CONFIG={apiUrl:'<%= typeof basePath !== "undefined" && basePath ? basePath + "/api" : "/api" %>',csrfToken:document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')||''};</script>
-    <script src="<%= typeof basePath !== 'undefined' && basePath ? basePath : '' %>/assets/js/warframe-index.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
+    <script src="/static/js/warframe-index.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
 </body>
 </html>

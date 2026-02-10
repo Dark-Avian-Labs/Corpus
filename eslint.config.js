@@ -13,7 +13,6 @@ export default [
   ...tseslint.configs.recommended,
   n.configs['flat/recommended'],
   promise.configs['flat/recommended'],
-  prettier,
   {
     plugins: {
       import: importPlugin,
@@ -47,7 +46,7 @@ export default [
       'comma-dangle': ['error', 'always-multiline'],
       'comma-spacing': 'error',
       'comma-style': 'error',
-      curly: ['error', 'multi-line', 'consistent'],
+      curly: ['error', 'all'],
       'dot-location': ['error', 'property'],
       'handle-callback-err': 'off',
 
@@ -118,4 +117,5 @@ export default [
     files: ['src/scripts/**', '**/scripts/**/*.mjs'],
     rules: { 'n/no-process-exit': 'off' },
   },
+  prettier,
 ];

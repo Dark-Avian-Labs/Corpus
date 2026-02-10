@@ -1,12 +1,15 @@
 {
   "name": "corpus",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Corpus - game collection tracker",
   "private": true,
   "scripts": {
-    "build": "npm run build --workspaces --if-present && tsc && node scripts/copy-all-views.mjs && npm run build:tailwind && node scripts/copy-tailwind-static.mjs",
-    "build:tailwind": "node packages/core/scripts/build-tailwind.mjs",
+    "build": "npm run build --workspaces --if-present && tsc && node scripts/copy-all-views.mjs && vite build",
+    "build:client": "vite build",
+    "dev:client": "vite build --watch",
     "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
     "check-format": "prettier --check ."
@@ -17,9 +20,9 @@
     "packages/games/epic7"
   ],
   "dependencies": {
-    "@corpus/core": "2.1.0",
-    "@corpus/game-epic7": "2.1.0",
-    "@corpus/game-warframe": "2.1.0",
+    "@corpus/core": "2.2.0",
+    "@corpus/game-epic7": "2.2.0",
+    "@corpus/game-warframe": "2.2.0",
     "cookie-parser": "^1.4.7",
     "csrf-sync": "^4.2.1",
     "express": "^5.2.1",
@@ -28,8 +31,10 @@
     "helmet": "^8.1.0"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.1.18",
+    "@tailwindcss/vite": "^4.1.18",
     "tailwindcss": "^4.1.18",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18",
     "@types/cookie-parser": "^1.4.7",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.18.0",

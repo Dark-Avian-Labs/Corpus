@@ -32,12 +32,20 @@ import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { validateBody } from '@corpus/core/validation';
+
 import { escapeHtml } from './escapeHtml.js';
 import {
   generalLimiter,
   loginLimiter,
   adminLimiter,
 } from './middleware/rateLimit.js';
+import {
+  gameAccessSchema,
+  deleteUserSchema,
+  loginSchema,
+  registerSchema,
+} from './validation.js';
 
 const require = createRequire(import.meta.url);
 const SQLiteStore = require('better-sqlite3-session-store')(session);
@@ -268,27 +276,10 @@ app.get('/login', generalLimiter, redirectIfAuthenticated, (req, res) => {
 
 app.post('/login', loginLimiter, redirectIfAuthenticated, async (req, res) => {
   const ip = getClientIP(req);
-  if (isLockedOut(ip)) {
-    const nextUrl = typeof req.body?.next === 'string' ? req.body.next : '';
-    return res.render('login', {
+  const renderLogin = (error: string, nextUrl = '') =>
+    res.render('login', {
       appName: APP_NAME,
-      error: 'Too many failed attempts. Try again later.',
-      lockedOut: true,
-      lockoutRemaining: getLockoutRemaining(ip),
-      dbExists: fs.existsSync(CENTRAL_DB_PATH),
-      csrfToken: (res.locals as { csrfToken?: string }).csrfToken ?? '',
-      next: nextUrl,
-      esc: escapeHtml,
-    });
-  }
-  const username = String(req.body?.username ?? '').trim();
-  const password = String(req.body?.password ?? '');
-  const result = await attemptLogin(username, password, ip);
-  if (!result.success || !result.user) {
-    const nextUrl = typeof req.body?.next === 'string' ? req.body.next : '';
-    return res.render('login', {
-      appName: APP_NAME,
-      error: result.success ? 'Invalid login.' : result.error,
+      error,
       lockedOut: isLockedOut(ip),
       lockoutRemaining: getLockoutRemaining(ip),
       dbExists: fs.existsSync(CENTRAL_DB_PATH),
@@ -296,7 +287,28 @@ app.post('/login', loginLimiter, redirectIfAuthenticated, async (req, res) => {
       next: nextUrl,
       esc: escapeHtml,
     });
+
+  if (isLockedOut(ip)) {
+    return renderLogin(
+      'Too many failed attempts. Try again later.',
+      typeof req.body?.next === 'string' ? req.body.next : '',
+    );
   }
+
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return renderLogin('Username and password are required.');
+  }
+
+  const { username, password, next: nextUrl } = parsed.data;
+  const result = await attemptLogin(username, password, ip);
+  if (!result.success || !result.user) {
+    return renderLogin(
+      result.success ? 'Invalid login.' : (result.error ?? ''),
+      nextUrl,
+    );
+  }
+
   const user = result.user;
   req.session.regenerate((err) => {
     if (err) return res.redirect('/login');
@@ -307,12 +319,11 @@ app.post('/login', loginLimiter, redirectIfAuthenticated, async (req, res) => {
     (req.session as { is_admin?: boolean }).is_admin = Boolean(user.is_admin);
     req.session.save((saveErr) => {
       if (saveErr) return res.redirect('/login');
-      const rawNext = typeof req.body?.next === 'string' ? req.body.next : '';
       const allowedPaths = new Set([
         '/',
         ...Object.keys(GAME_REGISTRY).map((id) => `/games/${id}`),
       ]);
-      const nextPathOnly = rawNext.split('?')[0];
+      const nextPathOnly = nextUrl.split('?')[0];
       const isRelativePath =
         nextPathOnly.startsWith('/') &&
         !nextPathOnly.startsWith('//') &&
@@ -374,27 +385,12 @@ app.get('/admin', adminLimiter, requireAdmin, (req, res) => {
 });
 
 app.post('/admin/game-access', adminLimiter, requireAdmin, (req, res) => {
-  const userId = parseInt(String(req.body?.user_id ?? 0), 10);
-  const gameId = String(req.body?.game_id ?? '').trim();
-  const rawEnabled = req.body?.enabled;
-  let enabled: boolean;
-  if (rawEnabled === undefined || rawEnabled === null) {
-    enabled = false;
-  } else if (typeof rawEnabled === 'boolean') {
-    enabled = rawEnabled;
-  } else if (typeof rawEnabled === 'number') {
-    enabled = rawEnabled !== 0;
-  } else {
-    const s = String(rawEnabled).toLowerCase().trim();
-    enabled = s === 'true' || s === 'on' || s === '1';
-  }
-  if (userId <= 0 || !gameId) {
-    return res.status(400).json({ error: 'user_id and game_id required' });
-  }
-  if (!(gameId in GAME_REGISTRY)) {
+  const data = validateBody(gameAccessSchema, req.body, res);
+  if (!data) return;
+  if (!(data.game_id in GAME_REGISTRY)) {
     return res.status(400).json({ error: 'Invalid game_id' });
   }
-  const changed = setUserGameAccess(userId, gameId, enabled);
+  const changed = setUserGameAccess(data.user_id, data.game_id, data.enabled);
   res.json({ success: true, changed });
 });
 
@@ -403,11 +399,9 @@ app.post('/admin/delete-user', adminLimiter, requireAdmin, (req, res) => {
   if (typeof currentUserId !== 'number' || currentUserId <= 0) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
-  const targetUserId = parseInt(String(req.body?.user_id ?? 0), 10);
-  if (targetUserId <= 0) {
-    return res.status(400).json({ error: 'user_id required' });
-  }
-  const result = deleteUser(currentUserId, targetUserId);
+  const data = validateBody(deleteUserSchema, req.body, res);
+  if (!data) return;
+  const result = deleteUser(currentUserId, data.user_id);
   if (result.success) {
     return res.json({ success: true });
   }
@@ -424,18 +418,27 @@ app.get('/register', adminLimiter, requireAdmin, (req, res) => {
 });
 
 app.post('/register', adminLimiter, requireAdmin, async (req, res) => {
-  const username = String(req.body?.username ?? '').trim();
-  const password = String(req.body?.password ?? '');
-  const confirmPassword = String(req.body?.confirm_password ?? '');
-  const isAdminUser = Boolean(req.body?.is_admin);
+  const parsed = registerSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const firstError =
+      parsed.error.issues[0]?.message || 'All fields are required.';
+    return res.render('register', {
+      appName: APP_NAME,
+      error: firstError,
+      success: '',
+      username: String(req.body?.username ?? ''),
+      csrfToken: (res.locals as { csrfToken?: string }).csrfToken ?? '',
+    });
+  }
+
+  const { username, password, confirm_password, is_admin } = parsed.data;
   let error = '';
   let success = '';
-  if (!username || !password) {
-    error = 'Username and password are required.';
-  } else if (password !== confirmPassword) {
+
+  if (password !== confirm_password) {
     error = 'Passwords do not match.';
   } else {
-    const result = await createUser(username, password, isAdminUser);
+    const result = await createUser(username, password, is_admin);
     if (result.success) {
       const safeUsername = escapeHtml(username);
       success = `User '${safeUsername}' created.`;
@@ -443,6 +446,7 @@ app.post('/register', adminLimiter, requireAdmin, async (req, res) => {
       error = result.error;
     }
   }
+
   res.render('register', {
     appName: APP_NAME,
     error,

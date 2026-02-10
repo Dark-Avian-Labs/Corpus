@@ -1,4 +1,5 @@
 import { isAdmin } from '@corpus/core';
+import { validateBody } from '@corpus/core/validation';
 import type { Request, Response } from 'express';
 import fs from 'fs';
 
@@ -9,6 +10,13 @@ import {
   VALID_STATUSES,
   WARFRAME_DB_PATH,
 } from '../config.js';
+import {
+  addRowSchema,
+  adminUpdateSchema,
+  deleteRowSchema,
+  editRowSchema,
+  updateSchema,
+} from './validation.js';
 import * as q from '../db/queries.js';
 import { getDb } from '../db/schema.js';
 
@@ -163,18 +171,9 @@ export async function handleUpdate(req: Request, res: Response): Promise<void> {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
-  const body = req.body as {
-    row_id?: number;
-    column_id?: number;
-    value?: string;
-  };
-  const rowId = parseInt(String(body?.row_id ?? 0), 10);
-  const columnId = parseInt(String(body?.column_id ?? 0), 10);
-  const value = String(body?.value ?? '').trim();
-  if (rowId <= 0 || columnId <= 0) {
-    jsonError(res, 'Invalid row_id or column_id.');
-    return;
-  }
+  const data = validateBody(updateSchema, req.body, res);
+  if (!data) return;
+  const { row_id: rowId, column_id: columnId, value } = data;
   const db = await getDbOrFail(res);
   if (!db) return;
   try {
@@ -223,22 +222,13 @@ export async function handleAddRow(req: Request, res: Response): Promise<void> {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
-  const body = req.body as {
-    worksheet_id?: number;
-    item_name?: string;
-    values?: Record<string, string>;
-  };
-  const worksheetId = parseInt(String(body?.worksheet_id ?? 0), 10);
-  const itemName = String(body?.item_name ?? '').trim();
-  const valuesRaw = (body?.values ?? {}) as Record<string, string>;
-  if (worksheetId <= 0) {
-    jsonError(res, 'Invalid worksheet_id.');
-    return;
-  }
-  if (!itemName) {
-    jsonError(res, 'Item name is required.');
-    return;
-  }
+  const data = validateBody(addRowSchema, req.body, res);
+  if (!data) return;
+  const {
+    worksheet_id: worksheetId,
+    item_name: itemName,
+    values: valuesRaw,
+  } = data;
   const db = await getDbOrFail(res);
   if (!db) return;
   try {
@@ -271,19 +261,9 @@ export async function handleEditRow(
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
-  const body = req.body as {
-    row_id?: number;
-    item_name?: string;
-    values?: Record<string, string>;
-  };
-  const rowId = parseInt(String(body?.row_id ?? 0), 10);
-  const itemName =
-    body?.item_name != null ? String(body.item_name).trim() : null;
-  const valuesRaw = (body?.values ?? {}) as Record<string, string>;
-  if (rowId <= 0) {
-    jsonError(res, 'Invalid row_id.');
-    return;
-  }
+  const data = validateBody(editRowSchema, req.body, res);
+  if (!data) return;
+  const { row_id: rowId, item_name: itemName, values: valuesRaw } = data;
   const db = await getDbOrFail(res);
   if (!db) return;
   try {
@@ -321,12 +301,9 @@ export async function handleDeleteRow(
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
-  const body = req.body as { row_id?: number };
-  const rowId = parseInt(String(body?.row_id ?? 0), 10);
-  if (rowId <= 0) {
-    jsonError(res, 'Invalid row_id.');
-    return;
-  }
+  const data = validateBody(deleteRowSchema, req.body, res);
+  if (!data) return;
+  const { row_id: rowId } = data;
   const db = await getDbOrFail(res);
   if (!db) return;
   try {
@@ -354,18 +331,9 @@ export async function handleAdminUpdate(
     res.status(403).json({ error: 'Forbidden' });
     return;
   }
-  const body = req.body as {
-    row_id?: number;
-    column_id?: number;
-    value?: string;
-  };
-  const rowId = parseInt(String(body?.row_id ?? 0), 10);
-  const columnId = parseInt(String(body?.column_id ?? 0), 10);
-  const value = String(body?.value ?? '').trim();
-  if (rowId <= 0 || columnId <= 0) {
-    jsonError(res, 'Invalid row_id or column_id.');
-    return;
-  }
+  const data = validateBody(adminUpdateSchema, req.body, res);
+  if (!data) return;
+  const { row_id: rowId, column_id: columnId, value } = data;
   const db = await getDbOrFail(res);
   if (!db) return;
   try {

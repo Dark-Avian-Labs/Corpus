@@ -2,9 +2,11 @@
 
 /* Scan all EJS / HTML / JS / TS across the monorepo */
 @source "../../../src/**/*.{ejs,html,js,ts,jsx,tsx}";
+@source "../../../client/**/*.{js,ts,jsx,tsx}";
 @source "../../games/warframe/src/**/*.{ejs,html,js,ts,jsx,tsx}";
 @source "../../games/warframe/assets/**/*.{js,ts,jsx,tsx}";
 @source "../../games/epic7/src/**/*.{ejs,html,js,ts,jsx,tsx}";
+@source "../../games/epic7/assets/**/*.{js,ts,jsx,tsx}";
 @source "../views/**/*.{ejs,html}";
 
 /* ==========================================================================

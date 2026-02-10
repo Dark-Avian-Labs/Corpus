@@ -10,9 +10,11 @@ on:
       - 'src/**'
       - 'packages/**'
       - 'scripts/**'
+      - 'client/**'
       - 'package*.json'
       - 'ecosystem.config.cjs'
       - 'tsconfig.json'
+      - 'vite.config.ts'
       - 'favicon.ico'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
@@ -48,25 +50,27 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to server
+      - name: Prepare deployment
         run: |
           mkdir -p /tmp/deploy
           cp -r dist/ /tmp/deploy/
           cp -r packages/ /tmp/deploy/
           cp package*.json /tmp/deploy/
-          cp -r node_modules/ /tmp/deploy/
           cp ecosystem.config.cjs /tmp/deploy/
           if [ -f favicon.ico ]; then cp favicon.ico /tmp/deploy/; fi
+          cd /tmp/deploy && npm ci --omit=dev
 
+      - name: Deploy to server
+        run: |
           rsync -av --delete \
-            --exclude='.env' \
-            --exclude='.env.local' \
-            --exclude='logs/' \
-            --exclude='data/' \
-            --exclude='import/' \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-            /tmp/deploy/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }}/
+          --exclude='.env' \
+          --exclude='.env.local' \
+          --exclude='logs/' \
+          --exclude='data/' \
+          --exclude='import/' \
+          -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+          /tmp/deploy/ \
+          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }}/
 
       - name: Restart PM2
         run: |

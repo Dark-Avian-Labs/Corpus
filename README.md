@@ -99,7 +99,7 @@ When `GAME_HOSTS` is set, visiting a game subdomain (e.g. `warframe.domain.tld`)
 │   ├── middleware/         # Rate limiting
 │   ├── views/              # Login, register, admin, game picker
 │   └── types/
-├── scripts/                # copy-all-views, copy-tailwind-static
+├── scripts/                # copy-all-views
 ├── data/                   # SQLite DBs, auth lockout (gitignored)
 ├── .env.example
 └── package.json

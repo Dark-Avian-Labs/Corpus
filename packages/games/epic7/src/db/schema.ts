@@ -76,7 +76,6 @@ export function createSchema(db: Database.Database): void {
 
 function hasTable(db: Database.Database, name: string): boolean {
   const row = db
-    // eslint-disable-next-line quotes
     .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?")
     .get(name);
   return !!row;

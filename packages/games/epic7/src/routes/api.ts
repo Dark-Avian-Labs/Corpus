@@ -1,14 +1,31 @@
+import { validateBody } from '@corpus/core/validation';
 import type { Request, Response } from 'express';
 import fs from 'fs';
 
 import {
-  ARTIFACT_GAUGE_MAX,
   ARTIFACT_CLASSES,
+  ARTIFACT_GAUGE_MAX,
   ELEMENTS,
   EPIC7_DB_PATH,
   HERO_CLASSES,
-  HERO_RATINGS,
 } from '../config.js';
+import {
+  addAccountSchema,
+  addArtifactSchema,
+  addHeroSchema,
+  adminAddBaseArtifactSchema,
+  adminAddBaseHeroSchema,
+  adminDeleteBaseArtifactSchema,
+  adminDeleteBaseHeroSchema,
+  deleteAccountSchema,
+  deleteArtifactSchema,
+  deleteHeroSchema,
+  switchAccountSchema,
+  updateArtifactDetailsSchema,
+  updateArtifactSchema,
+  updateHeroDetailsSchema,
+  updateHeroSchema,
+} from './validation.js';
 import * as q from '../db/queries.js';
 import { getDb } from '../db/schema.js';
 
@@ -34,13 +51,6 @@ function err(res: Response, message: string, status = 400): void {
   res.status(status).json({ error: message });
 }
 
-function parsePositiveInt(value: unknown, fallback = 0): number | null {
-  const str = value == null || value === '' ? String(fallback) : String(value);
-  const n = parseInt(str, 10);
-  if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) return null;
-  return n;
-}
-
 function getDbOrFail(res: Response): ReturnType<typeof getDb> | null {
   if (!fs.existsSync(EPIC7_DB_PATH)) {
     err(res, 'Database not found. Please initialize the database.', 500);
@@ -52,10 +62,6 @@ function getDbOrFail(res: Response): ReturnType<typeof getDb> | null {
     err(res, 'Database connection failed.', 500);
     return null;
   }
-}
-
-function getBody(req: Request): Record<string, unknown> {
-  return (req.body as Record<string, unknown>) ?? {};
 }
 
 export function handleWorksheets(_req: Request, res: Response): void {
@@ -119,24 +125,15 @@ export function handleUpdateHero(req: Request, res: Response): void {
     err(res, 'No game account selected.', 400);
     return;
   }
-  const body = getBody(req);
-  const heroId = parsePositiveInt(body.hero_id);
-  if (heroId === null) {
-    err(res, 'Invalid hero_id.');
-    return;
-  }
-  const rating = String(body.rating ?? '').trim();
-  if (!HERO_RATINGS.includes(rating as (typeof HERO_RATINGS)[number])) {
-    err(res, 'Invalid rating value.');
-    return;
-  }
+  const data = validateBody(updateHeroSchema, req.body, res);
+  if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
-  if (!q.updateHeroRating(db, heroId, accountId, rating)) {
+  if (!q.updateHeroRating(db, data.hero_id, accountId, data.rating)) {
     err(res, 'Hero not found.', 404);
     return;
   }
-  json(res, { success: true, rating });
+  json(res, { success: true, rating: data.rating });
 }
 
 export function handleUpdateArtifact(req: Request, res: Response): void {
@@ -149,25 +146,17 @@ export function handleUpdateArtifact(req: Request, res: Response): void {
     err(res, 'No game account selected.', 400);
     return;
   }
-  const body = getBody(req);
-  const artifactId = parsePositiveInt(body.artifact_id);
-  if (artifactId === null) {
-    err(res, 'Invalid artifact_id.');
-    return;
-  }
-  let gaugeLevelParsed = parseInt(String(body.gauge_level ?? 0), 10);
-  if (!Number.isFinite(gaugeLevelParsed)) gaugeLevelParsed = 0;
-  const gaugeLevel = Math.max(
-    0,
-    Math.min(ARTIFACT_GAUGE_MAX, gaugeLevelParsed),
-  );
+  const data = validateBody(updateArtifactSchema, req.body, res);
+  if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
-  if (!q.updateArtifactGauge(db, artifactId, accountId, gaugeLevel)) {
+  if (
+    !q.updateArtifactGauge(db, data.artifact_id, accountId, data.gauge_level)
+  ) {
     err(res, 'Artifact not found.', 404);
     return;
   }
-  json(res, { success: true, gauge_level: gaugeLevel });
+  json(res, { success: true, gauge_level: data.gauge_level });
 }
 
 export function handleAddHero(req: Request, res: Response): void {
@@ -180,53 +169,18 @@ export function handleAddHero(req: Request, res: Response): void {
     err(res, 'No game account selected.', 400);
     return;
   }
-  const body = getBody(req);
-  const name = String(body.name ?? '').trim();
-  const cls = String(body.class ?? '')
-    .toLowerCase()
-    .trim();
-  const element = String(body.element ?? '')
-    .toLowerCase()
-    .trim();
-  const starRatingRaw =
-    body.star_rating === '' || body.star_rating == null
-      ? 5
-      : parseInt(String(body.star_rating), 10);
-  const starRating = Number.isFinite(starRatingRaw)
-    ? Math.max(3, Math.min(5, starRatingRaw))
-    : 5;
-  const baseHeroIdRaw =
-    body.base_hero_id != null && body.base_hero_id !== ''
-      ? body.base_hero_id
-      : null;
-  const baseHeroIdFinal =
-    baseHeroIdRaw != null ? parsePositiveInt(baseHeroIdRaw) : null;
-  if (baseHeroIdRaw != null && baseHeroIdFinal === null) {
-    err(res, 'Invalid base_hero_id.');
-    return;
-  }
-  if (!name) {
-    err(res, 'Name is required.');
-    return;
-  }
-  if (!HERO_CLASSES.includes(cls as (typeof HERO_CLASSES)[number])) {
-    err(res, 'Invalid class.');
-    return;
-  }
-  if (!ELEMENTS.includes(element as (typeof ELEMENTS)[number])) {
-    err(res, 'Invalid element.');
-    return;
-  }
+  const data = validateBody(addHeroSchema, req.body, res);
+  if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
   const heroId = q.addHero(
     db,
     accountId,
-    name,
-    cls,
-    element,
-    starRating,
-    baseHeroIdFinal,
+    data.name,
+    data.class,
+    data.element,
+    data.star_rating,
+    data.base_hero_id ?? null,
   );
   json(res, { success: true, hero_id: heroId });
 }
@@ -241,45 +195,17 @@ export function handleAddArtifact(req: Request, res: Response): void {
     err(res, 'No game account selected.', 400);
     return;
   }
-  const body = getBody(req);
-  const name = String(body.name ?? '').trim();
-  const cls = String(body.class ?? '')
-    .toLowerCase()
-    .trim();
-  const starRatingRaw =
-    body.star_rating === '' || body.star_rating == null
-      ? 5
-      : parseInt(String(body.star_rating), 10);
-  const starRating = Number.isFinite(starRatingRaw)
-    ? Math.max(3, Math.min(5, starRatingRaw))
-    : 5;
-  const baseArtifactIdRaw =
-    body.base_artifact_id != null && body.base_artifact_id !== ''
-      ? body.base_artifact_id
-      : null;
-  const baseArtifactIdFinal =
-    baseArtifactIdRaw != null ? parsePositiveInt(baseArtifactIdRaw) : null;
-  if (baseArtifactIdRaw != null && baseArtifactIdFinal === null) {
-    err(res, 'Invalid base_artifact_id.');
-    return;
-  }
-  if (!name) {
-    err(res, 'Name is required.');
-    return;
-  }
-  if (!ARTIFACT_CLASSES.includes(cls as (typeof ARTIFACT_CLASSES)[number])) {
-    err(res, 'Invalid class.');
-    return;
-  }
+  const data = validateBody(addArtifactSchema, req.body, res);
+  if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
   const artifactId = q.addArtifact(
     db,
     accountId,
-    name,
-    cls,
-    starRating,
-    baseArtifactIdFinal,
+    data.name,
+    data.class,
+    data.star_rating,
+    data.base_artifact_id ?? null,
   );
   json(res, { success: true, artifact_id: artifactId });
 }
@@ -294,15 +220,11 @@ export function handleDeleteHero(req: Request, res: Response): void {
     err(res, 'No game account selected.', 400);
     return;
   }
-  const body = getBody(req);
-  const heroId = parsePositiveInt(body.hero_id);
-  if (heroId === null) {
-    err(res, 'Invalid hero_id.');
-    return;
-  }
+  const data = validateBody(deleteHeroSchema, req.body, res);
+  if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
-  if (!q.deleteHero(db, heroId, accountId)) {
+  if (!q.deleteHero(db, data.hero_id, accountId)) {
     err(res, 'Hero not found.', 404);
     return;
   }
@@ -319,15 +241,11 @@ export function handleDeleteArtifact(req: Request, res: Response): void {
     err(res, 'No game account selected.', 400);
     return;
   }
-  const body = getBody(req);
-  const artifactId = parsePositiveInt(body.artifact_id);
-  if (artifactId === null) {
-    err(res, 'Invalid artifact_id.');
-    return;
-  }
+  const data = validateBody(deleteArtifactSchema, req.body, res);
+  if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
-  if (!q.deleteArtifact(db, artifactId, accountId)) {
+  if (!q.deleteArtifact(db, data.artifact_id, accountId)) {
     err(res, 'Artifact not found.', 404);
     return;
   }
@@ -344,39 +262,20 @@ export function handleUpdateHeroDetails(req: Request, res: Response): void {
     err(res, 'No game account selected.', 400);
     return;
   }
-  const body = getBody(req);
-  const heroId = parsePositiveInt(body.hero_id);
-  if (heroId === null) {
-    err(res, 'Invalid hero_id.');
-    return;
-  }
-  const name = String(body.name ?? '').trim();
-  const cls = String(body.class ?? '')
-    .toLowerCase()
-    .trim();
-  const element = String(body.element ?? '')
-    .toLowerCase()
-    .trim();
-  const starRatingParsed = parseInt(String(body.star_rating ?? 5), 10);
-  const starRating = Number.isFinite(starRatingParsed)
-    ? Math.max(3, Math.min(5, starRatingParsed))
-    : 5;
-  if (!name) {
-    err(res, 'Name is required.');
-    return;
-  }
-  if (!HERO_CLASSES.includes(cls as (typeof HERO_CLASSES)[number])) {
-    err(res, 'Invalid class.');
-    return;
-  }
-  if (!ELEMENTS.includes(element as (typeof ELEMENTS)[number])) {
-    err(res, 'Invalid element.');
-    return;
-  }
+  const data = validateBody(updateHeroDetailsSchema, req.body, res);
+  if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
   if (
-    !q.updateHeroDetails(db, heroId, accountId, name, cls, element, starRating)
+    !q.updateHeroDetails(
+      db,
+      data.hero_id,
+      accountId,
+      data.name,
+      data.class,
+      data.element,
+      data.star_rating,
+    )
   ) {
     err(res, 'Hero not found.', 404);
     return;
@@ -394,32 +293,19 @@ export function handleUpdateArtifactDetails(req: Request, res: Response): void {
     err(res, 'No game account selected.', 400);
     return;
   }
-  const body = getBody(req);
-  const artifactId = parsePositiveInt(body.artifact_id);
-  if (artifactId === null) {
-    err(res, 'Invalid artifact_id.');
-    return;
-  }
-  const name = String(body.name ?? '').trim();
-  const cls = String(body.class ?? '')
-    .toLowerCase()
-    .trim();
-  const starRatingParsed = parseInt(String(body.star_rating ?? 5), 10);
-  const starRating = Number.isFinite(starRatingParsed)
-    ? Math.max(3, Math.min(5, starRatingParsed))
-    : 5;
-  if (!name) {
-    err(res, 'Name is required.');
-    return;
-  }
-  if (!ARTIFACT_CLASSES.includes(cls as (typeof ARTIFACT_CLASSES)[number])) {
-    err(res, 'Invalid class.');
-    return;
-  }
+  const data = validateBody(updateArtifactDetailsSchema, req.body, res);
+  if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
   if (
-    !q.updateArtifactDetails(db, artifactId, accountId, name, cls, starRating)
+    !q.updateArtifactDetails(
+      db,
+      data.artifact_id,
+      accountId,
+      data.name,
+      data.class,
+      data.star_rating,
+    )
   ) {
     err(res, 'Artifact not found.', 404);
     return;
@@ -469,12 +355,9 @@ export function handleSwitchAccount(req: Request, res: Response): void {
     err(res, 'Unauthorized', 401);
     return;
   }
-  const body = getBody(req);
-  const accountId = parsePositiveInt(body.account_id);
-  if (accountId === null) {
-    err(res, 'Invalid account_id.');
-    return;
-  }
+  const data = validateBody(switchAccountSchema, req.body, res);
+  if (!data) return;
+  const accountId = data.account_id;
   const db = getDbOrFail(res);
   if (!db) return;
   const account = q.getGameAccountByIdAndUser(db, accountId, userId);
@@ -505,12 +388,9 @@ export function handleAddAccount(req: Request, res: Response): void {
     err(res, 'Unauthorized', 401);
     return;
   }
-  const body = getBody(req);
-  const name = String(body.account_name ?? '').trim();
-  if (!name) {
-    err(res, 'Account name is required.');
-    return;
-  }
+  const data = validateBody(addAccountSchema, req.body, res);
+  if (!data) return;
+  const name = data.account_name;
   const db = getDbOrFail(res);
   if (!db) return;
   const existing = q.getAccountByNameAndUser(db, userId, name);
@@ -544,12 +424,9 @@ export function handleDeleteAccount(req: Request, res: Response): void {
     err(res, 'Unauthorized', 401);
     return;
   }
-  const body = getBody(req);
-  const accountId = parsePositiveInt(body.account_id);
-  if (accountId === null) {
-    err(res, 'Invalid account_id.');
-    return;
-  }
+  const data = validateBody(deleteAccountSchema, req.body, res);
+  if (!data) return;
+  const accountId = data.account_id;
   const db = getDbOrFail(res);
   if (!db) return;
   if (!q.deleteGameAccount(db, accountId, userId)) {
@@ -623,30 +500,9 @@ export function handleAdminAddBaseHero(req: Request, res: Response): void {
     err(res, 'Admin access required.', 403);
     return;
   }
-  const body = getBody(req);
-  const name = String(body.name ?? '').trim();
-  const cls = String(body.class ?? '')
-    .toLowerCase()
-    .trim();
-  const element = String(body.element ?? '')
-    .toLowerCase()
-    .trim();
-  const starRatingRaw = parseInt(String(body.star_rating ?? 5), 10);
-  const starRating = Number.isFinite(starRatingRaw)
-    ? Math.max(3, Math.min(5, starRatingRaw))
-    : 5;
-  if (!name) {
-    err(res, 'Name is required.');
-    return;
-  }
-  if (!HERO_CLASSES.includes(cls as (typeof HERO_CLASSES)[number])) {
-    err(res, 'Invalid class.');
-    return;
-  }
-  if (!ELEMENTS.includes(element as (typeof ELEMENTS)[number])) {
-    err(res, 'Invalid element.');
-    return;
-  }
+  const data = validateBody(adminAddBaseHeroSchema, req.body, res);
+  if (!data) return;
+  const { name, class: cls, element, star_rating: starRating } = data;
   const db = getDbOrFail(res);
   if (!db) return;
   const heroId = q.addBaseHero(db, name, cls, element, starRating);
@@ -682,23 +538,9 @@ export function handleAdminAddBaseArtifact(req: Request, res: Response): void {
     err(res, 'Admin access required.', 403);
     return;
   }
-  const body = getBody(req);
-  const name = String(body.name ?? '').trim();
-  const cls = String(body.class ?? '')
-    .toLowerCase()
-    .trim();
-  const starRatingRaw = parseInt(String(body.star_rating ?? 5), 10);
-  const starRating = Number.isFinite(starRatingRaw)
-    ? Math.max(3, Math.min(5, starRatingRaw))
-    : 5;
-  if (!name) {
-    err(res, 'Name is required.');
-    return;
-  }
-  if (!ARTIFACT_CLASSES.includes(cls as (typeof ARTIFACT_CLASSES)[number])) {
-    err(res, 'Invalid class.');
-    return;
-  }
+  const data = validateBody(adminAddBaseArtifactSchema, req.body, res);
+  if (!data) return;
+  const { name, class: cls, star_rating: starRating } = data;
   const db = getDbOrFail(res);
   if (!db) return;
   const artifactId = q.addBaseArtifact(db, name, cls, starRating);
@@ -733,15 +575,11 @@ export function handleAdminDeleteBaseHero(req: Request, res: Response): void {
     err(res, 'Admin access required.', 403);
     return;
   }
-  const body = getBody(req);
-  const heroId = parsePositiveInt(body.hero_id);
-  if (heroId === null) {
-    err(res, 'Invalid hero_id.');
-    return;
-  }
+  const data = validateBody(adminDeleteBaseHeroSchema, req.body, res);
+  if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
-  q.deleteBaseHero(db, heroId);
+  q.deleteBaseHero(db, data.hero_id);
   json(res, { success: true });
 }
 
@@ -757,14 +595,10 @@ export function handleAdminDeleteBaseArtifact(
     err(res, 'Admin access required.', 403);
     return;
   }
-  const body = getBody(req);
-  const artifactId = parsePositiveInt(body.artifact_id);
-  if (artifactId === null) {
-    err(res, 'Invalid artifact_id.');
-    return;
-  }
+  const data = validateBody(adminDeleteBaseArtifactSchema, req.body, res);
+  if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
-  q.deleteBaseArtifact(db, artifactId);
+  q.deleteBaseArtifact(db, data.artifact_id);
   json(res, { success: true });
 }

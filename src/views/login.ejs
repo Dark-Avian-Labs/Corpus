@@ -36,7 +36,7 @@
             <div class="lockout-timer">
                 Locked out. Try again in <span id="countdown"><% if (lockoutRemaining < 60) { %><%= lockoutRemaining %> second<%= lockoutRemaining !== 1 ? 's' : '' %><% } else { var m = Math.ceil(lockoutRemaining / 60); %><%= m %> minute<%= m !== 1 ? 's' : '' %><% } %></span>.
             </div>
-            <script<% if (typeof cspNonce !== 'undefined' && cspNonce) { %> nonce="<%= cspNonce %>"<% } %>>
+            <script<%= (typeof cspNonce !== 'undefined' && cspNonce) ? ' nonce="' + cspNonce + '"' : '' %>>
                 let remaining = <%= lockoutRemaining %>;
                 const countdown = document.getElementById('countdown');
                 function formatRemaining(s) {
