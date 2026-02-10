@@ -1,79 +1,34 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-game="epic7">
 <head>
     <meta charset="utf-8">
     <title><%= appName %> - Epic Seven Admin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <link rel="icon" type="image/x-icon" href="<%= typeof basePath !== 'undefined' && basePath ? basePath + '/favicon.ico' : '/favicon.ico' %>">
+    <link rel="stylesheet" href="/static/output.css">
     <style>
-    :root{--text:#e5e7eb;--muted:#9ca3af;--accent:#a855f7;--accent-weak:color-mix(in srgb, var(--accent) 10%, transparent);--accent-hover:#7e22ce;--success:#22c55e;--warning:#f59e0b;--danger:#ef4444;--shadow:0 2px 2px rgba(0,0,0,0.15)}
-    *{box-sizing:border-box}html,body{height:100%}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:24px;color:var(--text);background:linear-gradient(to bottom,#272b36 0%,#050507 100%);background-size:100% 100%;background-attachment:fixed;min-height:100vh;display:flex;flex-direction:column;align-items:center}
-    .bg-art{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);white-space:pre;font-family:'Courier New',monospace;font-size:10px;line-height:1.2;color:rgba(255,255,255,0.05);z-index:0;pointer-events:none;user-select:none}
-    .container{width:100%;max-width:1400px;position:relative;z-index:1}
-    header{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-bottom:20px}
-    .header-left{display:flex;align-items:center;gap:16px}
-    h1{margin:0;font-size:1.5rem}
-    .header-actions{display:flex;gap:12px;align-items:center}
-    <%- include('../partials/shared-design-system') %>
-    .search-wrapper{position:relative;display:inline-block}
-    .search-box{padding:8px 32px 8px 14px;font-size:14px;line-height:1.2;height:40px;box-sizing:border-box;width:200px;color:var(--text);background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:1rem;outline:none}
-    .search-box:focus{border-color:rgba(255,255,255,0.2)}.search-box::placeholder{color:var(--muted)}
-    .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;display:none;align-items:center;justify-content:center;font-size:16px;line-height:1}
-    .search-clear:hover{color:var(--text)}.search-clear.visible{display:flex}
-    .tabs{display:flex;gap:4px;margin-bottom:16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:1rem;padding:6px;backdrop-filter:blur(12px)}
-    .tab{padding:10px 20px;font-size:14px;color:var(--muted);background:transparent;border:none;border-radius:.75rem;cursor:pointer;transition:all .2s}
-    .tab:hover{color:var(--text);background:rgba(255,255,255,0.05)}
-    .tab.active{color:var(--text);background:rgba(255,255,255,0.1)}
-    .panel{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:1rem;padding:20px;margin-bottom:20px;backdrop-filter:blur(12px)}
-    .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-    .panel-header h2{margin:0;font-size:1.1rem;color:var(--text)}
-    .table-container{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:1rem;overflow:hidden;backdrop-filter:blur(12px)}
-    .table-scroll{max-height:calc(100vh - 350px);overflow-y:auto}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:12px 16px;text-align:left}
-    thead{position:sticky;top:0;z-index:10}
-    thead th{background:rgba(30,35,45,0.92);backdrop-filter:blur(20px);color:var(--muted);font-weight:600;border-bottom:1px solid rgba(255,255,255,0.08);text-align:center}
-    thead th:first-child,thead th:last-child{text-align:left}
-    tbody tr{border-bottom:1px solid rgba(255,255,255,0.04)}
-    tbody tr:hover{background:rgba(255,255,255,0.03)}
-    .icon-cell{width:150px;text-align:center}
-    .icon-cell img{width:28px;height:28px;vertical-align:middle}
-    .stars-cell img{vertical-align:middle;margin-right:2px;width:28px;height:28px}
-    .row-actions{display:flex;gap:6px;white-space:nowrap}
-    .tab-content{display:none}.tab-content.active{display:block}
-    .loading{text-align:center;padding:40px;color:var(--muted)}
-    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
-    .modal-overlay.active{opacity:1;pointer-events:auto}
-    .modal{background:#1f2937;border:1px solid rgba(255,255,255,0.1);border-radius:1rem;padding:24px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto}
-    .modal h2{margin:0 0 20px;font-size:1.25rem}
-    .form-group{margin-bottom:16px}
-    .form-group label{display:block;margin-bottom:6px;color:var(--muted);font-size:14px}
-    .form-group input,.form-group select{width:100%;padding:10px 12px;font-size:14px;color:var(--text);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px}
-    .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--accent)}
-    .modal-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px}
-    .modal-actions button{padding:10px 20px;font-size:14px;border-radius:8px;cursor:pointer}
-    .table-scroll::-webkit-scrollbar{width:8px}
-    .table-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,0.02)}
-    .table-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+    /* Epic7 admin: centre non-edge header columns & flex row-actions */
+    thead th { text-align: center; }
+    thead th:first-child, thead th:last-child { text-align: left; }
+    .row-actions { display: flex; gap: 6px; white-space: nowrap; }
     </style>
 </head>
-<body>
+<body class="flex flex-col items-center p-4 md:p-6">
     <% if (art) { %><div class="bg-art"><%- art %></div><% } %>
-    <div class="container">
+    <div class="w-full max-w-[1400px] relative z-10">
         <%- include('../partials/game-admin-header', { pageTitle: typeof pageTitle !== 'undefined' ? pageTitle : appName, basePath: typeof basePath !== 'undefined' ? basePath : '', csrfToken: typeof csrfToken !== 'undefined' ? csrfToken : '', backToLabel: 'Back to View', showExtraActions: true }) %>
         <div class="tabs">
             <button class="tab active" data-tab="heroes">Base Heroes</button>
             <button class="tab" data-tab="artifacts">Base Artifacts</button>
         </div>
         <div class="tab-content active" id="heroes-content">
-            <%- include('../partials/game-table-open', { columns: [{ name: 'Name' }, { name: 'Class', className: 'icon-cell' }, { name: 'Element', className: 'icon-cell' }, { name: 'Stars' }, { name: 'Actions' }], tbodyId: 'heroes-table' }) %>
+            <%- include('../partials/game-table-open', { columns: [{ name: 'Name' }, { name: 'Class', className: 'icon-cell' }, { name: 'Element', className: 'icon-cell' }, { name: 'Stars' }, { name: 'Actions' }], tbodyId: 'heroes-table', headerOffset: '350px' }) %>
             <tr><td colspan="5" class="loading">Loading...</td></tr>
             <%- include('../partials/game-table-close') %>
         </div>
         <div class="tab-content" id="artifacts-content">
-            <%- include('../partials/game-table-open', { columns: [{ name: 'Name' }, { name: 'Class', className: 'icon-cell' }, { name: 'Stars' }, { name: 'Actions' }], tbodyId: 'artifacts-table' }) %>
+            <%- include('../partials/game-table-open', { columns: [{ name: 'Name' }, { name: 'Class', className: 'icon-cell' }, { name: 'Stars' }, { name: 'Actions' }], tbodyId: 'artifacts-table', headerOffset: '350px' }) %>
             <tr><td colspan="4" class="loading">Loading...</td></tr>
             <%- include('../partials/game-table-close') %>
         </div>
@@ -173,10 +128,10 @@
         try {
             const r = await fetch(API_URL + '?action=admin_base_heroes');
             const d = await r.json();
-            if (d.error) { tbody.innerHTML = '<tr><td colspan="5" class="loading" style="color:var(--danger)">' + escapeHtml(d.error) + '</td></tr>'; return; }
+            if (d.error) { tbody.innerHTML = '<tr><td colspan="5" class="loading text-danger">' + escapeHtml(d.error) + '</td></tr>'; return; }
             heroes = d.heroes || [];
             renderHeroes();
-        } catch (e) { tbody.innerHTML = '<tr><td colspan="5" class="loading" style="color:var(--danger)">Failed to load heroes</td></tr>'; }
+        } catch (e) { tbody.innerHTML = '<tr><td colspan="5" class="loading text-danger">Failed to load heroes</td></tr>'; }
     }
 
     function renderHeroes() {
@@ -234,10 +189,10 @@
         try {
             const r = await fetch(API_URL + '?action=admin_base_artifacts');
             const d = await r.json();
-            if (d.error) { tbody.innerHTML = '<tr><td colspan="4" class="loading" style="color:var(--danger)">' + escapeHtml(d.error) + '</td></tr>'; return; }
+            if (d.error) { tbody.innerHTML = '<tr><td colspan="4" class="loading text-danger">' + escapeHtml(d.error) + '</td></tr>'; return; }
             artifacts = d.artifacts || [];
             renderArtifacts();
-        } catch (e) { tbody.innerHTML = '<tr><td colspan="4" class="loading" style="color:var(--danger)">Failed to load artifacts</td></tr>'; }
+        } catch (e) { tbody.innerHTML = '<tr><td colspan="4" class="loading text-danger">Failed to load artifacts</td></tr>'; }
     }
 
     function renderArtifacts() {

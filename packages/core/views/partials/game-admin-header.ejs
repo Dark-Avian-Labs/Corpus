@@ -1,25 +1,26 @@
-<header>
-    <div class="header-left">
-        <h1><%= typeof pageTitle !== 'undefined' ? pageTitle : (typeof appName !== 'undefined' ? appName : '') %></h1>
+<% const base = typeof basePath !== 'undefined' && basePath ? basePath : ''; %>
+<header class="flex gap-4 flex-wrap justify-between items-center mb-5">
+    <div class="flex items-center gap-3">
+        <h1 class="m-0 text-2xl"><%= typeof pageTitle !== 'undefined' ? pageTitle : (typeof appName !== 'undefined' ? appName : '') %></h1>
         <span class="admin-badge">ADMIN</span>
     </div>
-    <div class="header-actions">
+    <div class="flex gap-3 items-center flex-wrap">
         <% if (typeof corpusAdmin !== 'undefined' && corpusAdmin) { %>
-        <a href="<%= typeof basePath !== 'undefined' && basePath ? basePath + '/register' : '/register' %>" class="btn btn-primary">+ Create user</a>
-        <a href="<%= typeof basePath !== 'undefined' && basePath ? basePath + '/' : '/' %>" class="btn btn-secondary">Game picker</a>
+        <a href="<%= base + '/register' %>" class="btn btn-primary">+ Create user</a>
+        <a href="<%= base + '/' %>" class="btn btn-secondary">Game picker</a>
         <% } else { %>
         <% if (typeof showExtraActions !== 'undefined' && showExtraActions) { %>
         <button type="button" class="btn btn-primary" id="add-btn">+ Add Item</button>
         <div class="search-wrapper">
             <input type="text" class="search-box" id="search" placeholder="Search..." aria-label="Search games">
-            <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">×</button>
+            <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">&times;</button>
         </div>
         <% } %>
         <% } %>
-        <a href="<%= typeof basePath !== 'undefined' && basePath ? basePath : '/' %>" class="btn btn-secondary"><%= typeof backToLabel !== 'undefined' ? backToLabel : 'Back to View' %></a>
-        <a href="<%= typeof basePath !== 'undefined' && basePath ? basePath + '/admin' : '/admin' %>" class="btn btn-secondary">Corpus Admin</a>
+        <a href="<%= base || '/' %>" class="btn btn-secondary"><%= typeof backToLabel !== 'undefined' ? backToLabel : 'Back to View' %></a>
+        <a href="<%= base + '/admin' %>" class="btn btn-secondary">Corpus Admin</a>
         <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
-        <form method="POST" action="<%= typeof basePath !== 'undefined' && basePath ? basePath : '' %>/logout" class="inline-form">
+        <form method="POST" action="<%= base %>/logout" class="inline-form">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button type="submit" class="btn btn-secondary">Logout</button>
         </form>

@@ -19,7 +19,7 @@
   };
 %>
 <div class="table-container">
-    <div class="table-scroll">
+    <div class="table-scroll"<%= (typeof headerOffset !== 'undefined' && headerOffset) ? ' style="--header-offset: ' + headerOffset + '"' : '' %>>
         <table<%= safeId(typeof tableId !== 'undefined' ? tableId : '') ? ' id="' + safeId(tableId) + '"' : '' %>>
             <thead<%= safeId(typeof theadId !== 'undefined' ? theadId : '') ? ' id="' + safeId(theadId) + '"' : '' %>>
                 <tr>
