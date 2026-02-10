@@ -5,68 +5,24 @@
     <title><%= appName %></title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <style>
-    :root { --text: #e5e7eb; --muted: #9ca3af; --accent: #0ea5e9; --accent-weak: color-mix(in srgb, var(--accent) 10%, transparent); }
-    * { box-sizing: border-box; }
-    body {
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-        margin: 0;
-        padding: 24px;
-        color: var(--text);
-        background: linear-gradient(to bottom, #272b36 0%, #050507 100%);
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-    h1 { margin: 0 0 2rem; font-size: 1.75rem; }
-    .games { display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
-    .game-card {
-        display: block;
-        padding: 1.5rem 2rem;
-        min-width: 180px;
-        text-align: center;
-        color: var(--text);
-        text-decoration: none;
-        border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
-        border-radius: 12px;
-        background: var(--accent-weak);
-        transition: background 0.2s, border-color 0.2s;
-    }
-    .game-card:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); border-color: var(--accent); }
-    .game-card h2 { margin: 0 0 0.5rem; font-size: 1.25rem; }
-    .game-card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
-    .no-games { color: var(--muted); margin: 2rem 0; }
-    .logout { margin-top: 2rem; }
-    .logout form { display: inline; }
-    <%- include('partials/shared-design-system') %>
-    .logout .btn { height: auto; padding: 8px 16px; }
-    .logout .btn-secondary { border-radius: 8px; }
-    .bg-art {
-        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        white-space: pre; font-family: 'Courier New', monospace; font-size: 10px; line-height: 1.2;
-        color: rgba(255,255,255,0.05); z-index: 0; pointer-events: none; user-select: none;
-    }
-    .games, .logout { position: relative; z-index: 1; }
-    </style>
+    <link rel="stylesheet" href="/static/output.css">
 </head>
-<body>
+<body class="flex flex-col items-center justify-center p-4 md:p-6">
     <% if (typeof art !== 'undefined' && art) { %><div class="bg-art"><%= art %></div><% } %>
-    <h1><%= appName %></h1>
+    <h1 class="relative z-10 m-0 mb-8 text-3xl"><%= appName %></h1>
     <% if (games && games.length > 0) { %>
-    <div class="games">
+    <div class="relative z-10 flex gap-6 flex-wrap justify-center">
         <% games.forEach(function(g) { %>
-        <a href="<%= g.safePath %>" class="game-card" style="--accent:<%= (g.theme && g.theme.primary) ? g.theme.primary : '#0ea5e9' %>;--accent-weak:color-mix(in srgb, var(--accent) 10%, transparent);">
+        <a href="<%= g.safePath %>" class="game-card" style="--color-accent:<%= (g.theme && g.theme.primary) ? g.theme.primary : '#0ea5e9' %>">
             <h2><%= g.name %></h2>
             <p>Open tracker</p>
         </a>
         <% }); %>
     </div>
     <% } else { %>
-    <p class="no-games">No games assigned. Contact an administrator.</p>
+    <p class="relative z-10 text-muted my-8">No games assigned. Contact an administrator.</p>
     <% } %>
-    <div class="logout">
+    <div class="relative z-10 mt-8">
         <% if (!csrfToken || (typeof csrfToken === 'string' && csrfToken.trim() === '')) { %><% throw new Error('csrfToken is required for the logout form; do not render index without a valid CSRF token.') %><% } %>
         <form method="POST" action="/logout">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">

@@ -1,6 +1,6 @@
-<header>
-    <h1><%= typeof pageTitle !== 'undefined' ? pageTitle : (typeof appName !== 'undefined' ? appName : '') %></h1>
-    <div class="header-actions">
+<header class="flex gap-4 flex-wrap justify-between items-center mb-5">
+    <h1 class="m-0 text-2xl"><%= typeof pageTitle !== 'undefined' ? pageTitle : (typeof appName !== 'undefined' ? appName : '') %></h1>
+    <div class="flex gap-3 items-center flex-wrap">
         <% if (typeof showAccountSelector !== 'undefined' && showAccountSelector) { %>
         <div class="account-selector">
             <button class="account-btn" id="account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="account-dropdown"><span id="current-account-name">Loading...</span></button>
@@ -15,7 +15,7 @@
         <button type="button" class="header-link" id="add-item-btn">+ Add Item</button>
         <div class="search-wrapper">
             <input type="text" class="search-box" id="search" aria-label="Search" placeholder="<%= typeof searchPlaceholder !== 'undefined' ? searchPlaceholder : 'Search...' %>">
-            <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">×</button>
+            <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">&times;</button>
         </div>
         <a href="/" class="header-link">Corpus</a>
         <% if (typeof isAdmin !== 'undefined' && isAdmin) { %><a href="<%= typeof basePath !== 'undefined' && basePath ? basePath + '/admin' : '/admin' %>" class="header-link">Admin</a><% } %>

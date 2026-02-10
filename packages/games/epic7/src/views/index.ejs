@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-game="epic7">
 <head>
     <meta charset="utf-8">
     <title><%= typeof pageTitle !== 'undefined' ? pageTitle : appName %></title>
@@ -7,105 +7,26 @@
     <% if (typeof csrfToken === 'undefined' || !csrfToken) { throw new Error('Epic7 index view requires a csrfToken value.'); } %>
     <meta name="csrf-token" content="<%= csrfToken %>">
     <link rel="icon" type="image/x-icon" href="<%= typeof basePath !== 'undefined' && basePath ? basePath + '/favicon.ico' : '/favicon.ico' %>">
+    <link rel="stylesheet" href="/static/output.css">
     <style>
-    :root{--bg:#0b0f14;--text:#e5e7eb;--muted:#9ca3af;--border:rgba(31,41,55,0.25);--accent:#a855f7;--accent-weak:color-mix(in srgb, var(--accent) 10%, transparent);--accent-weak-2:color-mix(in srgb, var(--accent) 20%, transparent);--accent-hover:#7e22ce;--success:#22c55e;--warning:#f59e0b;--danger:#ef4444;--shadow:0 2px 2px rgba(0,0,0,0.15);--radius:10px}
-    *{box-sizing:border-box}html,body{height:100%}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:24px;color:var(--text);background:linear-gradient(to bottom,#272b36 0%,#050507 100%);background-size:100% 100%;background-repeat:no-repeat;background-attachment:fixed;min-height:100vh;display:flex;flex-direction:column;align-items:center}
-    .bg-art{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);white-space:pre;font-family:'Courier New',monospace;font-size:10px;line-height:1.2;color:rgba(255,255,255,0.05);z-index:0;pointer-events:none;user-select:none}
-    .container{width:100%;max-width:1200px;position:relative;z-index:1}
-    header{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-bottom:20px}
-    h1{margin:0;font-size:1.5rem;letter-spacing:.2px}
-    .header-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    .account-selector{position:relative}
-    .account-btn{padding:0 16px;font-size:14px;line-height:1.2;height:40px;box-sizing:border-box;color:var(--text);background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:1rem;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .2s}
-    .account-btn:hover{border-color:rgba(255,255,255,0.2)}
-    .account-btn::after{content:'▼';font-size:10px;opacity:.7}
-    .account-dropdown{position:absolute;top:100%;right:0;margin-top:4px;background:#1f2937;border:1px solid rgba(255,255,255,0.1);border-radius:8px;min-width:200px;box-shadow:0 4px 12px rgba(0,0,0,.3);z-index:100;display:none}
-    .account-dropdown.show{display:block}
-    .account-dropdown-item{padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .15s}
-    .account-dropdown-item:hover{background:rgba(255,255,255,0.05)}
-    .account-dropdown-item.active{background:var(--accent-weak)}
-    .account-dropdown-item.active::after{content:'✓';color:var(--accent)}
-    .account-dropdown-divider{border-top:1px solid rgba(255,255,255,0.1);margin:4px 0}
-    .account-dropdown-action{padding:10px 14px;cursor:pointer;color:var(--muted);font-size:13px;transition:all .15s;border-radius:0 0 8px 8px}
-    .account-dropdown-action:hover{background:rgba(255,255,255,0.05);color:var(--text)}
-    .search-wrapper{position:relative;display:inline-block}
-    .search-box{padding:8px 32px 8px 14px;font-size:14px;line-height:1.2;box-sizing:border-box;height:40px;color:var(--text);background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:1rem;outline:none;width:200px;backdrop-filter:blur(12px)}
-    .search-box:focus{border-color:rgba(255,255,255,0.2)}
-    .search-box::placeholder{color:var(--muted)}
-    .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;display:none;font-size:16px;line-height:1}
-    .search-clear:hover{color:var(--text)}.search-clear.visible{display:flex}
-    <%- include('../partials/shared-design-system') %>
-    .tabs{display:flex;gap:4px;margin-bottom:16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:1rem;padding:6px;backdrop-filter:blur(12px)}
-    .tab{padding:10px 24px;font-size:14px;color:var(--muted);background:transparent;border:none;border-radius:.75rem;cursor:pointer;transition:all .2s}
-    .tab:hover{color:var(--text);background:rgba(255,255,255,0.05)}
-    .tab.active{color:var(--text);background:rgba(255,255,255,0.1)}
-    .filter-bar{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
-    .filter-group{display:flex;gap:4px;align-items:center;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:1rem;padding:4px 8px}
-    .filter-label{font-size:12px;color:var(--muted);margin-right:4px}
-    .filter-icon{width:32px;height:32px;padding:4px;border-radius:6px;cursor:pointer;opacity:.5;transition:all .15s;display:flex;align-items:center;justify-content:center}
-    .filter-icon:hover{opacity:.8;background:rgba(255,255,255,0.1)}
-    .filter-icon.active{opacity:1;background:var(--accent-weak-2);box-shadow:0 0 0 2px var(--accent)}
-    .filter-icon img{width:24px;height:24px}
-    .stats-bar{display:flex;gap:20px;margin-bottom:16px;flex-wrap:wrap}
-    .stat{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
-    .stat-value{color:var(--text);font-weight:600}
-    .stat-owned{color:#fbbf24}.stat-maxed{color:#4ade80}
-    .table-container{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:1rem;overflow:hidden;box-shadow:var(--shadow);backdrop-filter:blur(12px)}
-    .table-scroll{max-height:calc(100vh - 340px);overflow-y:auto}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:12px 16px;text-align:left}
-    thead{position:sticky;top:0;z-index:10}
-    thead th{background:rgba(30,35,45,0.92);backdrop-filter:blur(20px);color:var(--muted);font-weight:600;border-bottom:1px solid rgba(255,255,255,0.08);text-align:center}
-    thead th:first-child{text-align:left}
-    tbody tr{border-bottom:1px solid rgba(255,255,255,0.04)}
-    tbody tr:hover{background:rgba(255,255,255,0.03)}
-    tbody tr:last-child{border-bottom:none}
-    .item-name{font-weight:500}
-    .icon-cell{width:150px;text-align:center}
-    .stars-cell{text-align:left;width:200px}
-    .rating-cell,.level-cell{text-align:center;width:150px}
-    .icon-cell img,.stars-cell img{vertical-align:middle;width:28px;height:28px}
-    .stars-cell img{margin-right:2px}
-    .rating-btn{display:inline-flex;align-items:center;justify-content:center;min-width:60px;padding:6px 12px;font-size:13px;font-weight:600;border-radius:6px;border:1px solid transparent;cursor:pointer;transition:all .15s}
-    .gauge-btn{display:inline-flex;align-items:center;justify-content:center;padding:6px 12px;font-size:16px;letter-spacing:2px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.02);cursor:pointer;transition:all .15s}
-    .gauge-btn:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.2)}
-    .row-actions{text-align:center;white-space:nowrap;display:none}
-    .edit-mode .row-actions,.edit-mode .actions-header{display:table-cell!important}
-    #add-item-btn{display:none}.edit-mode #add-item-btn{display:inline-flex}
-    .row-actions .btn-icon{padding:6px;font-size:14px;border-radius:4px;cursor:pointer;transition:all .15s;border:1px solid transparent;background:transparent;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;margin:0 2px}
-    .row-actions .btn-icon img{width:16px;height:16px;display:block}
-    .row-actions .btn-icon:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.2);color:var(--text)}
-    .row-actions .btn-edit{color:var(--accent)}.row-actions .btn-edit:hover{background:var(--accent-weak);border-color:var(--accent);color:var(--accent)}
-    .row-actions .btn-delete{color:var(--danger)}.row-actions .btn-delete:hover{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:var(--danger)}
-    .no-account-msg{text-align:center;padding:60px 20px;color:var(--muted)}
-    .no-account-msg h2{color:var(--text);margin-bottom:10px}
-    .no-account-msg .btn{margin-top:20px;padding:12px 24px;font-size:14px;color:var(--accent);background:var(--accent-weak);border:1px solid var(--accent);border-radius:8px;cursor:pointer}
-    .no-account-msg .btn:hover{background:color-mix(in srgb, var(--accent) 20%, transparent);border-color:var(--accent);color:var(--accent)}
-    .loading{text-align:center;padding:40px;color:var(--muted)}
-    .error{text-align:center;padding:40px;color:var(--danger)}
-    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
-    .modal-overlay.active{opacity:1;pointer-events:auto}
-    .modal{background:#1f2937;border:1px solid rgba(255,255,255,0.1);border-radius:1rem;padding:24px;max-width:400px;width:90%}
-    .modal h2{margin:0 0 20px;font-size:1.25rem}
-    .form-group{margin-bottom:16px}
-    .form-group label{display:block;margin-bottom:6px;color:var(--muted);font-size:14px}
-    .form-group input,.form-group select{width:100%;padding:10px 12px;padding-right:32px;font-size:14px;color:var(--text);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px}
-    .form-group select{padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:12px;appearance:none;-webkit-appearance:none}
-    .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--accent)}
-    .form-group select option{background:#1f2937;color:var(--text)}
-    .modal-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px}
-    .modal-actions button{padding:10px 20px;font-size:14px;border-radius:8px;cursor:pointer;transition:all .2s}
-    .table-scroll::-webkit-scrollbar{width:8px}
-    .table-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,0.02)}
-    .table-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
-    .table-scroll::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
-    @media(max-width:768px){body{padding:16px}h1{font-size:1.25rem}.search-box{width:150px}th,td{padding:10px 12px}.filter-bar{gap:8px}}
+    /* Epic7 tracker: centre non-first header columns */
+    thead th { text-align: center; }
+    thead th:first-child { text-align: left; }
+    /* Custom select arrow for form selects */
+    .form-group select {
+        padding-right: 28px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 12px;
+        appearance: none;
+        -webkit-appearance: none;
+    }
     </style>
 </head>
-<body>
+<body class="flex flex-col items-center p-4 md:p-6">
     <% if (typeof art !== 'undefined' && art) { %><div class="bg-art"><%= art %></div><% } %>
-    <div class="container">
+    <div class="w-full max-w-7xl relative z-10">
         <%- include('../partials/game-header', { pageTitle: typeof pageTitle !== 'undefined' ? pageTitle : appName, basePath: typeof basePath !== 'undefined' ? basePath : '', isAdmin: typeof isAdmin !== 'undefined' ? isAdmin : false, csrfToken: typeof csrfToken !== 'undefined' ? csrfToken : '', showAccountSelector: true, searchPlaceholder: 'Search...' }) %>
         <div class="tabs" id="tabs">
             <button class="tab active" data-tab="heroes">Heroes</button>
@@ -114,7 +35,7 @@
         <div class="filter-bar" id="filter-bar"></div>
         <div class="stats-bar" id="stats"></div>
         <div class="table-container">
-            <div class="table-scroll">
+            <div class="table-scroll" style="max-height: calc(100vh - 340px)">
                 <table>
                     <thead id="table-head"><tr><th>Loading...</th></tr></thead>
                     <tbody id="table-body"><tr><td class="loading">Loading data...</td></tr></tbody>
@@ -123,7 +44,7 @@
         </div>
     </div>
     <div class="modal-overlay" id="add-account-modal">
-        <div class="modal">
+        <div class="modal" style="max-width: 400px">
             <h2>Add Game Account</h2>
             <form id="add-account-form">
                 <div class="form-group">
@@ -131,24 +52,24 @@
                     <input type="text" id="new-account-name" required placeholder="e.g., Main Account">
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn-cancel" id="add-account-cancel">Cancel</button>
-                    <button type="submit" class="btn-primary">Create</button>
+                    <button type="button" class="btn btn-cancel" id="add-account-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
                 </div>
             </form>
         </div>
     </div>
     <div class="modal-overlay" id="manage-accounts-modal">
-        <div class="modal">
+        <div class="modal" style="max-width: 400px">
             <h2>Manage Accounts</h2>
             <div id="manage-accounts-list"></div>
             <div class="modal-actions">
-                <button type="button" class="btn-primary" id="add-new-account-btn">+ Add Account</button>
-                <button type="button" class="btn-cancel" id="manage-accounts-close">Close</button>
+                <button type="button" class="btn btn-primary" id="add-new-account-btn">+ Add Account</button>
+                <button type="button" class="btn btn-cancel" id="manage-accounts-close">Close</button>
             </div>
         </div>
     </div>
     <div class="modal-overlay" id="add-item-modal">
-        <div class="modal">
+        <div class="modal" style="max-width: 400px">
             <h2 id="add-item-title">Add Hero</h2>
             <form id="add-item-form">
                 <input type="hidden" id="item-edit-id" value="">
@@ -178,8 +99,8 @@
                     <select id="quick-add-select"><option value="">-- Custom --</option></select>
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn-cancel" id="add-item-cancel">Cancel</button>
-                    <button type="submit" class="btn-primary">Add</button>
+                    <button type="button" class="btn btn-cancel" id="add-item-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add</button>
                 </div>
             </form>
         </div>
@@ -289,7 +210,7 @@
         const nameEl = document.getElementById('current-account-name');
         if (!accounts || accounts.length === 0) {
             nameEl.textContent = 'No Account';
-            list.innerHTML = '<div class="account-dropdown-item" role="menuitem" aria-disabled="true" style="color:var(--muted)">No accounts yet</div>';
+            list.innerHTML = '<div class="account-dropdown-item" role="menuitem" aria-disabled="true" style="color:var(--color-muted)">No accounts yet</div>';
             showNoAccountMessage();
             return;
         }
@@ -476,7 +397,7 @@
 
     function showError(msg) {
         document.getElementById('table-head').innerHTML = '';
-        document.getElementById('table-body').innerHTML = '<tr><td class="error" style="padding:40px;text-align:center;color:var(--danger)">' + escapeHtml(msg) + '</td></tr>';
+        document.getElementById('table-body').innerHTML = '<tr><td class="error">' + escapeHtml(msg) + '</td></tr>';
         document.getElementById('filter-bar').innerHTML = '';
         document.getElementById('stats').innerHTML = '';
     }
@@ -517,9 +438,9 @@
 
     function renderManageAccountsList() {
         const c = document.getElementById('manage-accounts-list');
-        if (accounts.length === 0) { c.innerHTML = '<p style="color:var(--muted);text-align:center">No accounts yet.</p>'; return; }
+        if (accounts.length === 0) { c.innerHTML = '<p class="text-muted text-center">No accounts yet.</p>'; return; }
         c.innerHTML = accounts.map(acc =>
-            `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1)"><span>${escapeHtml(acc.account_name)} ${acc.id == currentAccountId ? '<span style="color:var(--accent)">(active)</span>' : ''}</span><button class="btn-danger" style="padding:4px 10px;font-size:12px" data-del-acc="${acc.id}" data-acc-name="${escapeHtml(acc.account_name)}">Delete</button></div>`
+            `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1)"><span>${escapeHtml(acc.account_name)} ${acc.id == currentAccountId ? '<span class="text-accent">(active)</span>' : ''}</span><button class="btn btn-danger btn-sm" data-del-acc="${acc.id}" data-acc-name="${escapeHtml(acc.account_name)}">Delete</button></div>`
         ).join('');
         c.querySelectorAll('[data-del-acc]').forEach(btn => btn.addEventListener('click', () => deleteAccount(parseInt(btn.dataset.delAcc), btn.dataset.accName)));
     }
