@@ -52,6 +52,6 @@
         </div>
     </div>
     <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">window.WARFRAME_ADMIN_CONFIG={apiUrl:<%- JSON.stringify((typeof basePath !== "undefined" && basePath ? basePath + "/api" : "/api")) %>};</script>
-    <script src="/static/js/warframe-admin.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
+    <script type="module" src="/static/js/warframe-admin.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
 </body>
 </html>
