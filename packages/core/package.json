@@ -1,6 +1,6 @@
 {
   "name": "@corpus/core",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Corpus core: auth, session, central DB, middleware",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
