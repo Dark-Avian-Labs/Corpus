@@ -1,6 +1,6 @@
 import eslint from '@eslint/js';
 import prettier from 'eslint-config-prettier';
-import importPlugin from 'eslint-plugin-import';
+import importPlugin from 'eslint-plugin-import-x';
 import n from 'eslint-plugin-n';
 import promise from 'eslint-plugin-promise';
 import tseslint from 'typescript-eslint';
@@ -15,7 +15,7 @@ export default [
   promise.configs['flat/recommended'],
   {
     plugins: {
-      import: importPlugin,
+      'import-x': importPlugin,
     },
 
     languageOptions: {
@@ -93,8 +93,8 @@ export default [
       'prefer-template': 'warn',
       'object-shorthand': ['warn', 'always'],
 
-      'import/first': 'error',
-      'import/order': [
+      'import-x/first': 'error',
+      'import-x/order': [
         'warn',
         {
           groups: [
