@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { sanitizeGamePath } from '../src/index.js';
+import { sanitizeGamePath } from '../src/sanitizeGamePath.js';
 
 describe('sanitizeGamePath', () => {
   // --- valid relative paths ---
@@ -52,6 +52,10 @@ describe('sanitizeGamePath', () => {
 
   it('blocks javascript: with embedded tab', () => {
     expect(sanitizeGamePath('javascript\t:alert(1)')).toBe('#');
+  });
+
+  it('blocks javascript: with embedded carriage return', () => {
+    expect(sanitizeGamePath('javascript\r:alert(1)')).toBe('#');
   });
 
   it('blocks vbscript: protocol', () => {
