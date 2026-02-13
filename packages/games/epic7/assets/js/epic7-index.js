@@ -120,9 +120,17 @@ function setupEventListeners() {
     .addEventListener('submit', handleAddItem);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      document
-        .querySelectorAll('.modal-overlay.active')
-        .forEach((m) => m.classList.remove('active'));
+      if (document.querySelector('#add-item-modal.modal-overlay.active')) {
+        closeAddItemModal();
+      }
+      if (document.querySelector('#add-account-modal.modal-overlay.active')) {
+        closeAddAccountModal();
+      }
+      if (
+        document.querySelector('#manage-accounts-modal.modal-overlay.active')
+      ) {
+        closeManageAccountsModal();
+      }
     }
   });
 }
@@ -243,7 +251,12 @@ function selectTab(tab) {
     const isActive = t.dataset.tab === tab;
     t.classList.toggle('active', isActive);
     t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    t.setAttribute('tabindex', isActive ? '0' : '-1');
   });
+  const panel = document.querySelector('[role="tabpanel"]');
+  if (panel) {
+    panel.id = `${tab}-panel`;
+  }
   loadData();
 }
 

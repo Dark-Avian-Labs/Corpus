@@ -88,14 +88,26 @@
         });
         if (!r.ok) {
           const text = await r.text();
-          alert(`Error ${r.status}: ${text || r.statusText}`);
+          showAdminToast(`Error ${r.status}: ${text || r.statusText}`, true);
           return;
         }
-        const data = await r.json();
-        if (data.success) window.location.reload();
-        else alert(data.error || 'Failed to delete user');
-      } catch {
-        alert('Request failed');
+        let data;
+        try {
+          data = await r.json();
+        } catch (err) {
+          console.error('Failed to parse JSON response:', err);
+          showAdminToast('Invalid JSON response from server', true);
+          return;
+        }
+        if (data.success) {
+          showAdminToast('User deleted', false);
+          window.location.reload();
+        } else {
+          showAdminToast(data.error || 'Failed to delete user', true);
+        }
+      } catch (err) {
+        console.error('Delete-user request failed:', err);
+        showAdminToast(`Request failed: ${err.message || err}`, true);
       }
     });
   });

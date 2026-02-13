@@ -45,9 +45,9 @@
             </form>
         </div>
     </div>
-    <div class="modal-overlay" id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="wf-delete-title">
+    <div class="modal-overlay" id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
         <div class="modal">
-            <h2 id="wf-delete-title">Delete Item</h2>
+            <h2 id="delete-modal-title">Delete Item</h2>
             <p>Delete "<span id="delete-item-name"></span>"? This cannot be undone.</p>
             <div class="modal-actions">
                 <input type="hidden" id="delete-row-id">
@@ -56,7 +56,7 @@
             </div>
         </div>
     </div>
-    <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">window.WARFRAME_CONFIG={apiUrl:<%- JSON.stringify((typeof basePath !== "undefined" && basePath ? basePath + "/api" : "/api")) %>,csrfToken:document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')||''};</script>
+    <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">window.WARFRAME_CONFIG={apiUrl:<%- JSON.stringify((typeof basePath !== "undefined" && basePath ? basePath + "/api" : "/api")).replace(/</g, '\\u003c') %>,csrfToken:document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')||''};</script>
     <script src="/static/js/warframe-index.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
 </body>
 </html>

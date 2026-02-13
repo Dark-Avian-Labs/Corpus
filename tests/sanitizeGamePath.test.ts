@@ -42,6 +42,26 @@ describe('sanitizeGamePath', () => {
     expect(sanitizeGamePath('data:text/html,<h1>hi</h1>')).toBe('#');
   });
 
+  it('blocks mixed-case javascript: protocol', () => {
+    expect(sanitizeGamePath('JaVaScRiPt:alert(1)')).toBe('#');
+  });
+
+  it('blocks javascript: with embedded newline', () => {
+    expect(sanitizeGamePath('java\nscript:alert(1)')).toBe('#');
+  });
+
+  it('blocks javascript: with embedded tab', () => {
+    expect(sanitizeGamePath('javascript\t:alert(1)')).toBe('#');
+  });
+
+  it('blocks vbscript: protocol', () => {
+    expect(sanitizeGamePath('vbscript:msgbox(1)')).toBe('#');
+  });
+
+  it('blocks file: protocol', () => {
+    expect(sanitizeGamePath('file:///etc/passwd')).toBe('#');
+  });
+
   it('blocks bare domain', () => {
     expect(sanitizeGamePath('evil.com')).toBe('#');
   });

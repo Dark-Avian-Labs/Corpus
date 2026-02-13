@@ -48,9 +48,26 @@ function openArtifactModal() {
 }
 
 async function init() {
-  document.querySelectorAll('.tab').forEach((tab) => {
+  const tabs = Array.from(document.querySelectorAll('.tab'));
+  tabs.forEach((tab) => {
     tab.addEventListener('click', () => selectTab(tab.dataset.tab));
   });
+  const tablist = document.querySelector('[role="tablist"]');
+  if (tablist) {
+    tablist.addEventListener('keydown', (e) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+      e.preventDefault();
+      const current = tabs.indexOf(document.activeElement);
+      if (current === -1) return;
+      let next;
+      if (e.key === 'ArrowRight') next = (current + 1) % tabs.length;
+      else if (e.key === 'ArrowLeft')
+        next = (current - 1 + tabs.length) % tabs.length;
+      else if (e.key === 'Home') next = 0;
+      else if (e.key === 'End') next = tabs.length - 1;
+      selectTab(tabs[next].dataset.tab, true);
+    });
+  }
   const addBtn = document.getElementById('add-btn');
   if (addBtn)
     addBtn.addEventListener('click', () => {
@@ -91,7 +108,7 @@ async function init() {
     }, 300);
     searchInput.addEventListener('input', (e) => {
       searchTerm = e.target.value.toLowerCase();
-      searchClear.classList.toggle('visible', e.target.value.length > 0);
+      searchClear?.classList.toggle('visible', e.target.value.length > 0);
       debouncedRender();
     });
   }
@@ -120,12 +137,14 @@ async function init() {
   }
 }
 
-function selectTab(tab) {
+function selectTab(tab, focus = false) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach((t) => {
     const isActive = t.dataset.tab === tab;
     t.classList.toggle('active', isActive);
     t.setAttribute('aria-selected', String(isActive));
+    t.setAttribute('tabindex', isActive ? '0' : '-1');
+    if (isActive && focus) t.focus();
   });
   document.querySelectorAll('.tab-content').forEach((c) => {
     c.classList.toggle('active', c.id === `${tab}-content`);

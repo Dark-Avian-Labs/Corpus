@@ -318,7 +318,8 @@ function openEditModal(rowId) {
 }
 
 function closeModal() {
-  document.getElementById('modal').classList.remove('active');
+  const modal = document.getElementById('modal');
+  if (modal) modal.classList.remove('active');
 }
 
 async function handleFormSubmit(e) {
@@ -377,7 +378,8 @@ function openDeleteModal(rowId, name) {
 }
 
 function closeDeleteModal() {
-  document.getElementById('delete-modal').classList.remove('active');
+  const modal = document.getElementById('delete-modal');
+  if (modal) modal.classList.remove('active');
 }
 
 async function handleDelete() {

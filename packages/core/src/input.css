@@ -1169,14 +1169,14 @@
     text-decoration: none;
     border: 1px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
     border-radius: 12px;
-    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    background: var(--color-accent-weak);
     transition:
       background 0.2s,
       border-color 0.2s;
   }
 
   .game-card:hover {
-    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+    background: var(--color-accent-weak-2);
     border-color: var(--color-accent);
   }
 

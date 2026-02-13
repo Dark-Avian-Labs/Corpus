@@ -34,13 +34,18 @@ export function createDbSingleton(
       instance = null;
       return result;
     }) as typeof db.close;
-    db.pragma('foreign_keys = ON');
-    if (options?.pragmas) {
-      for (const p of options.pragmas) {
-        db.pragma(p);
+    try {
+      db.pragma('foreign_keys = ON');
+      if (options?.pragmas) {
+        for (const p of options.pragmas) {
+          db.pragma(p);
+        }
       }
+      options?.onOpen?.(db);
+    } catch (err) {
+      db.close();
+      throw err;
     }
-    options?.onOpen?.(db);
     instance = db;
     return db;
   }
@@ -48,7 +53,6 @@ export function createDbSingleton(
   function closeDb(): void {
     if (instance) {
       instance.close();
-      instance = null;
     }
   }
 

@@ -71,8 +71,10 @@ async function init() {
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      closeItemModal();
-      closeDeleteModal();
+      const itemModal = document.getElementById('item-modal');
+      const deleteModal = document.getElementById('delete-modal');
+      if (itemModal?.classList.contains('active')) closeItemModal();
+      if (deleteModal?.classList.contains('active')) closeDeleteModal();
     }
   });
   document.getElementById('table-body').addEventListener('click', (e) => {

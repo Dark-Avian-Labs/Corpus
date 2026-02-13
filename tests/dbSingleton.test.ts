@@ -4,6 +4,8 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import Database from 'better-sqlite3';
+
 import { createDbSingleton } from '../packages/core/src/db/singleton.js';
 
 describe('createDbSingleton', () => {
@@ -45,12 +47,14 @@ describe('createDbSingleton', () => {
     closeDb();
   });
 
-  it('calls onOpen callback once', () => {
+  it('calls onOpen callback once with the db instance', () => {
     const onOpen = vi.fn();
     const { getDb, closeDb } = createDbSingleton(dbPath, { onOpen });
-    getDb();
+    const db = getDb();
     getDb(); // second call should NOT re-trigger onOpen
     expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onOpen).toHaveBeenCalledWith(db);
+    expect(onOpen.mock.calls[0]![0]).toBeInstanceOf(Database);
     closeDb();
   });
 

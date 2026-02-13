@@ -11,7 +11,7 @@ export function getActionFromRequest(req: Request): string {
     : typeof rawQuery === 'string'
       ? rawQuery
       : '';
-  const b = (req.body as { action?: string })?.action ?? '';
+  const b = typeof req.body?.action === 'string' ? req.body.action : '';
   return (q || b || '').trim();
 }
 
@@ -20,11 +20,11 @@ export function getActionFromRequest(req: Request): string {
  */
 export function createJsonHelpers(res: Response) {
   return {
-    json(data: unknown, status = 200) {
-      res.status(status).json(data);
+    json(data: unknown, status = 200): Response {
+      return res.status(status).json(data);
     },
-    err(message: string, status = 400) {
-      res.status(status).json({ error: message });
+    err(message: string, status = 400): Response {
+      return res.status(status).json({ error: message });
     },
   };
 }

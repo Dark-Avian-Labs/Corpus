@@ -29,17 +29,19 @@
     <div class="w-full max-w-7xl relative z-10">
         <%- include('../partials/game-header', { pageTitle: typeof pageTitle !== 'undefined' ? pageTitle : appName, basePath: typeof basePath !== 'undefined' ? basePath : '', isAdmin: typeof isAdmin !== 'undefined' ? isAdmin : false, csrfToken: typeof csrfToken !== 'undefined' ? csrfToken : '', showAccountSelector: true, searchPlaceholder: 'Search...' }) %>
         <div class="tabs" id="tabs" role="tablist">
-            <button class="tab active" data-tab="heroes" role="tab" aria-selected="true" aria-controls="heroes-panel">Heroes</button>
-            <button class="tab" data-tab="artifacts" role="tab" aria-selected="false" aria-controls="artifacts-panel">Artifacts</button>
+            <button class="tab active" data-tab="heroes" role="tab" aria-selected="true" tabindex="0" aria-controls="heroes-panel">Heroes</button>
+            <button class="tab" data-tab="artifacts" role="tab" aria-selected="false" tabindex="-1" aria-controls="artifacts-panel">Artifacts</button>
         </div>
-        <div class="filter-bar" id="filter-bar"></div>
-        <div class="stats-bar" id="stats"></div>
-        <div class="table-container">
-            <div class="table-scroll" style="--header-offset: 340px">
-                <table>
-                    <thead id="table-head"><tr><th>Loading...</th></tr></thead>
-                    <tbody id="table-body"><tr><td class="loading">Loading data...</td></tr></tbody>
-                </table>
+        <div id="heroes-panel" role="tabpanel" aria-hidden="false">
+            <div class="filter-bar" id="filter-bar"></div>
+            <div class="stats-bar" id="stats"></div>
+            <div class="table-container">
+                <div class="table-scroll" style="--header-offset: 340px">
+                    <table>
+                        <thead id="table-head"><tr><th>Loading...</th></tr></thead>
+                        <tbody id="table-body"><tr><td class="loading">Loading data...</td></tr></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

@@ -19,8 +19,8 @@
     <div class="w-full max-w-[1400px] relative z-10">
         <%- include('../partials/game-admin-header', { pageTitle: typeof pageTitle !== 'undefined' ? pageTitle : appName, basePath: typeof basePath !== 'undefined' ? basePath : '', csrfToken: typeof csrfToken !== 'undefined' ? csrfToken : '', backToLabel: 'Back to View', showExtraActions: true }) %>
         <div class="tabs" role="tablist">
-            <button class="tab active" data-tab="heroes" role="tab" aria-selected="true" aria-controls="heroes-content">Base Heroes</button>
-            <button class="tab" data-tab="artifacts" role="tab" aria-selected="false" aria-controls="artifacts-content">Base Artifacts</button>
+            <button class="tab active" data-tab="heroes" role="tab" aria-selected="true" aria-controls="heroes-content" tabindex="0">Base Heroes</button>
+            <button class="tab" data-tab="artifacts" role="tab" aria-selected="false" aria-controls="artifacts-content" tabindex="-1">Base Artifacts</button>
         </div>
         <div class="tab-content active" id="heroes-content" role="tabpanel">
             <%- include('../partials/game-table-open', { columns: [{ name: 'Name' }, { name: 'Class', className: 'icon-cell' }, { name: 'Element', className: 'icon-cell' }, { name: 'Stars' }, { name: 'Actions' }], tbodyId: 'heroes-table', headerOffset: '350px' }) %>
