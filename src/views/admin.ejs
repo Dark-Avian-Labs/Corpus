@@ -48,6 +48,6 @@
                 <% } %>
         <%- include('partials/game-table-close') %>
     </div>
-    <script src="/static/js/admin.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
+    <script type="module" src="/static/js/admin.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
 </body>
 </html>

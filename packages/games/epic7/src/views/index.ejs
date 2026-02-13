@@ -108,6 +108,6 @@
         </div>
     </div>
     <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">window.EPIC7_CONFIG={basePath:<%- JSON.stringify(typeof basePath !== "undefined" ? basePath : "") %>,csrfToken:document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')||'',heroClasses:<%- JSON.stringify(heroClasses) %>,artifactClasses:<%- JSON.stringify(artifactClasses) %>,elements:<%- JSON.stringify(elements) %>,heroRatings:<%- JSON.stringify(heroRatings) %>,ratingColors:<%- JSON.stringify(ratingColors) %>,gaugeColors:<%- JSON.stringify(gaugeColors) %>,classNames:<%- JSON.stringify(classNames) %>,elementNames:<%- JSON.stringify(elementNames) %>,gaugeMax:<%= gaugeMax %>,gaugeFilled:<%- JSON.stringify(gaugeFilled) %>,gaugeEmpty:<%- JSON.stringify(gaugeEmpty) %>};</script>
-    <script src="/static/js/epic7-index.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
+    <script type="module" src="/static/js/epic7-index.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
 </body>
 </html>
