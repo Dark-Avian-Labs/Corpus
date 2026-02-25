@@ -6,7 +6,6 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present && tsc && node scripts/copy-all-views.mjs && vite build",
     "build:client": "vite build",
-    "dev:client": "vite build --watch",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",

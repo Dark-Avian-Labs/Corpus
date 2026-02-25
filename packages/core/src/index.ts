@@ -7,6 +7,7 @@ export {
   COOKIE_DOMAIN,
   BASE_HOST,
   GAME_HOSTS,
+  AUTH_SERVICE_URL,
 } from './config.js';
 export { createCentralSchema, getCentralDb } from './db/schema.js';
 export type { CentralUser } from './db/queries.js';

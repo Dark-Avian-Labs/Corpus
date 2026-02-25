@@ -2,24 +2,16 @@ import {
   type GameModule,
   type GameTheme,
   APP_NAME,
+  AUTH_SERVICE_URL,
   CENTRAL_DB_PATH,
   COOKIE_DOMAIN,
   GAME_HOSTS,
   createCentralSchema,
   getGamesForUser,
-  attemptLogin,
-  getClientIP,
-  isLockedOut,
-  getLockoutRemaining,
-  createUser,
-  deleteUser,
-  setUserGameAccess,
-  getAllUsers,
   requireAuth,
   requireAdmin,
   redirectIfAuthenticated,
 } from '@corpus/core';
-import { validateBody } from '@corpus/core/validation';
 import { epic7Game } from '@corpus/game-epic7';
 import { warframeGame } from '@corpus/game-warframe';
 import Database from 'better-sqlite3';
@@ -33,19 +25,12 @@ import helmet from 'helmet';
 import { createRequire } from 'module';
 import path from 'path';
 
-import { escapeHtml } from './escapeHtml.js';
 import {
   generalLimiter,
   loginLimiter,
   adminLimiter,
 } from './middleware/rateLimit.js';
 import { sanitizeGamePath } from './sanitizeGamePath.js';
-import {
-  gameAccessSchema,
-  deleteUserSchema,
-  loginSchema,
-  registerSchema,
-} from './validation.js';
 
 const require = createRequire(import.meta.url);
 const SQLiteStore = require('better-sqlite3-session-store')(session);
@@ -97,8 +82,7 @@ if (!SESSION_SECRET || SESSION_SECRET.length < 32) {
 }
 const TRUST_PROXY =
   process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true';
-const SECURE_COOKIES =
-  process.env.SECURE_COOKIES === '1' || process.env.SECURE_COOKIES === 'true';
+const SECURE_COOKIES = true;
 
 const app = express();
 if (TRUST_PROXY) app.set('trust proxy', 1);
@@ -124,7 +108,7 @@ const cookieOptions: express.CookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000,
   httpOnly: true,
   secure: SECURE_COOKIES,
-  sameSite: 'lax',
+  sameSite: 'none',
 };
 if (COOKIE_DOMAIN) cookieOptions.domain = COOKIE_DOMAIN;
 
@@ -243,103 +227,49 @@ app.get('/favicon.ico', generalLimiter, (req, res) => {
   });
 });
 
+function getExternalBase(req: express.Request): string {
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const forwardedHost = req.headers['x-forwarded-host'];
+  const proto = Array.isArray(forwardedProto)
+    ? forwardedProto[0] || req.protocol
+    : typeof forwardedProto === 'string' && forwardedProto.length > 0
+      ? (forwardedProto.split(',')[0]?.trim() ?? req.protocol)
+      : req.protocol;
+  const host = Array.isArray(forwardedHost)
+    ? forwardedHost[0] || req.get('host') || ''
+    : typeof forwardedHost === 'string' && forwardedHost.length > 0
+      ? (forwardedHost.split(',')[0]?.trim() ?? req.get('host') ?? '')
+      : req.get('host') || '';
+  return `${proto}://${host}`;
+}
+
+function redirectToAuthLogin(
+  req: express.Request,
+  res: express.Response,
+  fallbackPath = '/',
+): void {
+  const requested =
+    typeof req.query?.next === 'string' && req.query.next
+      ? req.query.next
+      : req.originalUrl || fallbackPath;
+  const next = `${getExternalBase(req)}${requested}`;
+  const loginUrl = new URL(`${AUTH_SERVICE_URL}/login`);
+  loginUrl.searchParams.set('next', next);
+  res.redirect(loginUrl.toString());
+}
+
 app.get('/login', generalLimiter, redirectIfAuthenticated, (req, res) => {
-  const ip = getClientIP(req);
-  const nextUrl =
-    typeof req.query?.next === 'string' && req.query.next ? req.query.next : '';
-  res.render('login', {
-    appName: APP_NAME,
-    error: '',
-    lockedOut: isLockedOut(ip),
-    lockoutRemaining: getLockoutRemaining(ip),
-    dbExists: fs.existsSync(CENTRAL_DB_PATH),
-    csrfToken: (res.locals as { csrfToken?: string }).csrfToken ?? '',
-    next: nextUrl,
-    esc: escapeHtml,
-  });
+  redirectToAuthLogin(req, res);
 });
 
-app.post('/login', loginLimiter, redirectIfAuthenticated, async (req, res) => {
-  const ip = getClientIP(req);
-  const renderLogin = (error: string, nextUrl = '') =>
-    res.render('login', {
-      appName: APP_NAME,
-      error,
-      lockedOut: isLockedOut(ip),
-      lockoutRemaining: getLockoutRemaining(ip),
-      dbExists: fs.existsSync(CENTRAL_DB_PATH),
-      csrfToken: (res.locals as { csrfToken?: string }).csrfToken ?? '',
-      next: nextUrl,
-      esc: escapeHtml,
-    });
-
-  if (isLockedOut(ip)) {
-    renderLogin(
-      'Too many failed attempts. Try again later.',
-      typeof req.body?.next === 'string' ? req.body.next : '',
-    );
-    return;
-  }
-
-  const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) {
-    renderLogin('Username and password are required.');
-    return;
-  }
-
-  const { username, password, next: nextUrl } = parsed.data;
-  const result = await attemptLogin(username, password, ip);
-  if (!result.success || !result.user) {
-    renderLogin(
-      result.success ? 'Invalid login.' : (result.error ?? ''),
-      nextUrl,
-    );
-    return;
-  }
-
-  const user = result.user;
-  req.session.regenerate((err) => {
-    if (err) {
-      res.redirect('/login');
-      return;
-    }
-    (
-      req.session as { user_id?: number; username?: string; is_admin?: boolean }
-    ).user_id = user.id;
-    (req.session as { username?: string }).username = user.username;
-    (req.session as { is_admin?: boolean }).is_admin = Boolean(user.is_admin);
-    req.session.save((saveErr) => {
-      if (saveErr) {
-        res.redirect('/login');
-        return;
-      }
-      const allowedPaths = new Set([
-        '/',
-        ...Object.keys(GAME_REGISTRY).map((id) => `/games/${id}`),
-      ]);
-      const nextPathOnly = nextUrl.split('?')[0];
-      const isRelativePath =
-        nextPathOnly.startsWith('/') &&
-        !nextPathOnly.startsWith('//') &&
-        !nextPathOnly.includes('://');
-      const safeNext =
-        isRelativePath && allowedPaths.has(nextPathOnly) ? nextPathOnly : '';
-      if (safeNext) {
-        res.redirect(safeNext);
-        return;
-      }
-      const games = getGamesForUser(user.id);
-      if (games.length === 1) {
-        res.redirect(`/games/${games[0]}`);
-        return;
-      }
-      res.redirect('/');
-    });
-  });
+app.post('/login', loginLimiter, redirectIfAuthenticated, (req, res) => {
+  redirectToAuthLogin(req, res);
 });
 
 app.post('/logout', generalLimiter, requireAuth, (req, res) => {
-  req.session.destroy(() => res.redirect('/login'));
+  const logoutUrl = new URL(`${AUTH_SERVICE_URL}/logout`);
+  logoutUrl.searchParams.set('next', `${getExternalBase(req)}/login`);
+  res.redirect(logoutUrl.toString());
 });
 
 app.get(
@@ -364,100 +294,8 @@ app.get(
   },
 );
 
-app.get('/admin', adminLimiter, requireAdmin, (req, res) => {
-  const users = getAllUsers();
-  const usersWithGames = users.map((u) => ({
-    ...u,
-    games: getGamesForUser(u.id),
-  }));
-  const currentUserId = (req.session as { user_id?: number }).user_id;
-  res.render('admin', {
-    appName: APP_NAME,
-    users: usersWithGames,
-    currentUserId: typeof currentUserId === 'number' ? currentUserId : null,
-    gameIds: Object.keys(GAME_REGISTRY),
-    gameNames: Object.fromEntries(
-      Object.entries(GAME_REGISTRY).map(([id, d]) => [id, d.name]),
-    ),
-    esc: escapeHtml,
-    csrfToken: (res.locals as { csrfToken?: string }).csrfToken ?? '',
-  });
-});
-
-app.post('/admin/game-access', adminLimiter, requireAdmin, (req, res) => {
-  const data = validateBody(gameAccessSchema, req.body, res);
-  if (!data) return;
-  if (!(data.game_id in GAME_REGISTRY)) {
-    res.status(400).json({ error: 'Invalid game_id' });
-    return;
-  }
-  const changed = setUserGameAccess(data.user_id, data.game_id, data.enabled);
-  res.json({ success: true, changed });
-});
-
-app.post('/admin/delete-user', adminLimiter, requireAdmin, (req, res) => {
-  const currentUserId = (req.session as { user_id?: number }).user_id;
-  if (typeof currentUserId !== 'number' || currentUserId <= 0) {
-    res.status(401).json({ error: 'Not authenticated' });
-    return;
-  }
-  const data = validateBody(deleteUserSchema, req.body, res);
-  if (!data) return;
-  const result = deleteUser(currentUserId, data.user_id);
-  if (result.success) {
-    res.json({ success: true });
-    return;
-  }
-  res.status(400).json({ error: result.error });
-});
-
-app.get('/register', adminLimiter, requireAdmin, (req, res) => {
-  res.render('register', {
-    appName: APP_NAME,
-    error: '',
-    success: '',
-    csrfToken: (res.locals as { csrfToken?: string }).csrfToken ?? '',
-  });
-});
-
-app.post('/register', adminLimiter, requireAdmin, async (req, res) => {
-  const parsed = registerSchema.safeParse(req.body);
-  if (!parsed.success) {
-    const firstError =
-      parsed.error.issues[0]?.message || 'All fields are required.';
-    res.render('register', {
-      appName: APP_NAME,
-      error: firstError,
-      success: '',
-      username: String(req.body?.username ?? ''),
-      csrfToken: (res.locals as { csrfToken?: string }).csrfToken ?? '',
-    });
-    return;
-  }
-
-  const { username, password, confirm_password, is_admin } = parsed.data;
-  let error = '';
-  let success = '';
-
-  if (password !== confirm_password) {
-    error = 'Passwords do not match.';
-  } else {
-    const result = await createUser(username, password, is_admin);
-    if (result.success) {
-      const safeUsername = escapeHtml(username);
-      success = `User '${safeUsername}' created.`;
-    } else {
-      error = result.error;
-    }
-  }
-
-  res.render('register', {
-    appName: APP_NAME,
-    error,
-    success,
-    username: error ? username : '',
-    csrfToken: (res.locals as { csrfToken?: string }).csrfToken ?? '',
-  });
+app.get('/admin', adminLimiter, requireAdmin, (_req, res) => {
+  res.redirect(`${AUTH_SERVICE_URL}/admin`);
 });
 
 const mountOptions = {
