@@ -22,7 +22,8 @@ function getProto(req: Request): string {
 
 function getHost(req: Request): string {
   const forwardedHost = req.headers['x-forwarded-host'];
-  if (Array.isArray(forwardedHost)) return forwardedHost[0] || req.get('host') || '';
+  if (Array.isArray(forwardedHost))
+    return forwardedHost[0] || req.get('host') || '';
   if (typeof forwardedHost === 'string' && forwardedHost.length > 0) {
     return forwardedHost.split(',')[0]?.trim() || req.get('host') || '';
   }
@@ -94,7 +95,10 @@ async function fetchRemoteAuthState(
   }
 }
 
-async function syncSessionFromAuth(req: Request, gameId?: string): Promise<RemoteAuthState> {
+async function syncSessionFromAuth(
+  req: Request,
+  gameId?: string,
+): Promise<RemoteAuthState> {
   const state = await fetchRemoteAuthState(req, gameId);
   const session = getSession(req);
   if (!session) {
@@ -153,7 +157,11 @@ export function requireAdmin(
 }
 
 export function requireGameAccess(gameId: string) {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     const state = await syncSessionFromAuth(req, gameId);
     if (!state.authenticated || !state.user) {
       res.redirect(getLoginRedirectUrl(req, gameId));
