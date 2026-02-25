@@ -20,6 +20,7 @@ import cookieParser from 'cookie-parser';
 import { randomBytes } from 'crypto';
 import { csrfSync } from 'csrf-sync';
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 import session from 'express-session';
 import fs from 'fs';
 import helmet from 'helmet';
@@ -99,6 +100,20 @@ app.set('views', viewsPath);
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const baselineLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) =>
+    req.path === '/healthz' ||
+    req.path === '/readyz' ||
+    req.path.startsWith('/static/') ||
+    req.path.startsWith('/shared/') ||
+    req.path === '/favicon.ico',
+});
+app.use(baselineLimiter);
 
 const centralDir = path.dirname(CENTRAL_DB_PATH);
 if (!fs.existsSync(centralDir)) fs.mkdirSync(centralDir, { recursive: true });
