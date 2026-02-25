@@ -1,4 +1,4 @@
-name: Deploy Corpus - Game Collection Tracker
+name: Deploy Corpus
 
 permissions:
   contents: read
@@ -12,7 +12,6 @@ on:
       - 'scripts/**'
       - 'client/**'
       - 'package*.json'
-      - 'ecosystem.config.cjs'
       - 'tsconfig.json'
       - 'vite.config.ts'
       - 'favicon.ico'
@@ -56,18 +55,17 @@ jobs:
           cp -r dist/ /tmp/deploy/
           cp -r packages/ /tmp/deploy/
           cp package*.json /tmp/deploy/
-          cp ecosystem.config.cjs /tmp/deploy/
           if [ -f favicon.ico ]; then cp favicon.ico /tmp/deploy/; fi
           cd /tmp/deploy && npm ci --omit=dev
 
       - name: Deploy to server
         run: |
           rsync -av --delete \
-          --exclude='.env' \
-          --exclude='.env.local' \
-          --exclude='logs/' \
-          --exclude='data/' \
-          --exclude='import/' \
+          --exclude='/.env' \
+          --exclude='/.env.local' \
+          --exclude='/logs/' \
+          --exclude='/data/' \
+          --exclude='/import/' \
           -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
           /tmp/deploy/ \
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }}/

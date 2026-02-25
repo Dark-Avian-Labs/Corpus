@@ -4,7 +4,7 @@ import path from 'path';
 const projectRoot = process.cwd();
 loadEnv({ path: path.join(projectRoot, '.env') });
 
-export const APP_NAME = process.env.APP_NAME ?? 'Corpus';
+export const APP_NAME = 'Corpus';
 export const AUTH_LOCKOUT_FILE = path.resolve(
   process.env.AUTH_LOCKOUT_FILE ?? './data/auth-lockout.json',
 );
