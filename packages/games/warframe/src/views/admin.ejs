@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-game="warframe"<% if (typeof accentColor !== 'undefined' && accentColor) { %> style="--color-accent:<%= accentColor %>"<% } %>>
+<html lang="en" class="theme-<%= typeof themeMode !== 'undefined' ? themeMode : 'dark' %>" data-game="warframe"<% if (typeof accentColor !== 'undefined' && accentColor) { %> style="--color-accent:<%= accentColor %>"<% } %>>
 <head>
     <meta charset="utf-8">
     <title><%= appName %> - Admin</title>
@@ -51,6 +51,7 @@
             </div>
         </div>
     </div>
+    <script type="module" src="/static/js/theme.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
     <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">window.WARFRAME_ADMIN_CONFIG={apiUrl:<%- JSON.stringify((typeof basePath !== "undefined" && basePath ? basePath + "/api" : "/api")) %>};</script>
     <script type="module" src="/static/js/warframe-admin.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
 </body>

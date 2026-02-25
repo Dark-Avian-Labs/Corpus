@@ -73,6 +73,7 @@
    If you add/remove UI above the table, bump this value accordingly. */
 :root {
   --header-offset: 280px;
+  --theme-mode: dark;
 
   /* Derived accent tints – live in :root (not @theme) so they recalculate
      whenever --color-accent is overridden inline (e.g. per-game cards). */
@@ -82,6 +83,28 @@
     var(--color-accent) 20%,
     transparent
   );
+}
+
+html.theme-light {
+  --theme-mode: light;
+  --color-foreground: #0f172a;
+  --color-muted: #475569;
+  --color-glass: rgba(255, 255, 255, 0.58);
+  --color-glass-border: rgba(15, 23, 42, 0.2);
+  --color-glass-border-hover: rgba(15, 23, 42, 0.3);
+  --color-glass-hover: rgba(255, 255, 255, 0.72);
+  --color-glass-active: rgba(255, 255, 255, 0.84);
+  --color-glass-divider: rgba(15, 23, 42, 0.12);
+  --color-surface-modal: rgba(255, 255, 255, 0.92);
+  --color-surface-thead: rgba(236, 240, 247, 0.9);
+  --color-bg-start: #dbe4f1;
+  --color-bg-end: #f8fafc;
+  --color-bg-glow: rgba(148, 163, 184, 0.28);
+  --shadow-panel: 0 8px 28px rgba(15, 23, 42, 0.16);
+}
+
+html.theme-dark {
+  --theme-mode: dark;
 }
 
 /* ==========================================================================
@@ -229,6 +252,27 @@
   .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .icon-toggle-btn {
+    height: 40px;
+    width: 40px;
+    border-radius: 999px;
+    border: 1px solid var(--color-glass-border);
+    background: var(--color-glass);
+    color: var(--color-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(12px);
+    cursor: pointer;
+  }
+
+  .icon-toggle-btn:hover {
+    color: var(--color-foreground);
+    border-color: var(--color-glass-border-hover);
+    background: var(--color-glass-hover);
   }
 
   .brand-lockup {

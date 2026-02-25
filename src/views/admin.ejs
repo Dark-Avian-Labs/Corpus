@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-<%= typeof themeMode !== 'undefined' ? themeMode : 'dark' %>">
 <head>
     <meta charset="utf-8">
     <title><%= appName %> – Admin</title>
@@ -48,6 +48,7 @@
                 <% } %>
         <%- include('partials/game-table-close') %>
     </div>
+    <script type="module" src="/static/js/theme.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
     <script type="module" src="/static/js/admin.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
 </body>
 </html>

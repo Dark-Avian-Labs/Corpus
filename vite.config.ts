@@ -22,6 +22,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         styles: 'client/styles.js',
+        theme: 'client/theme.js',
         'warframe-index': 'packages/games/warframe/assets/js/warframe-index.js',
         'warframe-admin': 'packages/games/warframe/assets/js/warframe-admin.js',
         'epic7-index': 'packages/games/epic7/assets/js/epic7-index.js',

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-<%= typeof themeMode !== 'undefined' ? themeMode : 'dark' %>">
 <head>
     <meta charset="utf-8">
     <title>Login - <%= appName %></title>
@@ -9,6 +9,11 @@
 </head>
 <body class="p-4 md:p-6">
     <% if (art) { %><div class="bg-art"><%- art %></div><% } %>
+    <div class="fixed top-4 right-4 z-20">
+        <button type="button" class="icon-toggle-btn" data-theme-toggle aria-label="Toggle theme" title="Toggle theme">
+            <span data-theme-icon aria-hidden="true">☀</span>
+        </button>
+    </div>
     <div class="relative z-10 w-full max-w-5xl mx-auto">
         <header class="mb-8">
             <h1 class="brand-lockup">
@@ -66,5 +71,6 @@
             </div>
         </div>
     </div>
+    <script type="module" src="/static/js/theme.js" nonce="<%= typeof cspNonce !== 'undefined' && cspNonce ? cspNonce : '' %>"></script>
 </body>
 </html>

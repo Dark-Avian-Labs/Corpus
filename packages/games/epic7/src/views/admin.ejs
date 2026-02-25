@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-game="epic7"<% if (typeof accentColor !== 'undefined' && accentColor) { %> style="--color-accent:<%= accentColor %>"<% } %>>
+<html lang="en" class="theme-<%= typeof themeMode !== 'undefined' ? themeMode : 'dark' %>" data-game="epic7"<% if (typeof accentColor !== 'undefined' && accentColor) { %> style="--color-accent:<%= accentColor %>"<% } %>>
 <head>
     <meta charset="utf-8">
     <title><%= appName %> - Epic Seven Admin</title>
@@ -56,6 +56,7 @@
             </form>
         </div>
     </div>
+    <script type="module" src="/static/js/theme.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
     <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">window.EPIC7_ADMIN_CONFIG={basePath:<%- typeof basePath !== "undefined" ? JSON.stringify(basePath) : '""' %>,classNames:<%- JSON.stringify(classNames) %>,elementNames:<%- JSON.stringify(elementNames) %>};</script>
     <script type="module" src="/static/js/epic7-admin.js" nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>"></script>
 </body>

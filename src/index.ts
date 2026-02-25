@@ -197,6 +197,16 @@ app.use((_req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => {
+  const cookieTheme =
+    typeof req.cookies?.['dal.theme.mode'] === 'string'
+      ? req.cookies['dal.theme.mode']
+      : '';
+  (res.locals as { themeMode?: 'light' | 'dark' }).themeMode =
+    cookieTheme === 'light' ? 'light' : 'dark';
+  next();
+});
+
 function hostToGameRedirect(
   req: express.Request,
   res: express.Response,
