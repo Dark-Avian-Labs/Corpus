@@ -329,6 +329,87 @@ app.post('/logout', generalLimiter, (_req, res) => {
   redirectToAuthLogout(res);
 });
 
+app.get('/change-password', generalLimiter, requireAuth, (req, res) => {
+  const csrfToken = (res.locals as { csrfToken?: string }).csrfToken;
+  res.render('change-password', {
+    appName: APP_NAME,
+    csrfToken: typeof csrfToken === 'string' ? csrfToken : '',
+    error: '',
+    success: '',
+  });
+});
+
+app.post('/change-password', generalLimiter, requireAuth, async (req, res) => {
+  const currentPassword = String(req.body?.current_password ?? '');
+  const newPassword = String(req.body?.new_password ?? '');
+  const confirmPassword = String(req.body?.confirm_password ?? '');
+  const csrfToken =
+    typeof req.body?._csrf === 'string'
+      ? req.body._csrf
+      : typeof req.headers['x-csrf-token'] === 'string'
+        ? req.headers['x-csrf-token']
+        : '';
+
+  const renderPage = (params: { error?: string; success?: string }): void => {
+    const nextCsrfToken = (res.locals as { csrfToken?: string }).csrfToken;
+    res.render('change-password', {
+      appName: APP_NAME,
+      csrfToken: typeof nextCsrfToken === 'string' ? nextCsrfToken : '',
+      error: params.error ?? '',
+      success: params.success ?? '',
+    });
+  };
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    renderPage({ error: 'All password fields are required.' });
+    return;
+  }
+  if (newPassword.length < 8) {
+    renderPage({ error: 'New password must be at least 8 characters.' });
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    renderPage({ error: 'New password and confirmation must match.' });
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const upstream = await fetch(
+      `${AUTH_SERVICE_URL}/api/auth/change-password`,
+      {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          cookie: req.headers.cookie ?? '',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+        signal: controller.signal,
+      },
+    );
+    const body = (await upstream.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    if (!upstream.ok) {
+      renderPage({
+        error: body?.error || 'Failed to change password.',
+      });
+      return;
+    }
+    renderPage({ success: 'Password updated successfully.' });
+  } catch {
+    renderPage({ error: 'Auth service unavailable. Please try again.' });
+  } finally {
+    clearTimeout(timeout);
+  }
+});
+
 app.get(
   '/',
   generalLimiter,
