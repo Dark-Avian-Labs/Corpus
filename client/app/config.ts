@@ -20,11 +20,14 @@ const resolvedLegalPageUrl = readTrimmedEnv(
   import.meta.env.VITE_LEGAL_PAGE_URL as string | undefined,
   '/legal',
 );
+const lower = resolvedLegalPageUrl.toLowerCase();
 const isSafeRelativePath =
   resolvedLegalPageUrl.startsWith('/') &&
   !resolvedLegalPageUrl.startsWith('//') &&
   !resolvedLegalPageUrl.includes('://') &&
-  !resolvedLegalPageUrl.toLowerCase().startsWith('javascript:');
+  !lower.startsWith('javascript:') &&
+  !lower.startsWith('data:') &&
+  !lower.startsWith('vbscript:');
 
 export const LEGAL_PAGE_URL = isSafeRelativePath
   ? resolvedLegalPageUrl
