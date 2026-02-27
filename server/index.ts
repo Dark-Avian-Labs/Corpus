@@ -76,6 +76,7 @@ const baselineLimiter = rateLimit({
     req.path === '/' ||
     req.path === '/auth/login' ||
     req.path === '/auth/profile' ||
+    req.path === '/auth/legal' ||
     /^\/assets\/.+\.(?:css|js|png|jpe?g|gif|webp|svg|ico|woff2?)$/i.test(
       req.path,
     ),
@@ -283,6 +284,9 @@ app.get('/auth/login', publicPageLimiter, (req, res) => {
 });
 app.get('/auth/profile', publicPageLimiter, (_req, res) => {
   res.redirect(`${AUTH_SERVICE_URL}/profile`);
+});
+app.get('/auth/legal', publicPageLimiter, (_req, res) => {
+  res.redirect(`${AUTH_SERVICE_URL}/legal`);
 });
 
 app.use(

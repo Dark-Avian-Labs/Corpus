@@ -4,9 +4,12 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const parentName = path.basename(path.resolve(__dirname, '..'));
+// When running from dist/server/index.js: parent is "dist" -> go up 2 to app root
+// When running from dist/server/server/index.js: parent is "server" -> go up 3 to app root
+const levelsUp = parentName === 'dist' ? 2 : parentName === 'server' ? 3 : 1;
 export const PROJECT_ROOT = path.resolve(
   __dirname,
-  parentName === 'dist' ? '../..' : '..',
+  ...Array(levelsUp).fill('..'),
 );
 
 export const DATA_DIR = path.join(PROJECT_ROOT, 'data');

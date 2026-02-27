@@ -18,6 +18,8 @@ import {
 import { APP_PATHS } from '../../app/paths';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../features/auth/AuthContext';
+import { getProfileIconSrc } from '../../utils/profileIcons';
+import { Menu } from '../ui/Menu';
 
 export function Layout() {
   const { mode, toggleMode } = useTheme();
@@ -32,6 +34,7 @@ export function Layout() {
   const menuItemNodeMap = useRef<Record<string, HTMLElement | null>>({});
   const prevMenuOpenRef = useRef(menuOpen);
   const currentYear = new Date().getFullYear();
+  const avatarSrc = getProfileIconSrc(auth.user?.avatar ?? 1);
   const menuItemIds = useMemo(() => {
     if (!isLoggedIn) {
       return ['login'];
@@ -209,70 +212,76 @@ export function Layout() {
               <button
                 ref={triggerRef}
                 type="button"
-                className="icon-toggle-btn"
+                className="icon-toggle-btn profile-avatar-btn"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
                 aria-label="Open user menu"
                 onClick={() => setMenuOpen((prev) => !prev)}
               >
-                <span aria-hidden="true" className="text-xs font-semibold">
-                  {isLoggedIn ? `#${auth.user.avatar || 1}` : '🔐'}
-                </span>
+                {isLoggedIn ? (
+                  <img
+                    src={avatarSrc}
+                    alt=""
+                    className="profile-avatar-image"
+                  />
+                ) : (
+                  <span aria-hidden="true" className="text-xs font-semibold">
+                    🔐
+                  </span>
+                )}
               </button>
               {menuOpen ? (
-                <div
-                  role="menu"
-                  onKeyDown={onMenuKeyDown}
-                  className="absolute right-0 top-[calc(100%+8px)] z-50 min-w-[170px] rounded-xl border border-[var(--color-glass-border)] bg-[var(--color-surface-modal)] p-1.5 backdrop-blur"
-                >
-                  {!isLoggedIn ? (
-                    <a
-                      ref={nextMenuItemRef('login')}
-                      href="/auth/login"
-                      className="user-menu-item block"
-                      role="menuitem"
-                      tabIndex={-1}
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      Login
-                    </a>
-                  ) : (
-                    <>
+                <Menu baseClass="user-menu" className="focus:outline-none">
+                  <div role="menu" onKeyDown={onMenuKeyDown}>
+                    {!isLoggedIn ? (
                       <a
-                        ref={nextMenuItemRef('profile')}
-                        href="/auth/profile"
-                        className="user-menu-item block"
+                        ref={nextMenuItemRef('login')}
+                        href="/auth/login"
+                        className="user-menu-item"
                         role="menuitem"
                         tabIndex={-1}
                         onClick={() => setMenuOpen(false)}
                       >
-                        Profile
+                        Login
                       </a>
-                      {isAdmin ? (
-                        <NavLink
-                          ref={nextMenuItemRef('admin')}
-                          to={APP_PATHS.admin}
-                          className="user-menu-item block"
+                    ) : (
+                      <>
+                        <a
+                          ref={nextMenuItemRef('profile')}
+                          href="/auth/profile"
+                          className="user-menu-item"
                           role="menuitem"
                           tabIndex={-1}
                           onClick={() => setMenuOpen(false)}
                         >
-                          Admin
-                        </NavLink>
-                      ) : null}
-                      <a
-                        ref={nextMenuItemRef('logout')}
-                        href="/logout"
-                        className="user-menu-item block"
-                        role="menuitem"
-                        tabIndex={-1}
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        Logout
-                      </a>
-                    </>
-                  )}
-                </div>
+                          Profile
+                        </a>
+                        {isAdmin ? (
+                          <NavLink
+                            ref={nextMenuItemRef('admin')}
+                            to={APP_PATHS.admin}
+                            className="user-menu-item"
+                            role="menuitem"
+                            tabIndex={-1}
+                            onClick={() => setMenuOpen(false)}
+                          >
+                            Admin
+                          </NavLink>
+                        ) : null}
+                        <a
+                          ref={nextMenuItemRef('logout')}
+                          href="/logout"
+                          className="user-menu-item"
+                          role="menuitem"
+                          tabIndex={-1}
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          Logout
+                        </a>
+                      </>
+                    )}
+                  </div>
+                </Menu>
               ) : null}
             </div>
           </div>
