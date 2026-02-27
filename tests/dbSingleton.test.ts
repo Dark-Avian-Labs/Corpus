@@ -51,7 +51,7 @@ describe('createDbSingleton', () => {
     const onOpen = vi.fn();
     const { getDb, closeDb } = createDbSingleton(dbPath, { onOpen });
     const db = getDb();
-    getDb(); // second call should NOT re-trigger onOpen
+    getDb();
     expect(onOpen).toHaveBeenCalledTimes(1);
     expect(onOpen).toHaveBeenCalledWith(db);
     expect(onOpen.mock.calls[0]![0]).toBeInstanceOf(Database);

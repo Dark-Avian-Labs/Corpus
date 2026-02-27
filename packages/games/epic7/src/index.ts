@@ -94,7 +94,7 @@ export const epic7Game: GameModule = {
         try {
           db.close();
         } catch {
-          // Ignore close errors
+          // ignore
         }
       }
     }

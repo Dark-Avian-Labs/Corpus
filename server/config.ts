@@ -39,9 +39,7 @@ export const SECURE_COOKIES =
 const ALLOWED_PROTOCOLS = ['http', 'https'] as const;
 type AllowedProtocol = (typeof ALLOWED_PROTOCOLS)[number];
 
-function validateBaseProtocol(
-  value: string | undefined,
-): AllowedProtocol {
+function validateBaseProtocol(value: string | undefined): AllowedProtocol {
   const normalized = value?.trim().toLowerCase();
   if (!normalized) return 'https';
   if (ALLOWED_PROTOCOLS.includes(normalized as AllowedProtocol)) {
@@ -88,7 +86,8 @@ if (!DOMAIN_LABEL_REGEX.test(APP_SUBDOMAIN)) {
 }
 
 export const APP_PUBLIC_BASE_URL = `${BASE_PROTOCOL}://${APP_SUBDOMAIN}.${BASE_DOMAIN}`;
-const configuredCookieDomain = process.env.COOKIE_DOMAIN?.trim().toLowerCase() || '';
+const configuredCookieDomain =
+  process.env.COOKIE_DOMAIN?.trim().toLowerCase() || '';
 let resolvedCookieDomain = `.${BASE_DOMAIN}`;
 
 if (configuredCookieDomain) {
@@ -98,7 +97,6 @@ if (configuredCookieDomain) {
       `Invalid COOKIE_DOMAIN "${configuredCookieDomain}" provided; falling back to ".${BASE_DOMAIN}".`,
     );
   } else {
-    // Use a leading dot to explicitly support cross-subdomain cookies.
     resolvedCookieDomain = `.${cookieDomainWithoutDot}`;
   }
 }

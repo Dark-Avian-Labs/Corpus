@@ -32,10 +32,6 @@ export function createCentralSchema(db: Database.Database): void {
   `);
 }
 
-/**
- * Returns the shared central database instance, creating it on first use.
- * Uses a singleton to avoid leaking file handles from repeated `new Database()`.
- */
 export function getCentralDb(): Database.Database {
   if (centralDb === null) {
     centralDb = new Database(CENTRAL_DB_PATH);
@@ -44,11 +40,6 @@ export function getCentralDb(): Database.Database {
   return centralDb;
 }
 
-/**
- * Closes the central database and clears the singleton.
- * Must be called at application shutdown to release file handles and allow clean exit.
- * Ensures the singleton is cleared even if close() throws.
- */
 export function closeCentralDb(): void {
   if (centralDb === null) return;
   const db = centralDb;

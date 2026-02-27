@@ -115,11 +115,6 @@ function getDummyHash(): Promise<string> {
   return dummyHashPromise;
 }
 
-/**
- * Returns the client IP. When trustProxy is true (e.g., app.set('trust proxy')
- * and process.env.TRUST_PROXY), reads x-forwarded-for or x-real-ip. Otherwise
- * returns req.ip to avoid spoofing from untrusted headers.
- */
 export function getClientIP(req: {
   ip?: string;
   headers?: Record<string, string | string[] | undefined>;

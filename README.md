@@ -34,16 +34,16 @@ Corpus is a game collection tracker with pluggable modules. It currently ships w
 
 ## Environment
 
-| Variable                            | Description                                          |
-| ----------------------------------- | ---------------------------------------------------- |
-| `PORT`, `HOST`                      | Server bind address (defaults: `3000`, `127.0.0.1`). |
-| `SESSION_SECRET`                    | Required; 32+ characters.                            |
+| Variable                            | Description                                                     |
+| ----------------------------------- | --------------------------------------------------------------- |
+| `PORT`, `HOST`                      | Server bind address (defaults: `3000`, `127.0.0.1`).            |
+| `SESSION_SECRET`                    | Required; 32+ characters.                                       |
 | `TRUST_PROXY`                       | Optional, defaults to `false`; set to `1` behind reverse proxy. |
-| `AUTH_SERVICE_URL`                  | Shared Auth base URL.                                |
-| `CENTRAL_DB_PATH`                   | Shared central DB path for users/sessions/access.    |
-| `WARFRAME_DB_PATH`, `EPIC7_DB_PATH` | Per-game DB paths.                                   |
-| `COOKIE_DOMAIN`                     | Optional cross-subdomain cookie domain.              |
-| `GAME_HOSTS`                        | Optional host-to-game map (`host=gameId` pairs).     |
+| `AUTH_SERVICE_URL`                  | Shared Auth base URL.                                           |
+| `CENTRAL_DB_PATH`                   | Shared central DB path for users/sessions/access.               |
+| `WARFRAME_DB_PATH`, `EPIC7_DB_PATH` | Per-game DB paths.                                              |
+| `COOKIE_DOMAIN`                     | Optional cross-subdomain cookie domain.                         |
+| `GAME_HOSTS`                        | Optional host-to-game map (`host=gameId` pairs).                |
 
 ## Scripts
 

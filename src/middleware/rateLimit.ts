@@ -47,7 +47,7 @@ const keyGen = (req: Request): string => {
       return ipKeyGenerator(ip);
     }
   } catch {
-    // fall through to fallback
+    // ignore
   }
   return buildFallbackKey(req);
 };

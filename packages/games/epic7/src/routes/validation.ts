@@ -13,19 +13,11 @@ import {
   HERO_RATINGS,
 } from '../config.js';
 
-// ---------------------------------------------------------------------------
-// Reusable field schemas
-// ---------------------------------------------------------------------------
-
 const heroClass = zodEnum(HERO_CLASSES);
 const artifactClass = zodEnum(ARTIFACT_CLASSES);
 const element = zodEnum(ELEMENTS);
 const heroRating = zodEnum(HERO_RATINGS);
 const starRating = z.coerce.number().int().min(3).max(5).default(5);
-
-// ---------------------------------------------------------------------------
-// Request body schemas
-// ---------------------------------------------------------------------------
 
 export const updateHeroSchema = z.object({
   hero_id: positiveInt,

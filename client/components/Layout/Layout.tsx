@@ -42,11 +42,9 @@ export function Layout() {
     return new Map(menuItemIds.map((id, index) => [id, index]));
   }, [menuItemIds]);
 
-  const setMenuItemRef =
-    (id: string) =>
-    (node: HTMLElement | null) => {
-      menuItemNodeMap.current[id] = node;
-    };
+  const setMenuItemRef = (id: string) => (node: HTMLElement | null) => {
+    menuItemNodeMap.current[id] = node;
+  };
   const nextMenuItemRef = (id: string) => setMenuItemRef(id);
 
   useLayoutEffect(() => {
@@ -56,12 +54,13 @@ export function Layout() {
       return;
     }
 
-    const refsInOrder = menuItemIds.map((id) => menuItemNodeMap.current[id] ?? null);
+    const refsInOrder = menuItemIds.map(
+      (id) => menuItemNodeMap.current[id] ?? null,
+    );
     menuItemRefs.current = refsInOrder;
     firstMenuItemRef.current =
       refsInOrder.find((item): item is HTMLElement => item !== null) ?? null;
 
-    // Keep only active menu entries in the lookup map.
     for (const id of Object.keys(menuItemNodeMap.current)) {
       if (!menuItemIndexById.has(id)) {
         delete menuItemNodeMap.current[id];
@@ -87,15 +86,17 @@ export function Layout() {
       return;
     }
 
-    const enabledItems = menuItemRefs.current.filter((item): item is HTMLElement => {
-      if (!item) {
-        return false;
-      }
-      if (item.hasAttribute('disabled')) {
-        return false;
-      }
-      return item.getAttribute('aria-disabled') !== 'true';
-    });
+    const enabledItems = menuItemRefs.current.filter(
+      (item): item is HTMLElement => {
+        if (!item) {
+          return false;
+        }
+        if (item.hasAttribute('disabled')) {
+          return false;
+        }
+        return item.getAttribute('aria-disabled') !== 'true';
+      },
+    );
 
     if (enabledItems.length === 0) {
       return;
@@ -113,15 +114,20 @@ export function Layout() {
     }
 
     const activeElement =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const currentIndex = activeElement ? enabledItems.indexOf(activeElement) : -1;
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const currentIndex = activeElement
+      ? enabledItems.indexOf(activeElement)
+      : -1;
     const direction = key === 'ArrowDown' ? 1 : -1;
     const nextIndex =
       currentIndex === -1
         ? key === 'ArrowDown'
           ? 0
           : enabledItems.length - 1
-        : (currentIndex + direction + enabledItems.length) % enabledItems.length;
+        : (currentIndex + direction + enabledItems.length) %
+          enabledItems.length;
 
     enabledItems[nextIndex]?.focus();
   };

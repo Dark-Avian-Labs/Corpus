@@ -9,7 +9,6 @@ import {
 } from '../packages/games/warframe/src/routes/validation.js';
 
 describe('Warframe validation schemas', () => {
-  // ---------- updateSchema ----------
   describe('updateSchema', () => {
     it('accepts valid input', () => {
       const r = updateSchema.safeParse({
@@ -61,7 +60,6 @@ describe('Warframe validation schemas', () => {
     });
   });
 
-  // ---------- addRowSchema ----------
   describe('addRowSchema', () => {
     it('accepts valid input', () => {
       const r = addRowSchema.safeParse({
@@ -98,7 +96,6 @@ describe('Warframe validation schemas', () => {
     });
   });
 
-  // ---------- editRowSchema ----------
   describe('editRowSchema', () => {
     it('accepts valid input', () => {
       const r = editRowSchema.safeParse({
@@ -122,7 +119,6 @@ describe('Warframe validation schemas', () => {
     });
   });
 
-  // ---------- deleteRowSchema ----------
   describe('deleteRowSchema', () => {
     it('accepts positive row_id', () => {
       expect(deleteRowSchema.safeParse({ row_id: 10 }).success).toBe(true);
@@ -133,7 +129,6 @@ describe('Warframe validation schemas', () => {
     });
   });
 
-  // ---------- adminUpdateSchema ----------
   describe('adminUpdateSchema', () => {
     it('accepts valid input', () => {
       const r = adminUpdateSchema.safeParse({

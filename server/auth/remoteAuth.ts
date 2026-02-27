@@ -15,7 +15,9 @@ function isSafeRelativePath(next: string): boolean {
 export function buildAuthLoginUrl(req: Request): string {
   const requestedNext =
     typeof req.query?.next === 'string' ? req.query.next : undefined;
-  const fallbackNext = isSafeRelativePath(req.originalUrl) ? req.originalUrl : '/';
+  const fallbackNext = isSafeRelativePath(req.originalUrl)
+    ? req.originalUrl
+    : '/';
   const requested =
     requestedNext && isSafeRelativePath(requestedNext)
       ? requestedNext

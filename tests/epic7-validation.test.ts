@@ -19,7 +19,6 @@ import {
 } from '../packages/games/epic7/src/routes/validation.js';
 
 describe('Epic7 validation schemas', () => {
-  // ---------- updateHeroSchema ----------
   describe('updateHeroSchema', () => {
     it('accepts valid input', () => {
       const r = updateHeroSchema.safeParse({ hero_id: 1, rating: 'SSS' });
@@ -52,7 +51,6 @@ describe('Epic7 validation schemas', () => {
     });
   });
 
-  // ---------- updateArtifactSchema ----------
   describe('updateArtifactSchema', () => {
     it('accepts valid input', () => {
       const r = updateArtifactSchema.safeParse({
@@ -79,7 +77,6 @@ describe('Epic7 validation schemas', () => {
     });
   });
 
-  // ---------- addHeroSchema ----------
   describe('addHeroSchema', () => {
     it('accepts valid hero', () => {
       const r = addHeroSchema.safeParse({
@@ -140,7 +137,6 @@ describe('Epic7 validation schemas', () => {
     });
   });
 
-  // ---------- addArtifactSchema ----------
   describe('addArtifactSchema', () => {
     it('accepts valid artifact (including universal class)', () => {
       const r = addArtifactSchema.safeParse({
@@ -161,7 +157,6 @@ describe('Epic7 validation schemas', () => {
     });
   });
 
-  // ---------- delete schemas ----------
   describe('deleteHeroSchema', () => {
     it('accepts positive integer', () => {
       expect(deleteHeroSchema.safeParse({ hero_id: 1 }).success).toBe(true);
@@ -179,7 +174,6 @@ describe('Epic7 validation schemas', () => {
     });
   });
 
-  // ---------- detail update schemas ----------
   describe('updateHeroDetailsSchema', () => {
     it('accepts valid full update', () => {
       const r = updateHeroDetailsSchema.safeParse({
@@ -205,7 +199,6 @@ describe('Epic7 validation schemas', () => {
     });
   });
 
-  // ---------- account schemas ----------
   describe('switchAccountSchema', () => {
     it('accepts valid account_id', () => {
       expect(switchAccountSchema.safeParse({ account_id: 5 }).success).toBe(
@@ -234,7 +227,6 @@ describe('Epic7 validation schemas', () => {
     });
   });
 
-  // ---------- admin base-data schemas ----------
   describe('adminAddBaseHeroSchema', () => {
     it('accepts valid base hero', () => {
       const r = adminAddBaseHeroSchema.safeParse({

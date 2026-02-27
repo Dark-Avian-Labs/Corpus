@@ -66,7 +66,14 @@ type Epic7ModalAction =
 
 const HERO_RATINGS = ['-', 'D', 'C', 'B', 'A', 'S', 'SS', 'SSS'] as const;
 const GAUGE_MAX = 5;
-const HERO_CLASSES = ['warrior', 'knight', 'thief', 'ranger', 'mage', 'soulweaver'] as const;
+const HERO_CLASSES = [
+  'warrior',
+  'knight',
+  'thief',
+  'ranger',
+  'mage',
+  'soulweaver',
+] as const;
 const ARTIFACT_CLASSES = [...HERO_CLASSES, 'universal'] as const;
 const ELEMENTS = ['fire', 'ice', 'earth', 'light', 'dark'] as const;
 const initialModalState: Epic7ModalState = {
@@ -85,7 +92,10 @@ const initialModalState: Epic7ModalState = {
   deletingItem: null,
 };
 
-function epic7ModalReducer(state: Epic7ModalState, action: Epic7ModalAction): Epic7ModalState {
+function epic7ModalReducer(
+  state: Epic7ModalState,
+  action: Epic7ModalAction,
+): Epic7ModalState {
   switch (action.type) {
     case 'OPEN_ACCOUNT_MODAL':
       return { ...state, isAccountModalOpen: true };
@@ -101,7 +111,10 @@ function epic7ModalReducer(state: Epic7ModalState, action: Epic7ModalAction): Ep
         editingId: null,
         draft: {
           name: '',
-          class: action.payload.itemType === 'heroes' ? HERO_CLASSES[0] : ARTIFACT_CLASSES[0],
+          class:
+            action.payload.itemType === 'heroes'
+              ? HERO_CLASSES[0]
+              : ARTIFACT_CLASSES[0],
           element: ELEMENTS[0],
           stars: 5,
         },
@@ -155,7 +168,10 @@ export function Epic7Page() {
   const [tab, setTab] = useState<'heroes' | 'artifacts'>('heroes');
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
-  const [modalState, dispatchModal] = useReducer(epic7ModalReducer, initialModalState);
+  const [modalState, dispatchModal] = useReducer(
+    epic7ModalReducer,
+    initialModalState,
+  );
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<string | null>(null);
@@ -219,18 +235,23 @@ export function Epic7Page() {
       }
       setLoadError('Could not load Epic Seven data.');
     } finally {
-      if (signal?.aborted) return;
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   }
 
   useEffect(() => {
-    if (!operationError) return;
-    const timeoutId = window.setTimeout(() => {
-      setOperationError(null);
-    }, 5000);
+    let timeoutId: number | null = null;
+    if (operationError) {
+      timeoutId = window.setTimeout(() => {
+        setOperationError(null);
+      }, 5000);
+    }
     return () => {
-      window.clearTimeout(timeoutId);
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
     };
   }, [operationError]);
 
@@ -265,9 +286,9 @@ export function Epic7Page() {
         body: JSON.stringify({ account_id: accountId }),
         signal,
       });
-      const body = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!response.ok || body?.error) {
         throw new Error(body?.error || 'Failed to switch account');
       }
@@ -282,7 +303,8 @@ export function Epic7Page() {
 
   async function cycleHero(hero: Epic7Hero): Promise<void> {
     const index = HERO_RATINGS.indexOf(hero.rating);
-    const rating = HERO_RATINGS[(index + 1 + HERO_RATINGS.length) % HERO_RATINGS.length];
+    const rating =
+      HERO_RATINGS[(index + 1 + HERO_RATINGS.length) % HERO_RATINGS.length];
     setHeroes((previous) =>
       previous.map((candidate) =>
         candidate.id === hero.id ? { ...candidate, rating } : candidate,
@@ -294,16 +316,18 @@ export function Epic7Page() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating }),
       });
-      const body = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!response.ok || body?.error) {
         throw new Error(body?.error || 'Failed to update hero');
       }
     } catch {
       setHeroes((previous) =>
         previous.map((candidate) =>
-          candidate.id === hero.id ? { ...candidate, rating: hero.rating } : candidate,
+          candidate.id === hero.id
+            ? { ...candidate, rating: hero.rating }
+            : candidate,
         ),
       );
       setOperationError('Failed to save hero rating.');
@@ -314,7 +338,9 @@ export function Epic7Page() {
     const gaugeLevel = (artifact.gauge_level + 1) % (GAUGE_MAX + 1);
     setArtifacts((previous) =>
       previous.map((candidate) =>
-        candidate.id === artifact.id ? { ...candidate, gauge_level: gaugeLevel } : candidate,
+        candidate.id === artifact.id
+          ? { ...candidate, gauge_level: gaugeLevel }
+          : candidate,
       ),
     );
     try {
@@ -326,9 +352,9 @@ export function Epic7Page() {
           body: JSON.stringify({ gauge_level: gaugeLevel }),
         },
       );
-      const body = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!response.ok || body?.error) {
         throw new Error(body?.error || 'Failed to update artifact');
       }
@@ -354,12 +380,14 @@ export function Epic7Page() {
       const response = await apiFetch('/api/epic7/accounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account_name: modalState.accountNameDraft.trim() }),
+        body: JSON.stringify({
+          account_name: modalState.accountNameDraft.trim(),
+        }),
         signal,
       });
-      const body = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!response.ok || body?.error) {
         throw new Error(body?.error || 'Failed to add account');
       }
@@ -389,7 +417,9 @@ export function Epic7Page() {
         id: item.id,
         draft: {
           name: item.name,
-          class: item.class || (itemType === 'heroes' ? HERO_CLASSES[0] : ARTIFACT_CLASSES[0]),
+          class:
+            item.class ||
+            (itemType === 'heroes' ? HERO_CLASSES[0] : ARTIFACT_CLASSES[0]),
           element: 'rating' in item ? item.element || ELEMENTS[0] : ELEMENTS[0],
           stars: item.star_rating || 5,
         },
@@ -429,9 +459,9 @@ export function Epic7Page() {
         body: JSON.stringify(body),
         signal,
       });
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!response.ok || payload?.error) {
         throw new Error(payload?.error || 'Failed to save item');
       }
@@ -447,16 +477,20 @@ export function Epic7Page() {
 
   async function deleteItem(): Promise<void> {
     if (!modalState.deletingItem) return;
-    const path = modalState.deletingItem.type === 'hero' ? 'heroes' : 'artifacts';
+    const path =
+      modalState.deletingItem.type === 'hero' ? 'heroes' : 'artifacts';
     const signal = beginUserActionRequest();
     try {
-      const response = await apiFetch(`/api/epic7/${path}/${modalState.deletingItem.id}`, {
-        method: 'DELETE',
-        signal,
-      });
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string }
-        | null;
+      const response = await apiFetch(
+        `/api/epic7/${path}/${modalState.deletingItem.id}`,
+        {
+          method: 'DELETE',
+          signal,
+        },
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!response.ok || payload?.error) {
         throw new Error(payload?.error || 'Failed to delete item');
       }
@@ -469,7 +503,6 @@ export function Epic7Page() {
       setOperationError('Failed to delete item.');
     }
   }
-
 
   if (loading) {
     return (
@@ -489,7 +522,10 @@ export function Epic7Page() {
   return (
     <section className="space-y-4">
       {operationError ? (
-        <div className="error flex items-center justify-between gap-3" role="alert">
+        <div
+          className="error flex items-center justify-between gap-3"
+          role="alert"
+        >
           <span>{operationError}</span>
           <button
             type="button"
@@ -511,7 +547,11 @@ export function Epic7Page() {
           {editMode ? 'Done Editing' : 'Edit Mode'}
         </button>
         {editMode ? (
-          <button type="button" className="btn btn-secondary" onClick={openAddItemModal}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={openAddItemModal}
+          >
             Add {tab === 'heroes' ? 'Hero' : 'Artifact'}
           </button>
         ) : null}
@@ -665,7 +705,10 @@ export function Epic7Page() {
         onClose={() => dispatchModal({ type: 'CLOSE_ACCOUNT_MODAL' })}
         ariaLabelledBy="epic7-account-modal-title"
       >
-        <h2 id="epic7-account-modal-title" className="mb-4 text-lg font-semibold">
+        <h2
+          id="epic7-account-modal-title"
+          className="mb-4 text-lg font-semibold"
+        >
           Add Account
         </h2>
         <div className="form-group">
@@ -674,7 +717,10 @@ export function Epic7Page() {
             id="epic7-account-name"
             value={modalState.accountNameDraft}
             onChange={(event) =>
-              dispatchModal({ type: 'SET_ACCOUNT_NAME', payload: event.target.value })
+              dispatchModal({
+                type: 'SET_ACCOUNT_NAME',
+                payload: event.target.value,
+              })
             }
           />
         </div>
@@ -686,7 +732,11 @@ export function Epic7Page() {
           >
             Cancel
           </button>
-          <button type="button" className="btn btn-accent" onClick={() => void addAccount()}>
+          <button
+            type="button"
+            className="btn btn-accent"
+            onClick={() => void addAccount()}
+          >
             Create
           </button>
         </div>
@@ -727,7 +777,10 @@ export function Epic7Page() {
               })
             }
           >
-            {(modalState.modalItemType === 'heroes' ? HERO_CLASSES : ARTIFACT_CLASSES).map((value) => (
+            {(modalState.modalItemType === 'heroes'
+              ? HERO_CLASSES
+              : ARTIFACT_CLASSES
+            ).map((value) => (
               <option key={value} value={value}>
                 {value}
               </option>
@@ -782,7 +835,11 @@ export function Epic7Page() {
           >
             Cancel
           </button>
-          <button type="button" className="btn btn-accent" onClick={() => void saveItem()}>
+          <button
+            type="button"
+            className="btn btn-accent"
+            onClick={() => void saveItem()}
+          >
             Save
           </button>
         </div>
@@ -793,11 +850,16 @@ export function Epic7Page() {
         onClose={() => dispatchModal({ type: 'CANCEL_DELETE' })}
         ariaLabelledBy="epic7-delete-modal-title"
       >
-        <h2 id="epic7-delete-modal-title" className="mb-4 text-lg font-semibold">
-          Delete {modalState.deletingItem?.type === 'hero' ? 'Hero' : 'Artifact'}
+        <h2
+          id="epic7-delete-modal-title"
+          className="mb-4 text-lg font-semibold"
+        >
+          Delete{' '}
+          {modalState.deletingItem?.type === 'hero' ? 'Hero' : 'Artifact'}
         </h2>
         <p className="text-sm text-muted">
-          Delete <strong>{modalState.deletingItem?.name || 'this item'}</strong>?
+          Delete <strong>{modalState.deletingItem?.name || 'this item'}</strong>
+          ?
         </p>
         <div className="modal-actions">
           <button
@@ -807,7 +869,11 @@ export function Epic7Page() {
           >
             Cancel
           </button>
-          <button type="button" className="btn btn-danger" onClick={() => void deleteItem()}>
+          <button
+            type="button"
+            className="btn btn-danger"
+            onClick={() => void deleteItem()}
+          >
             Delete
           </button>
         </div>

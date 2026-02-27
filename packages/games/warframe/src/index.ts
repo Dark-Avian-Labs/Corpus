@@ -51,7 +51,7 @@ export const warframeGame: GameModule = {
         try {
           db.close();
         } catch {
-          // Ignore close errors
+          // ignore
         }
       }
     }

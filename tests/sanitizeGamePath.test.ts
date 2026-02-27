@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { sanitizeGamePath } from '../src/sanitizeGamePath.js';
 
 describe('sanitizeGamePath', () => {
-  // --- valid relative paths ---
   it('allows root-relative path', () => {
     expect(sanitizeGamePath('/warframe')).toBe('/warframe');
   });
@@ -16,7 +15,6 @@ describe('sanitizeGamePath', () => {
     expect(sanitizeGamePath('./warframe')).toBe('./warframe');
   });
 
-  // --- valid absolute URLs ---
   it('allows https URL', () => {
     expect(sanitizeGamePath('https://example.com')).toBe('https://example.com');
   });
@@ -29,7 +27,6 @@ describe('sanitizeGamePath', () => {
     expect(sanitizeGamePath('HTTPS://example.com')).toBe('HTTPS://example.com');
   });
 
-  // --- blocked / edge-case inputs ---
   it('blocks protocol-relative URL (//)', () => {
     expect(sanitizeGamePath('//evil.com')).toBe('#');
   });

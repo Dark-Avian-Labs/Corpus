@@ -1,9 +1,7 @@
 import Database from 'better-sqlite3';
 
 export interface DbSingletonOptions {
-  /** Extra pragmas to run on first connection (e.g. `['journal_mode = WAL']`). */
   pragmas?: string[];
-  /** Called once after the connection is opened and pragmas are set. */
   onOpen?: (db: Database.Database) => void;
 }
 
@@ -12,13 +10,6 @@ export interface DbSingleton {
   closeDb(): void;
 }
 
-/**
- * Creates a lazy-initialised singleton around a SQLite database file.
- *
- * - Opens the database on first `getDb()` call.
- * - Patches `db.close()` so the singleton resets automatically.
- * - Enables `foreign_keys = ON` by default.
- */
 export function createDbSingleton(
   dbPath: string,
   options?: DbSingletonOptions,

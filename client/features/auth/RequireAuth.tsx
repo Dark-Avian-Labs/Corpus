@@ -14,7 +14,9 @@ function safeRedirectPath(path: string): string {
   return '/';
 }
 
-function toErrorMessage(error: Error | string | { message: string; code?: string }) {
+function toErrorMessage(
+  error: Error | string | { message: string; code?: string },
+) {
   if (typeof error === 'string') {
     return error;
   }
@@ -59,8 +61,8 @@ export function RequireAuth({ children }: { children: ReactNode }) {
         aria-atomic="true"
       >
         <p className="text-muted">
-          Session check failed: {toErrorMessage(auth.error)}. Redirecting to secure
-          login...
+          Session check failed: {toErrorMessage(auth.error)}. Redirecting to
+          secure login...
         </p>
       </div>
     );

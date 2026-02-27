@@ -46,7 +46,10 @@ export function getAppPublicBaseUrl(): string {
       `Unknown or unset NODE_ENV "${nodeEnv ?? ''}" detected; defaulting APP_PUBLIC_BASE_URL protocol policy to production (https-only unless local http).`,
     );
   }
-  if (parsed.protocol !== 'https:' && !(isLocalHttp || isKnownNonProductionEnv)) {
+  if (
+    parsed.protocol !== 'https:' &&
+    !(isLocalHttp || isKnownNonProductionEnv)
+  ) {
     throw new Error('APP_PUBLIC_BASE_URL must use https://');
   }
   return normalized;

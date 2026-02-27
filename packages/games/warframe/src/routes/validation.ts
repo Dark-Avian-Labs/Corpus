@@ -1,9 +1,5 @@
 import { positiveInt, z } from '@corpus/core/validation';
 
-// ---------------------------------------------------------------------------
-// Request body schemas
-// ---------------------------------------------------------------------------
-
 export const updateSchema = z.object({
   row_id: positiveInt,
   column_id: positiveInt,

@@ -215,7 +215,8 @@ warframeApiRouter.patch('/cells', (req, res) => {
       res.status(200).json({ success: true, value: data.value });
     } catch (error) {
       res.status(400).json({
-        error: error instanceof Error ? error.message : 'Failed to update cell.',
+        error:
+          error instanceof Error ? error.message : 'Failed to update cell.',
       });
     } finally {
       db.close();
@@ -237,7 +238,9 @@ warframeApiRouter.post('/rows', (req, res) => {
     try {
       const columns = q.getWorksheetColumns(db, data.worksheet_id, userId);
       if (columns.length === 0) {
-        res.status(403).json({ error: 'Worksheet not found or access denied.' });
+        res
+          .status(403)
+          .json({ error: 'Worksheet not found or access denied.' });
         return;
       }
       const { valid, invalid } = validateColumnValues(data.values, columns);
@@ -365,8 +368,7 @@ warframeApiRouter.patch('/admin/cells', requireAdmin, (req, res) => {
       res.status(200).json({ success: true, value: data.value });
     } catch (error) {
       res.status(400).json({
-        error:
-          error instanceof Error ? error.message : 'Invalid status value.',
+        error: error instanceof Error ? error.message : 'Invalid status value.',
       });
     } finally {
       db.close();

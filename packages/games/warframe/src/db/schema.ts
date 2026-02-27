@@ -3,10 +3,6 @@ import type Database from 'better-sqlite3';
 
 import { WARFRAME_DB_PATH } from '../config.js';
 
-/**
- * When confirmReset is true: drops all tables and recreates (destructive).
- * When confirmReset is false: no-op (use for idempotent init or migrations).
- */
 export function createSchema(
   db: Database.Database,
   confirmReset: boolean,

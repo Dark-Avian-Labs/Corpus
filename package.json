@@ -1,6 +1,6 @@
 {
   "name": "corpus",
-  "version": "2.3.0",
+  "version": "3.0.0",
   "description": "Corpus - game collection tracker",
   "private": true,
   "scripts": {
@@ -21,9 +21,9 @@
     "packages/games/epic7"
   ],
   "dependencies": {
-    "@corpus/core": "2.3.0",
-    "@corpus/game-epic7": "2.3.0",
-    "@corpus/game-warframe": "2.3.0",
+    "@corpus/core": "3.0.0",
+    "@corpus/game-epic7": "3.0.0",
+    "@corpus/game-warframe": "3.0.0",
     "better-sqlite3": "^12.6.2",
     "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",

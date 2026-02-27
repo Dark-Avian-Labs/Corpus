@@ -280,10 +280,6 @@ export function getCellValue(
   return row?.value;
 }
 
-/**
- * Adds a row to a worksheet and initializes cell values for all columns.
- * Use this when creating a new row with known or default cell data.
- */
 export function addRow(
   db: Database.Database,
   worksheetId: number,
@@ -490,11 +486,6 @@ export function addColumn(
   return Number(r.lastInsertRowid);
 }
 
-/**
- * Inserts only a row record in the rows table. Does not create or populate
- * any cell_values. Use {@link addRow} when you need a row with initialized
- * cells for all worksheet columns.
- */
 export function insertRowRecord(
   db: Database.Database,
   worksheetId: number,

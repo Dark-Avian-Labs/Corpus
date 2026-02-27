@@ -63,7 +63,6 @@ const baselineLimiter = rateLimit({
   max: 1200,
   standardHeaders: true,
   legacyHeaders: false,
-  // Skip routes with dedicated page/static limiters; health endpoints are intentionally exempt.
   skip: (req) =>
     req.path === '/healthz' ||
     req.path === '/readyz' ||
@@ -146,24 +145,29 @@ const defaultDevOrigins = IS_DEV_ENV
     ]
   : [];
 const configuredOrigins = [process.env.ALLOWED_APP_ORIGINS, AUTH_SERVICE_URL]
-  .filter((value): value is string => typeof value === 'string' && value.length > 0)
+  .filter(
+    (value): value is string => typeof value === 'string' && value.length > 0,
+  )
   .join(',');
 const originCandidates = configuredOrigins
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);
 const excludedOrigins: string[] = [];
-const ALLOWED_APP_ORIGINS = [...new Set([...originCandidates, ...defaultDevOrigins])].filter(
-  (value) => {
-    const isHttps = value.startsWith('https://');
-    const isDevHttp = IS_DEV_ENV && value.startsWith('http://');
-    const allowed = isHttps || isDevHttp;
-    if (!allowed) excludedOrigins.push(value);
-    return allowed;
-  },
-);
+const ALLOWED_APP_ORIGINS = [
+  ...new Set([...originCandidates, ...defaultDevOrigins]),
+].filter((value) => {
+  const isHttps = value.startsWith('https://');
+  const isDevHttp = IS_DEV_ENV && value.startsWith('http://');
+  const allowed = isHttps || isDevHttp;
+  if (!allowed) excludedOrigins.push(value);
+  return allowed;
+});
 if (excludedOrigins.length > 0) {
-  console.warn('[CORS] Excluded app origins from ALLOWED_APP_ORIGINS:', excludedOrigins);
+  console.warn(
+    '[CORS] Excluded app origins from ALLOWED_APP_ORIGINS:',
+    excludedOrigins,
+  );
 }
 
 app.use((req: Request, res: Response, next) => {
@@ -308,15 +312,18 @@ app.use(
             : 500;
     const isClientError = status >= 400 && status < 500;
     const fallbackStatusText = STATUS_TEXT[status] || 'Request error';
-    const message =
-      isClientError
-        ? (typeof error.message === 'string' && error.message.trim()) ||
-          (typeof error.name === 'string' && error.name.trim()) ||
-          fallbackStatusText
-        : 'Internal server error';
-    res.status(status).json(
-      isCsrfError ? { error: message, code: 'CSRF_INVALID' } : { error: message },
-    );
+    const message = isClientError
+      ? (typeof error.message === 'string' && error.message.trim()) ||
+        (typeof error.name === 'string' && error.name.trim()) ||
+        fallbackStatusText
+      : 'Internal server error';
+    res
+      .status(status)
+      .json(
+        isCsrfError
+          ? { error: message, code: 'CSRF_INVALID' }
+          : { error: message },
+      );
   },
 );
 

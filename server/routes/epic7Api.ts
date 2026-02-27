@@ -152,7 +152,9 @@ epic7ApiRouter.patch('/artifacts/:artifactId/gauge', (req, res) => {
   if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
-  if (!q.updateArtifactGauge(db, data.artifact_id, accountId, data.gauge_level)) {
+  if (
+    !q.updateArtifactGauge(db, data.artifact_id, accountId, data.gauge_level)
+  ) {
     err(res, 'Artifact not found.', 404);
     return;
   }
@@ -529,22 +531,26 @@ epic7ApiRouter.post('/admin/base/artifacts', requireAdmin, (req, res) => {
   }
 });
 
-epic7ApiRouter.delete('/admin/base/heroes/:heroId', requireAdmin, (req, res) => {
-  const data = validateBody(
-    adminDeleteBaseHeroSchema,
-    { hero_id: Number(req.params.heroId) },
-    res,
-  );
-  if (!data) return;
-  const db = getDbOrFail(res);
-  if (!db) return;
-  const deleted = q.deleteBaseHero(db, data.hero_id);
-  if (!deleted) {
-    err(res, 'Base hero not found', 404);
-    return;
-  }
-  json(res, { success: true });
-});
+epic7ApiRouter.delete(
+  '/admin/base/heroes/:heroId',
+  requireAdmin,
+  (req, res) => {
+    const data = validateBody(
+      adminDeleteBaseHeroSchema,
+      { hero_id: Number(req.params.heroId) },
+      res,
+    );
+    if (!data) return;
+    const db = getDbOrFail(res);
+    if (!db) return;
+    const deleted = q.deleteBaseHero(db, data.hero_id);
+    if (!deleted) {
+      err(res, 'Base hero not found', 404);
+      return;
+    }
+    json(res, { success: true });
+  },
+);
 
 epic7ApiRouter.delete(
   '/admin/base/artifacts/:artifactId',

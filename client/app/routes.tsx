@@ -1,4 +1,11 @@
-import { Component, lazy, Suspense, type ComponentType, type ErrorInfo, type ReactNode } from 'react';
+import {
+  Component,
+  lazy,
+  Suspense,
+  type ComponentType,
+  type ErrorInfo,
+  type ReactNode,
+} from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { APP_PATHS } from './paths';
@@ -15,14 +22,26 @@ const lazyNamed = <TModule extends Record<string, unknown>>(
     })),
   );
 
-const HomePage = lazyNamed(() => import('../features/selector/HomePage'), 'HomePage');
+const HomePage = lazyNamed(
+  () => import('../features/selector/HomePage'),
+  'HomePage',
+);
 const WarframePage = lazyNamed(
   () => import('../features/warframe/WarframePage'),
   'WarframePage',
 );
-const Epic7Page = lazyNamed(() => import('../features/epic7/Epic7Page'), 'Epic7Page');
-const LegalPage = lazyNamed(() => import('../features/legal/LegalPage'), 'LegalPage');
-const AdminPage = lazyNamed(() => import('../features/admin/AdminPage'), 'AdminPage');
+const Epic7Page = lazyNamed(
+  () => import('../features/epic7/Epic7Page'),
+  'Epic7Page',
+);
+const LegalPage = lazyNamed(
+  () => import('../features/legal/LegalPage'),
+  'LegalPage',
+);
+const AdminPage = lazyNamed(
+  () => import('../features/admin/AdminPage'),
+  'AdminPage',
+);
 
 function RouteFallback() {
   return (
@@ -70,10 +89,15 @@ function ChunkLoadError({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-class ChunkErrorBoundary extends Component<{ children: ReactNode }, ChunkErrorBoundaryState> {
+class ChunkErrorBoundary extends Component<
+  { children: ReactNode },
+  ChunkErrorBoundaryState
+> {
   public state: ChunkErrorBoundaryState = { hasError: false };
 
-  public static getDerivedStateFromError(error: Error): ChunkErrorBoundaryState | null {
+  public static getDerivedStateFromError(
+    error: Error,
+  ): ChunkErrorBoundaryState | null {
     if (isChunkLoadError(error)) {
       return { hasError: true };
     }
@@ -83,7 +107,6 @@ class ChunkErrorBoundary extends Component<{ children: ReactNode }, ChunkErrorBo
 
   public componentDidCatch(error: Error, info: ErrorInfo): void {
     if (isChunkLoadError(error)) {
-      // Keep this visible in dev tools for failed lazy chunks and route imports.
       console.error('Chunk load failed in AppRoutes', error, info);
       return;
     }
@@ -143,7 +166,10 @@ export function AppRoutes() {
                 </RequireAuth>
               }
             />
-            <Route path="*" element={<Navigate to={APP_PATHS.legal} replace />} />
+            <Route
+              path="*"
+              element={<Navigate to={APP_PATHS.legal} replace />}
+            />
           </Route>
         </Routes>
       </Suspense>

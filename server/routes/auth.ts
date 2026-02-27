@@ -75,9 +75,7 @@ authRouter.post('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       console.error('[Auth] Failed to destroy session:', err);
-      res
-        .status(500)
-        .json({ ok: false, error: 'Failed to destroy session' });
+      res.status(500).json({ ok: false, error: 'Failed to destroy session' });
       return;
     }
     res.clearCookie(SESSION_COOKIE_NAME, {

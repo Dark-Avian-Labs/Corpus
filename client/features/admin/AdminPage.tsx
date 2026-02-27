@@ -43,7 +43,9 @@ export function AdminPage() {
   const [heroStars, setHeroStars] = useState(5);
 
   const [artifactName, setArtifactName] = useState('');
-  const [artifactClass, setArtifactClass] = useState<string>(ARTIFACT_CLASSES[0]);
+  const [artifactClass, setArtifactClass] = useState<string>(
+    ARTIFACT_CLASSES[0],
+  );
   const [artifactStars, setArtifactStars] = useState(5);
 
   const loadBaseData = useCallback(async (): Promise<void> => {
@@ -87,7 +89,9 @@ export function AdminPage() {
           star_rating: heroStars,
         }),
       });
-      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!res.ok || body?.error) {
         throw new Error(body?.error || 'Failed to add base hero.');
       }
@@ -110,7 +114,9 @@ export function AdminPage() {
           star_rating: artifactStars,
         }),
       });
-      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!res.ok || body?.error) {
         throw new Error(body?.error || 'Failed to add base artifact.');
       }
@@ -131,7 +137,9 @@ export function AdminPage() {
       const res = await apiFetch(`/api/epic7/admin/base/heroes/${heroId}`, {
         method: 'DELETE',
       });
-      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!res.ok || body?.error) {
         throw new Error(body?.error || 'Failed to delete base hero.');
       }
@@ -148,10 +156,15 @@ export function AdminPage() {
     if (!confirmed) return;
 
     try {
-      const res = await apiFetch(`/api/epic7/admin/base/artifacts/${artifactId}`, {
-        method: 'DELETE',
-      });
-      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      const res = await apiFetch(
+        `/api/epic7/admin/base/artifacts/${artifactId}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!res.ok || body?.error) {
         throw new Error(body?.error || 'Failed to delete base artifact.');
       }
@@ -228,20 +241,26 @@ export function AdminPage() {
                 </option>
               ))}
             </select>
-            <button type="button" className="btn btn-accent" onClick={() => void addHero()}>
+            <button
+              type="button"
+              className="btn btn-accent"
+              onClick={() => void addHero()}
+            >
               Add Base Hero
             </button>
           </div>
           <div className="mt-4 space-y-2">
             {baseHeroes.length === 0 ? (
-              <p className="text-sm text-muted">
-                No base heroes
-              </p>
+              <p className="text-sm text-muted">No base heroes</p>
             ) : (
               baseHeroes.map((hero) => (
-                <div key={hero.id} className="flex items-center justify-between gap-2 text-sm">
+                <div
+                  key={hero.id}
+                  className="flex items-center justify-between gap-2 text-sm"
+                >
                   <span>
-                    {hero.name} ({hero.class}/{hero.element}/{hero.star_rating}★)
+                    {hero.name} ({hero.class}/{hero.element}/{hero.star_rating}
+                    ★)
                   </span>
                   <button
                     type="button"
@@ -300,9 +319,7 @@ export function AdminPage() {
           </div>
           <div className="mt-4 space-y-2">
             {baseArtifacts.length === 0 ? (
-              <p className="text-sm text-muted">
-                No base artifacts
-              </p>
+              <p className="text-sm text-muted">No base artifacts</p>
             ) : (
               baseArtifacts.map((artifact) => (
                 <div

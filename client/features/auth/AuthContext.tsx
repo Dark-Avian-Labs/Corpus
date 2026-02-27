@@ -30,7 +30,13 @@ function isSafeRelativePath(next: string): boolean {
   if (trimmed.length !== next.length) {
     return false;
   }
-  if (trimmed.includes('\\') || /[\u0000-\u001f\u007f]/.test(trimmed)) {
+  const hasControlCharacters = Array.from(trimmed).some((char) => {
+    const codePoint = char.codePointAt(0);
+    return (
+      typeof codePoint === 'number' && (codePoint <= 31 || codePoint === 127)
+    );
+  });
+  if (trimmed.includes('\\') || hasControlCharacters) {
     return false;
   }
 
