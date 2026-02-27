@@ -29,6 +29,11 @@ export function Layout() {
   const menuItemRefs = useRef<Array<HTMLElement | null>>([]);
   const prevMenuOpenRef = useRef(menuOpen);
   const currentYear = new Date().getFullYear();
+  if (menuOpen) {
+    // Rebuild menu refs in render order each time menu content is built.
+    menuItemRefs.current.length = 0;
+  }
+  let menuItemIndex = 0;
 
   const setMenuItemRef =
     (index: number, isFirst = false) =>
@@ -38,6 +43,7 @@ export function Layout() {
         firstMenuItemRef.current = node;
       }
     };
+  const nextMenuItemRef = (isFirst = false) => setMenuItemRef(menuItemIndex++, isFirst);
 
   const onMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     const { key } = event;
@@ -191,10 +197,11 @@ export function Layout() {
                 >
                   {!isLoggedIn ? (
                     <a
-                      ref={setMenuItemRef(0, true)}
+                      ref={nextMenuItemRef(true)}
                       href="/auth/login"
                       className="user-menu-item block"
                       role="menuitem"
+                      tabIndex={-1}
                       onClick={() => setMenuOpen(false)}
                     >
                       Login
@@ -202,30 +209,33 @@ export function Layout() {
                   ) : (
                     <>
                       <a
-                        ref={setMenuItemRef(0, true)}
+                        ref={nextMenuItemRef(true)}
                         href="/auth/profile"
                         className="user-menu-item block"
                         role="menuitem"
+                        tabIndex={-1}
                         onClick={() => setMenuOpen(false)}
                       >
                         Profile
                       </a>
                       {isAdmin ? (
                         <NavLink
-                          ref={setMenuItemRef(1)}
+                          ref={nextMenuItemRef()}
                           to={APP_PATHS.admin}
                           className="user-menu-item block"
                           role="menuitem"
+                          tabIndex={-1}
                           onClick={() => setMenuOpen(false)}
                         >
                           Admin
                         </NavLink>
                       ) : null}
                       <a
-                        ref={setMenuItemRef(2)}
+                        ref={nextMenuItemRef()}
                         href="/logout"
                         className="user-menu-item block"
                         role="menuitem"
+                        tabIndex={-1}
                         onClick={() => setMenuOpen(false)}
                       >
                         Logout

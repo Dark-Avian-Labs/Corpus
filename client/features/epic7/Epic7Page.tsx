@@ -18,6 +18,9 @@ type Epic7Artifact = {
   star_rating?: number;
   gauge_level: number;
 };
+function isHero(item: Epic7Hero | Epic7Artifact): item is Epic7Hero {
+  return 'rating' in item;
+}
 type Epic7Account = { id: number; account_name: string };
 type DeletingItem = { id: number; type: 'hero' | 'artifact'; name: string };
 type Epic7ModalDraft = {
@@ -58,7 +61,8 @@ type Epic7ModalAction =
       type: 'START_DELETE';
       payload: DeletingItem;
     }
-  | { type: 'CANCEL_DELETE' };
+  | { type: 'CANCEL_DELETE' }
+  | { type: 'CONFIRM_DELETE' };
 
 const HERO_RATINGS = ['-', 'D', 'C', 'B', 'A', 'S', 'SS', 'SSS'] as const;
 const GAUGE_MAX = 5;
@@ -127,6 +131,7 @@ function epic7ModalReducer(state: Epic7ModalState, action: Epic7ModalAction): Ep
         deletingItem: action.payload,
       };
     case 'CANCEL_DELETE':
+    case 'CONFIRM_DELETE':
       return {
         ...state,
         isDeleteModalOpen: false,
@@ -155,11 +160,11 @@ export function Epic7Page() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<string | null>(null);
 
-  async function loadAccountsAndData(): Promise<void> {
+  async function loadAccountsAndData(signal?: AbortSignal): Promise<void> {
     setLoading(true);
     setLoadError(null);
     try {
-      const accountsRes = await apiFetch('/api/epic7/accounts');
+      const accountsRes = await apiFetch('/api/epic7/accounts', { signal });
       if (!accountsRes.ok) {
         throw new Error('Failed to load accounts');
       }
@@ -174,6 +179,7 @@ export function Epic7Page() {
         typeof accountsBody.current_account_id === 'number'
           ? accountsBody.current_account_id
           : null;
+      if (signal?.aborted) return;
       setAccounts(nextAccounts);
       setCurrentAccountId(nextAccountId);
       if (nextAccountId === null) {
@@ -184,8 +190,8 @@ export function Epic7Page() {
       }
 
       const [heroesRes, artifactsRes] = await Promise.all([
-        apiFetch('/api/epic7/heroes'),
-        apiFetch('/api/epic7/artifacts'),
+        apiFetch('/api/epic7/heroes', { signal }),
+        apiFetch('/api/epic7/artifacts', { signal }),
       ]);
       if (!heroesRes.ok || !artifactsRes.ok) {
         throw new Error('Failed to load Epic7 data');
@@ -194,13 +200,18 @@ export function Epic7Page() {
       const artifactsBody = (await artifactsRes.json()) as {
         artifacts?: Epic7Artifact[];
       };
+      if (signal?.aborted) return;
       setHeroes(Array.isArray(heroesBody.heroes) ? heroesBody.heroes : []);
       setArtifacts(
         Array.isArray(artifactsBody.artifacts) ? artifactsBody.artifacts : [],
       );
-    } catch {
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
       setLoadError('Could not load Epic Seven data.');
     } finally {
+      if (signal?.aborted) return;
       setLoading(false);
     }
   }
@@ -216,7 +227,11 @@ export function Epic7Page() {
   }, [operationError]);
 
   useEffect(() => {
-    void loadAccountsAndData();
+    const controller = new AbortController();
+    void loadAccountsAndData(controller.signal);
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   const activeRows = useMemo(() => {
@@ -414,7 +429,7 @@ export function Epic7Page() {
       if (!response.ok || payload?.error) {
         throw new Error(payload?.error || 'Failed to delete item');
       }
-      dispatchModal({ type: 'CANCEL_DELETE' });
+      dispatchModal({ type: 'CONFIRM_DELETE' });
       await loadAccountsAndData();
     } catch {
       setOperationError('Failed to delete item.');
@@ -550,28 +565,28 @@ export function Epic7Page() {
                   <td>{row.class || '-'}</td>
                   <td>{stars(row.star_rating)}</td>
                   <td>
-                    {tab === 'heroes' ? (
+                    {isHero(row) ? (
                       <button
                         type="button"
                         className="rating-btn"
                         onClick={() => {
-                          void cycleHero(row as Epic7Hero);
+                          void cycleHero(row);
                         }}
                         aria-label={`Cycle imprint for ${row.name}`}
                       >
-                        {(row as Epic7Hero).rating}
+                        {row.rating}
                       </button>
                     ) : (
                       <button
                         type="button"
                         className="gauge-btn"
                         onClick={() => {
-                          void cycleArtifact(row as Epic7Artifact);
+                          void cycleArtifact(row);
                         }}
                         aria-label={`Cycle limit break for ${row.name}`}
                       >
-                        {'▰'.repeat((row as Epic7Artifact).gauge_level)}
-                        {'▱'.repeat(GAUGE_MAX - (row as Epic7Artifact).gauge_level)}
+                        {'▰'.repeat(row.gauge_level)}
+                        {'▱'.repeat(GAUGE_MAX - row.gauge_level)}
                       </button>
                     )}
                   </td>
@@ -580,7 +595,7 @@ export function Epic7Page() {
                       <button
                         type="button"
                         className="btn-icon btn-edit"
-                        onClick={() => openEditItemModal(row as Epic7Hero | Epic7Artifact)}
+                        onClick={() => openEditItemModal(row)}
                         aria-label={`Edit ${row.name}`}
                       >
                         ✎

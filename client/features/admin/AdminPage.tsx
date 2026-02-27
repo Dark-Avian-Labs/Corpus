@@ -234,7 +234,7 @@ export function AdminPage() {
           </div>
           <div className="mt-4 space-y-2">
             {baseHeroes.length === 0 ? (
-              <p className="text-sm text-muted" aria-live="polite">
+              <p className="text-sm text-muted">
                 No base heroes
               </p>
             ) : (
@@ -300,7 +300,7 @@ export function AdminPage() {
           </div>
           <div className="mt-4 space-y-2">
             {baseArtifacts.length === 0 ? (
-              <p className="text-sm text-muted" aria-live="polite">
+              <p className="text-sm text-muted">
                 No base artifacts
               </p>
             ) : (

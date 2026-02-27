@@ -30,6 +30,16 @@ import { authRouter } from './routes/auth.js';
 
 const require = createRequire(import.meta.url);
 const SQLiteStore = require('better-sqlite3-session-store')(session);
+const STATUS_TEXT: Record<number, string> = {
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not Found',
+  405: 'Method Not Allowed',
+  409: 'Conflict',
+  422: 'Unprocessable Entity',
+  429: 'Too Many Requests',
+};
 
 ensureDataDirs();
 ensureCentralSchema();
@@ -53,7 +63,7 @@ const baselineLimiter = rateLimit({
   max: 1200,
   standardHeaders: true,
   legacyHeaders: false,
-  // These routes have dedicated limiters below; skip to avoid double counting.
+  // Skip routes with dedicated page/static limiters; health endpoints are intentionally exempt.
   skip: (req) =>
     req.path === '/healthz' ||
     req.path === '/readyz' ||
@@ -282,6 +292,10 @@ app.use(
       status?: number;
       statusCode?: number;
     };
+    const isCsrfError = error.name === 'ForbiddenError';
+    if (isCsrfError) {
+      res.setHeader('X-CSRF-Error', '1');
+    }
     console.error('[Error]', error.stack ?? error.message);
     const status =
       typeof error.status === 'number'
@@ -292,31 +306,16 @@ app.use(
             ? 403
             : 500;
     const isClientError = status >= 400 && status < 500;
-    const fallbackStatusText =
-      status === 400
-        ? 'Bad Request'
-        : status === 401
-          ? 'Unauthorized'
-          : status === 403
-            ? 'Forbidden'
-            : status === 404
-              ? 'Not Found'
-              : status === 405
-                ? 'Method Not Allowed'
-                : status === 409
-                  ? 'Conflict'
-                  : status === 422
-                    ? 'Unprocessable Entity'
-                    : status === 429
-                      ? 'Too Many Requests'
-                      : 'Request error';
+    const fallbackStatusText = STATUS_TEXT[status] || 'Request error';
     const message =
       isClientError
         ? (typeof error.message === 'string' && error.message.trim()) ||
           (typeof error.name === 'string' && error.name.trim()) ||
           fallbackStatusText
         : 'Internal server error';
-    res.status(status).json({ error: message });
+    res.status(status).json(
+      isCsrfError ? { error: message, code: 'CSRF_INVALID' } : { error: message },
+    );
   },
 );
 

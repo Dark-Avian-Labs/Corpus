@@ -32,9 +32,21 @@ export function getAppPublicBaseUrl(): string {
   }
   const isLocalHttp =
     parsed.protocol === 'http:' &&
-    (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1');
-  const isNonProduction = process.env.NODE_ENV !== 'production';
-  if (parsed.protocol !== 'https:' && !(isLocalHttp || isNonProduction)) {
+    (parsed.hostname === 'localhost' ||
+      parsed.hostname === '127.0.0.1' ||
+      parsed.hostname === '::1');
+  const nodeEnv = process.env.NODE_ENV;
+  const isKnownNonProductionEnv =
+    nodeEnv === 'development' || nodeEnv === 'test';
+  if (
+    nodeEnv == null ||
+    (nodeEnv !== 'production' && !isKnownNonProductionEnv)
+  ) {
+    console.warn(
+      `Unknown or unset NODE_ENV "${nodeEnv ?? ''}" detected; defaulting APP_PUBLIC_BASE_URL protocol policy to production (https-only unless local http).`,
+    );
+  }
+  if (parsed.protocol !== 'https:' && !(isLocalHttp || isKnownNonProductionEnv)) {
     throw new Error('APP_PUBLIC_BASE_URL must use https://');
   }
   return normalized;

@@ -18,6 +18,13 @@ export function getCentralDb(): Database.Database {
     }
   } catch (error) {
     console.error('Failed to enable WAL mode for central DB:', error);
+    if (centralDb) {
+      const dbToClose = centralDb;
+      centralDb = null;
+      if (typeof dbToClose.close === 'function') {
+        dbToClose.close();
+      }
+    }
     throw error;
   }
   return centralDb;
@@ -31,7 +38,9 @@ export function closeCentralDb(): void {
   const dbToClose = centralDb;
   centralDb = null;
 
-  if (typeof dbToClose.close === 'function') {
+  try {
     dbToClose.close();
+  } catch (error) {
+    console.error('Failed to close central DB:', error);
   }
 }

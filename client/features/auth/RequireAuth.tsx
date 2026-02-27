@@ -52,7 +52,12 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (auth.status === 'error') {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div
+        className="flex min-h-screen items-center justify-center"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         <p className="text-muted">
           Session check failed: {toErrorMessage(auth.error)}. Redirecting to secure
           login...

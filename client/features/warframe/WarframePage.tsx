@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { Modal } from '../../components/ui/Modal';
 import { apiFetch } from '../../utils/api';
@@ -63,7 +63,7 @@ function modalReducer(state: ModalState, action: ModalAction): ModalState {
       return {
         ...state,
         itemModalOpen: true,
-        editingRowId: Number(action.row.id),
+        editingRowId: action.row.id,
         draftName: action.row.name || action.row.item_name || '',
         draftValues: { ...(action.row.values || {}) },
       };
@@ -144,65 +144,104 @@ export function WarframePage() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  async function fetchWorksheetData(targetWorksheetId: number): Promise<WorksheetData> {
-    const response = await fetch(`/api/warframe/worksheets/${targetWorksheetId}`);
-    if (!response.ok) {
-      throw new Error('Failed to load worksheet data');
-    }
-    const body = (await response.json()) as {
-      columns?: Column[];
-      rows?: Row[];
-    };
-    return {
-      columns: Array.isArray(body.columns) ? body.columns : [],
-      rows: Array.isArray(body.rows) ? body.rows : [],
-    };
-  }
+  const worksheetIdRef = useRef<number | null>(worksheetId);
 
   useEffect(() => {
-    async function loadWorksheets() {
+    worksheetIdRef.current = worksheetId;
+  }, [worksheetId]);
+
+  const fetchWorksheets = useCallback(async (): Promise<Worksheet[]> => {
+    const response = await apiFetch('/api/warframe/worksheets');
+    if (!response.ok) {
+      throw new Error('Failed to load worksheets');
+    }
+    const body = (await response.json()) as { worksheets?: Worksheet[] };
+    return Array.isArray(body.worksheets) ? body.worksheets : [];
+  }, []);
+
+  const fetchWorksheetData = useCallback(
+    async (
+      targetWorksheetId: number,
+      signal?: AbortSignal,
+    ): Promise<WorksheetData> => {
+      const response = await apiFetch(`/api/warframe/worksheets/${targetWorksheetId}`, {
+        signal,
+      });
+      if (!response.ok) {
+        throw new Error('Failed to load worksheet data');
+      }
+      const body = (await response.json()) as {
+        columns?: Column[];
+        rows?: Row[];
+      };
+      return {
+        columns: Array.isArray(body.columns) ? body.columns : [],
+        rows: Array.isArray(body.rows) ? body.rows : [],
+      };
+    },
+    [],
+  );
+
+  const loadWorksheets = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const items = await fetchWorksheets();
+      setWorksheets(items);
+      setWorksheetId(items[0]?.id ?? null);
+    } catch {
+      setError('Could not load Warframe worksheets.');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchWorksheets]);
+
+  const loadWorksheetData = useCallback(
+    async (targetWorksheetId: number, signal?: AbortSignal): Promise<void> => {
       setLoading(true);
       setError(null);
+      setData({ columns: [], rows: [] });
       try {
-        const response = await apiFetch('/api/warframe/worksheets');
-        if (!response.ok) {
-          throw new Error('Failed to load worksheets');
+        const worksheetData = await fetchWorksheetData(targetWorksheetId, signal);
+        if (signal?.aborted || worksheetIdRef.current !== targetWorksheetId) {
+          return;
         }
-        const body = (await response.json()) as { worksheets?: Worksheet[] };
-        const items = Array.isArray(body.worksheets) ? body.worksheets : [];
-        setWorksheets(items);
-        setWorksheetId(items[0]?.id ?? null);
-      } catch {
-        setError('Could not load Warframe worksheets.');
+        setData(worksheetData);
+      } catch (error_) {
+        if (
+          signal?.aborted ||
+          (error_ instanceof Error && error_.name === 'AbortError') ||
+          worksheetIdRef.current !== targetWorksheetId
+        ) {
+          return;
+        }
+        setError('Could not load worksheet data.');
       } finally {
+        if (signal?.aborted || worksheetIdRef.current !== targetWorksheetId) {
+          return;
+        }
         setLoading(false);
       }
-    }
+    },
+    [fetchWorksheetData],
+  );
+
+  useEffect(() => {
     void loadWorksheets();
-  }, []);
+  }, [loadWorksheets]);
 
   useEffect(() => {
     if (worksheetId === null) {
       setData({ columns: [], rows: [] });
       return;
     }
+    const controller = new AbortController();
     const currentWorksheetId = worksheetId;
-    async function loadData() {
-      setLoading(true);
-      setError(null);
-      setData({ columns: [], rows: [] });
-      try {
-        const worksheetData = await fetchWorksheetData(currentWorksheetId);
-        setData(worksheetData);
-      } catch {
-        setError('Could not load worksheet data.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    void loadData();
-  }, [worksheetId]);
+    void loadWorksheetData(currentWorksheetId, controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [worksheetId, loadWorksheetData]);
 
   const rows = useMemo(
     () =>
@@ -214,7 +253,7 @@ export function WarframePage() {
     [data.rows, search],
   );
 
-  async function reloadCurrentWorksheet(): Promise<void> {
+  const reloadCurrentWorksheet = useCallback(async (): Promise<void> => {
     if (worksheetId === null) {
       return;
     }
@@ -224,7 +263,7 @@ export function WarframePage() {
     } catch {
       setError('Could not refresh worksheet data.');
     }
-  }
+  }, [fetchWorksheetData, worksheetId]);
 
   async function handleToggle(row: Row, column: Column): Promise<void> {
     const oldValue = row.values?.[String(column.id)] ?? '';
@@ -361,47 +400,10 @@ export function WarframePage() {
   function handleRetry(): void {
     setError(null);
     if (worksheetId === null) {
-      setLoading(true);
-      void apiFetch('/api/warframe/worksheets')
-        .then(async (response) => {
-          if (!response.ok) {
-            throw new Error('Failed to load worksheets');
-          }
-          const body = (await response.json()) as { worksheets?: Worksheet[] };
-          const items = Array.isArray(body.worksheets) ? body.worksheets : [];
-          setWorksheets(items);
-          setWorksheetId(items[0]?.id ?? null);
-        })
-        .catch(() => {
-          setError('Could not load Warframe worksheets.');
-        })
-        .finally(() => {
-          setLoading(false);
-        });
+      void loadWorksheets();
       return;
     }
-    setLoading(true);
-    setData({ columns: [], rows: [] });
-    void apiFetch(`/api/warframe/worksheets/${worksheetId}`)
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error('Failed');
-        }
-        const body = (await response.json()) as {
-          columns?: Column[];
-          rows?: Row[];
-        };
-        setData({
-          columns: Array.isArray(body.columns) ? body.columns : [],
-          rows: Array.isArray(body.rows) ? body.rows : [],
-        });
-      })
-      .catch(() => {
-        setError('Could not load worksheet data.');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    void loadWorksheetData(worksheetId);
   }
 
   if (loading) {

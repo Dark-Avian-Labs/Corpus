@@ -837,10 +837,6 @@ html.theme-light .invert-on-light {
     white-space: nowrap;
   }
 
-  .edit-mode .row-actions {
-    display: table-cell;
-  }
-
   .edit-mode .actions-header {
     display: table-cell;
   }
@@ -1119,10 +1115,6 @@ html.theme-light .invert-on-light {
   .level-cell {
     text-align: center;
     width: 150px;
-  }
-
-  .row-actions {
-    display: table-cell;
   }
 
   /* -----------------------------------------------------------------------

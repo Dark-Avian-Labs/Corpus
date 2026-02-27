@@ -452,8 +452,7 @@ epic7ApiRouter.post('/admin/base/heroes', requireAdmin, (req, res) => {
   if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
-  try {
-    db.exec('BEGIN');
+  const createBaseHero = db.transaction(() => {
     const heroId = q.addBaseHero(
       db,
       data.name,
@@ -479,14 +478,13 @@ epic7ApiRouter.post('/admin/base/heroes', requireAdmin, (req, res) => {
       data.star_rating,
       row.display_order,
     );
-    db.exec('COMMIT');
+    return heroId;
+  });
+  try {
+    const heroId = createBaseHero();
     json(res, { success: true, hero_id: heroId });
-  } catch {
-    try {
-      db.exec('ROLLBACK');
-    } catch {
-      // Nothing actionable: rollback itself failed.
-    }
+  } catch (e) {
+    console.error('Failed to create base hero:', e);
     err(res, 'Failed to create base hero.');
   }
 });
@@ -523,12 +521,13 @@ epic7ApiRouter.post('/admin/base/artifacts', requireAdmin, (req, res) => {
     );
     db.exec('COMMIT');
     json(res, { success: true, artifact_id: artifactId });
-  } catch {
+  } catch (e) {
     try {
       db.exec('ROLLBACK');
-    } catch {
-      // Nothing actionable: rollback itself failed.
+    } catch (rollbackError) {
+      console.error('Failed to rollback base artifact creation:', rollbackError);
     }
+    console.error('Failed to create base artifact:', e);
     err(res, 'Failed to create base artifact.');
   }
 });
@@ -544,7 +543,7 @@ epic7ApiRouter.delete('/admin/base/heroes/:heroId', requireAdmin, (req, res) => 
   if (!db) return;
   const deleted = q.deleteBaseHero(db, data.hero_id);
   if (!deleted) {
-    res.status(404).json({ error: 'Base hero not found' });
+    err(res, 'Base hero not found', 404);
     return;
   }
   json(res, { success: true });
@@ -564,7 +563,7 @@ epic7ApiRouter.delete(
     if (!db) return;
     const deleted = q.deleteBaseArtifact(db, data.artifact_id);
     if (!deleted) {
-      res.status(404).json({ error: 'Base artifact not found' });
+      err(res, 'Base artifact not found', 404);
       return;
     }
     json(res, { success: true });

@@ -22,6 +22,7 @@ const resolvedLegalPageUrl = readTrimmedEnv(
 );
 const isSafeRelativePath =
   resolvedLegalPageUrl.startsWith('/') &&
+  !resolvedLegalPageUrl.startsWith('//') &&
   !resolvedLegalPageUrl.includes('://') &&
   !resolvedLegalPageUrl.toLowerCase().startsWith('javascript:');
 

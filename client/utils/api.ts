@@ -1,5 +1,6 @@
 let cachedToken: string | null = null;
 let inFlightPromise: Promise<string | null> | null = null;
+let csrfTokenGeneration = 0;
 
 async function getCsrfToken(): Promise<string | null> {
   if (cachedToken !== null) {
@@ -9,6 +10,7 @@ async function getCsrfToken(): Promise<string | null> {
     return await inFlightPromise;
   }
 
+  const generationAtStart = csrfTokenGeneration;
   inFlightPromise = (async () => {
     try {
       const res = await fetch('/api/auth/csrf');
@@ -19,7 +21,9 @@ async function getCsrfToken(): Promise<string | null> {
       if (!body.csrfToken) {
         return null;
       }
-      cachedToken = body.csrfToken;
+      if (generationAtStart === csrfTokenGeneration) {
+        cachedToken = body.csrfToken;
+      }
       return body.csrfToken;
     } catch {
       return null;
@@ -36,30 +40,25 @@ async function getCsrfToken(): Promise<string | null> {
 }
 
 export function clearCsrfToken(): void {
+  csrfTokenGeneration += 1;
   cachedToken = null;
   inFlightPromise = null;
 }
 
 async function isCsrfFailureResponse(response: Response): Promise<boolean> {
-  if (response.status === 403) {
+  const csrfErrorHeader = response.headers.get('X-CSRF-Error');
+  if (response.status === 403 && csrfErrorHeader === '1') {
     return true;
   }
 
-  for (const [name, value] of response.headers.entries()) {
-    const normalizedName = name.toLowerCase();
-    if (
-      normalizedName.includes('csrf') ||
-      normalizedName.includes('xsrf') ||
-      value.toLowerCase().includes('csrf') ||
-      value.toLowerCase().includes('xsrf')
-    ) {
-      return true;
-    }
-  }
-
   try {
-    const bodyText = (await response.clone().text()).toLowerCase();
-    return bodyText.includes('csrf') || bodyText.includes('xsrf');
+    const body = (await response.clone().json()) as {
+      code?: string;
+      errorCode?: string;
+      error_code?: string;
+    };
+    const code = body.code ?? body.errorCode ?? body.error_code;
+    return response.status === 403 && code === 'CSRF_INVALID';
   } catch {
     return false;
   }

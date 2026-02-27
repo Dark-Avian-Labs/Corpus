@@ -64,7 +64,7 @@ authRouter.get('/me', (req, res) => {
       id: userId,
       username: req.session.username ?? 'user',
       is_admin: req.session.is_admin === true,
-      avatar: (req.session as { avatar?: number }).avatar ?? 1,
+      avatar: req.session.avatar ?? 1,
       app: APP_ID,
     },
     apps,

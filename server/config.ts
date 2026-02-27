@@ -33,10 +33,28 @@ function parseBooleanEnv(value: string | undefined): boolean | undefined {
   return undefined;
 }
 
-export const TRUST_PROXY = parseBooleanEnv(process.env.TRUST_PROXY) ?? true;
+export const TRUST_PROXY = parseBooleanEnv(process.env.TRUST_PROXY) ?? false;
 export const SECURE_COOKIES =
   parseBooleanEnv(process.env.SECURE_COOKIES) ?? NODE_ENV === 'production';
-export const BASE_PROTOCOL = process.env.BASE_PROTOCOL?.trim() || 'https';
+const ALLOWED_PROTOCOLS = ['http', 'https'] as const;
+type AllowedProtocol = (typeof ALLOWED_PROTOCOLS)[number];
+
+function validateBaseProtocol(
+  value: string | undefined,
+): AllowedProtocol {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized) return 'https';
+  if (ALLOWED_PROTOCOLS.includes(normalized as AllowedProtocol)) {
+    return normalized as AllowedProtocol;
+  }
+
+  console.warn(
+    `Invalid BASE_PROTOCOL "${value}" provided; falling back to "https".`,
+  );
+  return 'https';
+}
+
+export const BASE_PROTOCOL = validateBaseProtocol(process.env.BASE_PROTOCOL);
 
 export const BASE_DOMAIN = process.env.BASE_DOMAIN?.trim().toLowerCase() || '';
 if (!BASE_DOMAIN) {
@@ -46,8 +64,14 @@ const DOMAIN_LABEL_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 function isValidDomain(domain: string): boolean {
   const domainLabels = domain.split('.');
   return (
+    domain.length <= 253 &&
     domainLabels.length >= 2 &&
-    domainLabels.every((label) => DOMAIN_LABEL_REGEX.test(label)) &&
+    domainLabels.every(
+      (label) =>
+        label.length >= 1 &&
+        label.length <= 63 &&
+        DOMAIN_LABEL_REGEX.test(label),
+    ) &&
     domainLabels[domainLabels.length - 1].length >= 2
   );
 }
