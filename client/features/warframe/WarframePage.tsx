@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react';
 
 import { Modal } from '../../components/ui/Modal';
 import { apiFetch } from '../../utils/api';
@@ -14,12 +14,109 @@ type Row = {
 };
 type WorksheetData = { columns: Column[]; rows: Row[] };
 
+type ModalState = {
+  itemModalOpen: boolean;
+  deleteModalOpen: boolean;
+  editingRowId: number | null;
+  deletingRow: Row | null;
+  draftName: string;
+  draftValues: Record<string, string>;
+};
+
+type ModalAction =
+  | { type: 'OPEN_ADD_MODAL'; columns: Column[] }
+  | { type: 'OPEN_EDIT_MODAL'; row: Row }
+  | { type: 'CLOSE_ITEM_MODAL' }
+  | { type: 'SET_DRAFT_NAME'; value: string }
+  | { type: 'SET_DRAFT_VALUE'; columnId: number; value: string }
+  | { type: 'OPEN_DELETE_MODAL'; row: Row }
+  | { type: 'CLOSE_DELETE_MODAL' };
+
+const initialModalState: ModalState = {
+  itemModalOpen: false,
+  deleteModalOpen: false,
+  editingRowId: null,
+  deletingRow: null,
+  draftName: '',
+  draftValues: {},
+};
+
+function modalReducer(state: ModalState, action: ModalAction): ModalState {
+  switch (action.type) {
+    case 'OPEN_ADD_MODAL': {
+      const draftValues = action.columns.reduce<Record<string, string>>(
+        (result, column) => {
+          result[String(column.id)] = '';
+          return result;
+        },
+        {},
+      );
+      return {
+        ...state,
+        itemModalOpen: true,
+        editingRowId: null,
+        draftName: '',
+        draftValues,
+      };
+    }
+    case 'OPEN_EDIT_MODAL':
+      return {
+        ...state,
+        itemModalOpen: true,
+        editingRowId: Number(action.row.id),
+        draftName: action.row.name || action.row.item_name || '',
+        draftValues: { ...(action.row.values || {}) },
+      };
+    case 'CLOSE_ITEM_MODAL':
+      return {
+        ...state,
+        itemModalOpen: false,
+      };
+    case 'SET_DRAFT_NAME':
+      return {
+        ...state,
+        draftName: action.value,
+      };
+    case 'SET_DRAFT_VALUE':
+      return {
+        ...state,
+        draftValues: {
+          ...state.draftValues,
+          [String(action.columnId)]: action.value,
+        },
+      };
+    case 'OPEN_DELETE_MODAL':
+      return {
+        ...state,
+        deleteModalOpen: true,
+        deletingRow: action.row,
+      };
+    case 'CLOSE_DELETE_MODAL':
+      return {
+        ...state,
+        deleteModalOpen: false,
+        deletingRow: null,
+      };
+    default:
+      return state;
+  }
+}
+
 const STATUS_CYCLE = ['', 'Obtained', 'Complete'];
 const HELMINTH_CYCLE = ['', 'Yes'];
 const ADMIN_STATUS_CYCLE = ['', 'Obtained', 'Complete', 'Unavailable'];
 
-function nextStatus(current: string, columnName: string): string {
-  const cycle = columnName === 'Helminth' ? HELMINTH_CYCLE : STATUS_CYCLE;
+function nextStatus(
+  current: string,
+  columnName: string,
+  isAdminOverride = false,
+): string {
+  const cycle =
+    columnName === 'Helminth'
+      ? HELMINTH_CYCLE
+      : isAdminOverride
+        ? ADMIN_STATUS_CYCLE
+        : STATUS_CYCLE;
   const idx = cycle.indexOf(current);
   return cycle[(idx + 1 + cycle.length) % cycle.length];
 }
@@ -35,28 +132,40 @@ function statusClass(value: string, columnName: string): string {
 
 export function WarframePage() {
   const { auth } = useAuth();
-  const isAdmin = auth.status === 'ok' && auth.user.is_admin;
+  const isAdmin = auth.status === 'ok' && auth.user.isAdmin;
   const [worksheets, setWorksheets] = useState<Worksheet[]>([]);
   const [worksheetId, setWorksheetId] = useState<number | null>(null);
   const [data, setData] = useState<WorksheetData>({ columns: [], rows: [] });
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [adminOverride, setAdminOverride] = useState(false);
-  const [itemModalOpen, setItemModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [editingRowId, setEditingRowId] = useState<number | null>(null);
-  const [deletingRow, setDeletingRow] = useState<Row | null>(null);
-  const [draftName, setDraftName] = useState('');
-  const [draftValues, setDraftValues] = useState<Record<string, string>>({});
+  const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function fetchWorksheetData(targetWorksheetId: number): Promise<WorksheetData> {
+    const response = await fetch(`/api/warframe/worksheets/${targetWorksheetId}`);
+    if (!response.ok) {
+      throw new Error('Failed to load worksheet data');
+    }
+    const body = (await response.json()) as {
+      columns?: Column[];
+      rows?: Row[];
+    };
+    return {
+      columns: Array.isArray(body.columns) ? body.columns : [],
+      rows: Array.isArray(body.rows) ? body.rows : [],
+    };
+  }
 
   useEffect(() => {
     async function loadWorksheets() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch('/api/warframe/worksheets');
+        const response = await apiFetch('/api/warframe/worksheets');
         if (!response.ok) {
           throw new Error('Failed to load worksheets');
         }
@@ -78,22 +187,18 @@ export function WarframePage() {
       setData({ columns: [], rows: [] });
       return;
     }
+    const currentWorksheetId = worksheetId;
     async function loadData() {
+      setLoading(true);
+      setError(null);
+      setData({ columns: [], rows: [] });
       try {
-        const response = await fetch(`/api/warframe/worksheets/${worksheetId}`);
-        if (!response.ok) {
-          throw new Error('Failed');
-        }
-        const body = (await response.json()) as {
-          columns?: Column[];
-          rows?: Row[];
-        };
-        setData({
-          columns: Array.isArray(body.columns) ? body.columns : [],
-          rows: Array.isArray(body.rows) ? body.rows : [],
-        });
+        const worksheetData = await fetchWorksheetData(currentWorksheetId);
+        setData(worksheetData);
       } catch {
         setError('Could not load worksheet data.');
+      } finally {
+        setLoading(false);
       }
     }
     void loadData();
@@ -114,18 +219,8 @@ export function WarframePage() {
       return;
     }
     try {
-      const response = await fetch(`/api/warframe/worksheets/${worksheetId}`);
-      if (!response.ok) {
-        throw new Error('Failed');
-      }
-      const body = (await response.json()) as {
-        columns?: Column[];
-        rows?: Row[];
-      };
-      setData({
-        columns: Array.isArray(body.columns) ? body.columns : [],
-        rows: Array.isArray(body.rows) ? body.rows : [],
-      });
+      const worksheetData = await fetchWorksheetData(worksheetId);
+      setData(worksheetData);
     } catch {
       setError('Could not refresh worksheet data.');
     }
@@ -133,17 +228,12 @@ export function WarframePage() {
 
   async function handleToggle(row: Row, column: Column): Promise<void> {
     const oldValue = row.values?.[String(column.id)] ?? '';
-    const value =
-      isAdmin && adminOverride && column.name !== 'Helminth'
-        ? ADMIN_STATUS_CYCLE[
-            (ADMIN_STATUS_CYCLE.indexOf(oldValue) + 1 + ADMIN_STATUS_CYCLE.length) %
-              ADMIN_STATUS_CYCLE.length
-          ]
-        : nextStatus(oldValue, column.name);
-    if (oldValue === 'Unavailable' && !(isAdmin && adminOverride)) {
+    const isAdminOverride = isAdmin && adminOverride;
+    if (oldValue === 'Unavailable' && !isAdminOverride) {
       return;
     }
-    const rowId = Number(row.id);
+    const value = nextStatus(oldValue, column.name, isAdminOverride);
+    const rowId = row.id;
     setData((previous) => ({
       ...previous,
       rows: previous.rows.map((candidate) =>
@@ -160,13 +250,13 @@ export function WarframePage() {
     }));
     try {
       const response = await apiFetch(
-        isAdmin && adminOverride ? '/api/warframe/admin/cells' : '/api/warframe/cells',
+        isAdminOverride ? '/api/warframe/admin/cells' : '/api/warframe/cells',
         {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           row_id: rowId,
-          column_id: Number(column.id),
+          column_id: column.id,
           value,
         }),
       },
@@ -197,36 +287,34 @@ export function WarframePage() {
   }
 
   function openAddModal(): void {
-    setEditingRowId(null);
-    setDraftName('');
-    const values: Record<string, string> = {};
-    for (const column of data.columns) {
-      values[String(column.id)] = '';
-    }
-    setDraftValues(values);
-    setItemModalOpen(true);
+    dispatchModal({ type: 'OPEN_ADD_MODAL', columns: data.columns });
   }
 
   function openEditModal(row: Row): void {
-    setEditingRowId(Number(row.id));
-    setDraftName(row.name || row.item_name || '');
-    setDraftValues({ ...(row.values || {}) });
-    setItemModalOpen(true);
+    dispatchModal({ type: 'OPEN_EDIT_MODAL', row });
   }
 
   async function submitItem(): Promise<void> {
-    if (!worksheetId || draftName.trim().length === 0) {
+    if (isSaving) {
+      return;
+    }
+    if (!worksheetId || modalState.draftName.trim().length === 0) {
       setError('Item name is required.');
       return;
     }
-    const isEdit = editingRowId !== null;
+    const isEdit = modalState.editingRowId !== null;
     const url = isEdit
-      ? `/api/warframe/rows/${editingRowId}`
+      ? `/api/warframe/rows/${modalState.editingRowId}`
       : '/api/warframe/rows';
     const method = isEdit ? 'PATCH' : 'POST';
     const body = isEdit
-      ? { item_name: draftName.trim(), values: draftValues }
-      : { worksheet_id: worksheetId, item_name: draftName.trim(), values: draftValues };
+      ? { item_name: modalState.draftName.trim(), values: modalState.draftValues }
+      : {
+          worksheet_id: worksheetId,
+          item_name: modalState.draftName.trim(),
+          values: modalState.draftValues,
+        };
+    setIsSaving(true);
     try {
       const response = await apiFetch(url, {
         method,
@@ -239,17 +327,20 @@ export function WarframePage() {
       if (!response.ok || payload?.error) {
         throw new Error(payload?.error || 'Failed to save row');
       }
-      setItemModalOpen(false);
+      dispatchModal({ type: 'CLOSE_ITEM_MODAL' });
       await reloadCurrentWorksheet();
     } catch {
       setError('Failed to save Warframe row.');
+    } finally {
+      setIsSaving(false);
     }
   }
 
   async function confirmDelete(): Promise<void> {
-    if (!deletingRow) return;
+    if (isDeleting || !modalState.deletingRow) return;
+    setIsDeleting(true);
     try {
-      const response = await apiFetch(`/api/warframe/rows/${deletingRow.id}`, {
+      const response = await apiFetch(`/api/warframe/rows/${modalState.deletingRow.id}`, {
         method: 'DELETE',
       });
       const payload = (await response.json().catch(() => null)) as
@@ -258,12 +349,59 @@ export function WarframePage() {
       if (!response.ok || payload?.error) {
         throw new Error(payload?.error || 'Failed to delete row');
       }
-      setDeleteModalOpen(false);
-      setDeletingRow(null);
+      dispatchModal({ type: 'CLOSE_DELETE_MODAL' });
       await reloadCurrentWorksheet();
     } catch {
       setError('Failed to delete Warframe row.');
+    } finally {
+      setIsDeleting(false);
     }
+  }
+
+  function handleRetry(): void {
+    setError(null);
+    if (worksheetId === null) {
+      setLoading(true);
+      void apiFetch('/api/warframe/worksheets')
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error('Failed to load worksheets');
+          }
+          const body = (await response.json()) as { worksheets?: Worksheet[] };
+          const items = Array.isArray(body.worksheets) ? body.worksheets : [];
+          setWorksheets(items);
+          setWorksheetId(items[0]?.id ?? null);
+        })
+        .catch(() => {
+          setError('Could not load Warframe worksheets.');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+      return;
+    }
+    setLoading(true);
+    setData({ columns: [], rows: [] });
+    void apiFetch(`/api/warframe/worksheets/${worksheetId}`)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error('Failed');
+        }
+        const body = (await response.json()) as {
+          columns?: Column[];
+          rows?: Row[];
+        };
+        setData({
+          columns: Array.isArray(body.columns) ? body.columns : [],
+          rows: Array.isArray(body.rows) ? body.rows : [],
+        });
+      })
+      .catch(() => {
+        setError('Could not load worksheet data.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }
 
   if (loading) {
@@ -275,9 +413,19 @@ export function WarframePage() {
   }
   if (error) {
     return (
-      <p className="error" role="alert">
-        {error}
-      </p>
+      <div className="space-y-3">
+        <p className="error" role="alert">
+          {error}
+        </p>
+        <div className="flex gap-2">
+          <button type="button" className="btn btn-secondary" onClick={handleRetry}>
+            Retry
+          </button>
+          <button type="button" className="btn btn-cancel" onClick={() => setError(null)}>
+            Dismiss
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -319,7 +467,9 @@ export function WarframePage() {
         <span className="mb-2 block text-sm text-muted">Worksheet</span>
         <select
           value={worksheetId ?? ''}
-          onChange={(event) => setWorksheetId(Number(event.target.value))}
+          onChange={(event) =>
+            setWorksheetId(event.target.value === '' ? null : Number(event.target.value))
+          }
           aria-label="Select Warframe worksheet"
         >
           {worksheets.map((worksheet) => (
@@ -379,7 +529,7 @@ export function WarframePage() {
                     );
                   })}
                   {editMode ? (
-                    <td className="row-actions" style={{ display: 'table-cell' }}>
+                    <td className="row-actions">
                       <button
                         type="button"
                         className="btn-icon btn-edit"
@@ -392,8 +542,7 @@ export function WarframePage() {
                         type="button"
                         className="btn-icon btn-delete"
                         onClick={() => {
-                          setDeletingRow(row);
-                          setDeleteModalOpen(true);
+                          dispatchModal({ type: 'OPEN_DELETE_MODAL', row });
                         }}
                         aria-label={`Delete ${row.name || row.item_name || 'row'}`}
                       >
@@ -418,19 +567,21 @@ export function WarframePage() {
       </button>
 
       <Modal
-        open={itemModalOpen}
-        onClose={() => setItemModalOpen(false)}
+        open={modalState.itemModalOpen}
+        onClose={() => dispatchModal({ type: 'CLOSE_ITEM_MODAL' })}
         ariaLabelledBy="warframe-item-modal-title"
       >
         <h2 id="warframe-item-modal-title" className="mb-4 text-lg font-semibold">
-          {editingRowId === null ? 'Add Item' : 'Edit Item'}
+          {modalState.editingRowId === null ? 'Add Item' : 'Edit Item'}
         </h2>
         <div className="form-group">
           <label htmlFor="warframe-item-name">Name</label>
           <input
             id="warframe-item-name"
-            value={draftName}
-            onChange={(event) => setDraftName(event.target.value)}
+            value={modalState.draftName}
+            onChange={(event) =>
+              dispatchModal({ type: 'SET_DRAFT_NAME', value: event.target.value })
+            }
           />
         </div>
         {data.columns.map((column) => (
@@ -438,13 +589,13 @@ export function WarframePage() {
             <label htmlFor={`warframe-col-${column.id}`}>{column.name}</label>
             <select
               id={`warframe-col-${column.id}`}
-              value={draftValues[String(column.id)] ?? ''}
+              value={modalState.draftValues[String(column.id)] ?? ''}
               onChange={(event) => {
-                const next = event.target.value;
-                setDraftValues((previous) => ({
-                  ...previous,
-                  [String(column.id)]: next,
-                }));
+                dispatchModal({
+                  type: 'SET_DRAFT_VALUE',
+                  columnId: column.id,
+                  value: event.target.value,
+                });
               }}
             >
               {(
@@ -465,36 +616,52 @@ export function WarframePage() {
           <button
             type="button"
             className="btn btn-cancel"
-            onClick={() => setItemModalOpen(false)}
+            onClick={() => dispatchModal({ type: 'CLOSE_ITEM_MODAL' })}
           >
             Cancel
           </button>
-          <button type="button" className="btn btn-accent" onClick={() => void submitItem()}>
+          <button
+            type="button"
+            className="btn btn-accent"
+            onClick={() => void submitItem()}
+            disabled={isSaving}
+          >
             Save
           </button>
         </div>
       </Modal>
 
       <Modal
-        open={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
+        open={modalState.deleteModalOpen}
+        onClose={() => dispatchModal({ type: 'CLOSE_DELETE_MODAL' })}
         ariaLabelledBy="warframe-delete-modal-title"
       >
         <h2 id="warframe-delete-modal-title" className="mb-4 text-lg font-semibold">
           Delete Item
         </h2>
         <p className="text-sm text-muted">
-          Delete <strong>{deletingRow?.name || deletingRow?.item_name || 'this item'}</strong>?
+          Delete{' '}
+          <strong>
+            {modalState.deletingRow?.name ||
+              modalState.deletingRow?.item_name ||
+              'this item'}
+          </strong>
+          ?
         </p>
         <div className="modal-actions">
           <button
             type="button"
             className="btn btn-cancel"
-            onClick={() => setDeleteModalOpen(false)}
+            onClick={() => dispatchModal({ type: 'CLOSE_DELETE_MODAL' })}
           >
             Cancel
           </button>
-          <button type="button" className="btn btn-danger" onClick={() => void confirmDelete()}>
+          <button
+            type="button"
+            className="btn btn-danger"
+            onClick={() => void confirmDelete()}
+            disabled={isDeleting}
+          >
             Delete
           </button>
         </div>

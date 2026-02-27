@@ -1,4 +1,5 @@
 import { useEffect, useRef, type MouseEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   open: boolean;
@@ -34,7 +35,7 @@ export function Modal({
     }
 
     const focusableSelector =
-      'a[href], area[href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [contenteditable="true"], [tabindex]:not([tabindex="-1"])';
+      'a[href], area[href], input:not([disabled]):not([type="hidden"]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"]), [contenteditable="true"]:not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
 
     const getFocusableElements = () =>
       Array.from(modalElement.querySelectorAll<HTMLElement>(focusableSelector));
@@ -114,7 +115,7 @@ export function Modal({
     event.stopPropagation();
   };
 
-  return (
+  const modalContent = (
     <div className="modal-overlay active" onClick={onClose}>
       <div
         ref={modalRef}
@@ -129,4 +130,10 @@ export function Modal({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined' || !document.body) {
+    return modalContent;
+  }
+
+  return createPortal(modalContent, document.body);
 }

@@ -1,4 +1,6 @@
 import type { HTMLAttributes } from 'react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function GlassCard({
   className = '',
@@ -6,7 +8,12 @@ export function GlassCard({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={`rounded-2xl border border-[var(--color-glass-border)] bg-[var(--color-glass)] shadow-[var(--shadow-panel)] backdrop-blur ${className}`}
+      className={twMerge(
+        clsx(
+          'rounded-2xl border border-[var(--color-glass-border)] bg-[var(--color-glass)] shadow-[var(--shadow-panel)] backdrop-blur',
+          className,
+        ),
+      )}
       {...props}
     />
   );

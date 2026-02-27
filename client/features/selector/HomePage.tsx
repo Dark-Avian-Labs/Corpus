@@ -4,9 +4,10 @@ import { Link } from 'react-router-dom';
 import { APP_PATHS } from '../../app/paths';
 import { GlassCard } from '../../components/ui/GlassCard';
 
+const warframeStyle = { '--color-accent': '#ea580c' } as CSSProperties;
+const epic7Style = { '--color-accent': '#a855f7' } as CSSProperties;
+
 export function HomePage() {
-  const warframeStyle = { '--color-accent': '#ea580c' } as CSSProperties;
-  const epic7Style = { '--color-accent': '#a855f7' } as CSSProperties;
   return (
     <div className="space-y-5">
       <GlassCard className="p-6">

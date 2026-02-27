@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react';
 
 import { Modal } from '../../components/ui/Modal';
 import { apiFetch } from '../../utils/api';
@@ -19,12 +19,123 @@ type Epic7Artifact = {
   gauge_level: number;
 };
 type Epic7Account = { id: number; account_name: string };
+type DeletingItem = { id: number; type: 'hero' | 'artifact'; name: string };
+type Epic7ModalDraft = {
+  name: string;
+  class: string;
+  element: string;
+  stars: number;
+};
+type Epic7ModalState = {
+  isAccountModalOpen: boolean;
+  accountNameDraft: string;
+  isItemModalOpen: boolean;
+  modalItemType: 'heroes' | 'artifacts';
+  draft: Epic7ModalDraft;
+  editingId: number | null;
+  isDeleteModalOpen: boolean;
+  deletingItem: DeletingItem | null;
+};
+type Epic7ModalAction =
+  | { type: 'OPEN_ACCOUNT_MODAL' }
+  | { type: 'CLOSE_ACCOUNT_MODAL' }
+  | { type: 'SET_ACCOUNT_NAME'; payload: string }
+  | { type: 'OPEN_ITEM_MODAL'; payload: { itemType: 'heroes' | 'artifacts' } }
+  | { type: 'CLOSE_ITEM_MODAL' }
+  | {
+      type: 'SET_DRAFT_FIELD';
+      payload: { field: keyof Epic7ModalDraft; value: string | number };
+    }
+  | {
+      type: 'START_EDIT';
+      payload: {
+        itemType: 'heroes' | 'artifacts';
+        id: number;
+        draft: Epic7ModalDraft;
+      };
+    }
+  | {
+      type: 'START_DELETE';
+      payload: DeletingItem;
+    }
+  | { type: 'CANCEL_DELETE' };
 
 const HERO_RATINGS = ['-', 'D', 'C', 'B', 'A', 'S', 'SS', 'SSS'] as const;
 const GAUGE_MAX = 5;
 const HERO_CLASSES = ['warrior', 'knight', 'thief', 'ranger', 'mage', 'soulweaver'] as const;
 const ARTIFACT_CLASSES = [...HERO_CLASSES, 'universal'] as const;
 const ELEMENTS = ['fire', 'ice', 'earth', 'light', 'dark'] as const;
+const initialModalState: Epic7ModalState = {
+  isAccountModalOpen: false,
+  accountNameDraft: '',
+  isItemModalOpen: false,
+  modalItemType: 'heroes',
+  draft: {
+    name: '',
+    class: HERO_CLASSES[0],
+    element: ELEMENTS[0],
+    stars: 5,
+  },
+  editingId: null,
+  isDeleteModalOpen: false,
+  deletingItem: null,
+};
+
+function epic7ModalReducer(state: Epic7ModalState, action: Epic7ModalAction): Epic7ModalState {
+  switch (action.type) {
+    case 'OPEN_ACCOUNT_MODAL':
+      return { ...state, isAccountModalOpen: true };
+    case 'CLOSE_ACCOUNT_MODAL':
+      return { ...state, isAccountModalOpen: false, accountNameDraft: '' };
+    case 'SET_ACCOUNT_NAME':
+      return { ...state, accountNameDraft: action.payload };
+    case 'OPEN_ITEM_MODAL':
+      return {
+        ...state,
+        isItemModalOpen: true,
+        modalItemType: action.payload.itemType,
+        editingId: null,
+        draft: {
+          name: '',
+          class: action.payload.itemType === 'heroes' ? HERO_CLASSES[0] : ARTIFACT_CLASSES[0],
+          element: ELEMENTS[0],
+          stars: 5,
+        },
+      };
+    case 'CLOSE_ITEM_MODAL':
+      return { ...state, isItemModalOpen: false };
+    case 'SET_DRAFT_FIELD':
+      return {
+        ...state,
+        draft: {
+          ...state.draft,
+          [action.payload.field]: action.payload.value,
+        },
+      };
+    case 'START_EDIT':
+      return {
+        ...state,
+        isItemModalOpen: true,
+        modalItemType: action.payload.itemType,
+        editingId: action.payload.id,
+        draft: action.payload.draft,
+      };
+    case 'START_DELETE':
+      return {
+        ...state,
+        isDeleteModalOpen: true,
+        deletingItem: action.payload,
+      };
+    case 'CANCEL_DELETE':
+      return {
+        ...state,
+        isDeleteModalOpen: false,
+        deletingItem: null,
+      };
+    default:
+      return state;
+  }
+}
 
 function stars(count: number | undefined): string {
   if (!count || count <= 0) return '-';
@@ -39,26 +150,16 @@ export function Epic7Page() {
   const [tab, setTab] = useState<'heroes' | 'artifacts'>('heroes');
   const [search, setSearch] = useState('');
   const [editMode, setEditMode] = useState(false);
-  const [accountModalOpen, setAccountModalOpen] = useState(false);
-  const [itemModalOpen, setItemModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [newAccountName, setNewAccountName] = useState('');
-  const [draftName, setDraftName] = useState('');
-  const [draftClass, setDraftClass] = useState('');
-  const [draftElement, setDraftElement] = useState('');
-  const [draftStars, setDraftStars] = useState(5);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [deletingItem, setDeletingItem] = useState<
-    { id: number; type: 'hero' | 'artifact'; name: string } | null
-  >(null);
+  const [modalState, dispatchModal] = useReducer(epic7ModalReducer, initialModalState);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [operationError, setOperationError] = useState<string | null>(null);
 
   async function loadAccountsAndData(): Promise<void> {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     try {
-      const accountsRes = await fetch('/api/epic7/accounts');
+      const accountsRes = await apiFetch('/api/epic7/accounts');
       if (!accountsRes.ok) {
         throw new Error('Failed to load accounts');
       }
@@ -83,8 +184,8 @@ export function Epic7Page() {
       }
 
       const [heroesRes, artifactsRes] = await Promise.all([
-        fetch('/api/epic7/heroes'),
-        fetch('/api/epic7/artifacts'),
+        apiFetch('/api/epic7/heroes'),
+        apiFetch('/api/epic7/artifacts'),
       ]);
       if (!heroesRes.ok || !artifactsRes.ok) {
         throw new Error('Failed to load Epic7 data');
@@ -98,11 +199,21 @@ export function Epic7Page() {
         Array.isArray(artifactsBody.artifacts) ? artifactsBody.artifacts : [],
       );
     } catch {
-      setError('Could not load Epic Seven data.');
+      setLoadError('Could not load Epic Seven data.');
     } finally {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!operationError) return;
+    const timeoutId = window.setTimeout(() => {
+      setOperationError(null);
+    }, 5000);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [operationError]);
 
   useEffect(() => {
     void loadAccountsAndData();
@@ -131,7 +242,7 @@ export function Epic7Page() {
       }
       await loadAccountsAndData();
     } catch {
-      setError('Failed to switch Epic Seven account.');
+      setOperationError('Failed to switch Epic Seven account.');
     }
   }
 
@@ -161,7 +272,7 @@ export function Epic7Page() {
           candidate.id === hero.id ? { ...candidate, rating: hero.rating } : candidate,
         ),
       );
-      setError('Failed to save hero rating.');
+      setOperationError('Failed to save hero rating.');
     }
   }
 
@@ -195,20 +306,20 @@ export function Epic7Page() {
             : candidate,
         ),
       );
-      setError('Failed to save artifact gauge.');
+      setOperationError('Failed to save artifact gauge.');
     }
   }
 
   async function addAccount(): Promise<void> {
-    if (newAccountName.trim().length === 0) {
-      setError('Account name is required.');
+    if (modalState.accountNameDraft.trim().length === 0) {
+      setOperationError('Account name is required.');
       return;
     }
     try {
       const response = await apiFetch('/api/epic7/accounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ account_name: newAccountName.trim() }),
+        body: JSON.stringify({ account_name: modalState.accountNameDraft.trim() }),
       });
       const body = (await response.json().catch(() => null)) as
         | { error?: string }
@@ -216,55 +327,60 @@ export function Epic7Page() {
       if (!response.ok || body?.error) {
         throw new Error(body?.error || 'Failed to add account');
       }
-      setAccountModalOpen(false);
-      setNewAccountName('');
+      dispatchModal({ type: 'CLOSE_ACCOUNT_MODAL' });
       await loadAccountsAndData();
     } catch {
-      setError('Failed to create account.');
+      setOperationError('Failed to create account.');
     }
   }
 
   function openAddItemModal(): void {
-    setEditingId(null);
-    setDraftName('');
-    setDraftClass(tab === 'heroes' ? HERO_CLASSES[0] : ARTIFACT_CLASSES[0]);
-    setDraftElement(ELEMENTS[0]);
-    setDraftStars(5);
-    setItemModalOpen(true);
+    dispatchModal({
+      type: 'OPEN_ITEM_MODAL',
+      payload: { itemType: tab },
+    });
   }
 
   function openEditItemModal(item: Epic7Hero | Epic7Artifact): void {
-    setEditingId(item.id);
-    setDraftName(item.name);
-    setDraftClass(item.class || (tab === 'heroes' ? HERO_CLASSES[0] : ARTIFACT_CLASSES[0]));
-    setDraftElement((item as Epic7Hero).element || ELEMENTS[0]);
-    setDraftStars(item.star_rating || 5);
-    setItemModalOpen(true);
+    const itemType = 'rating' in item ? 'heroes' : 'artifacts';
+    dispatchModal({
+      type: 'START_EDIT',
+      payload: {
+        itemType,
+        id: item.id,
+        draft: {
+          name: item.name,
+          class: item.class || (itemType === 'heroes' ? HERO_CLASSES[0] : ARTIFACT_CLASSES[0]),
+          element: 'rating' in item ? item.element || ELEMENTS[0] : ELEMENTS[0],
+          stars: item.star_rating || 5,
+        },
+      },
+    });
   }
 
   async function saveItem(): Promise<void> {
-    if (draftName.trim().length === 0) {
-      setError('Name is required.');
+    if (modalState.draft.name.trim().length === 0) {
+      setOperationError('Name is required.');
       return;
     }
-    const isHero = tab === 'heroes';
-    const isEdit = editingId !== null;
+    const isHero = modalState.modalItemType === 'heroes';
+    const isEdit = modalState.editingId !== null;
     const path = isHero ? 'heroes' : 'artifacts';
     const url = isEdit
-      ? `/api/epic7/${path}/${editingId}/details`
+      ? `/api/epic7/${path}/${modalState.editingId}/details`
       : `/api/epic7/${path}`;
     const method = isEdit ? 'PATCH' : 'POST';
     const body = isHero
       ? {
-          name: draftName.trim(),
-          class: draftClass,
-          element: draftElement,
-          star_rating: draftStars,
+          name: modalState.draft.name.trim(),
+          class: modalState.draft.class,
+          element: modalState.draft.element,
+          star_rating: modalState.draft.stars,
         }
       : {
-          name: draftName.trim(),
-          class: draftClass,
-          star_rating: draftStars,
+          name: modalState.draft.name.trim(),
+          class: modalState.draft.class,
+          star_rating: modalState.draft.stars,
         };
     try {
       const response = await apiFetch(url, {
@@ -278,18 +394,18 @@ export function Epic7Page() {
       if (!response.ok || payload?.error) {
         throw new Error(payload?.error || 'Failed to save item');
       }
-      setItemModalOpen(false);
+      dispatchModal({ type: 'CLOSE_ITEM_MODAL' });
       await loadAccountsAndData();
     } catch {
-      setError('Failed to save item.');
+      setOperationError('Failed to save item.');
     }
   }
 
   async function deleteItem(): Promise<void> {
-    if (!deletingItem) return;
-    const path = deletingItem.type === 'hero' ? 'heroes' : 'artifacts';
+    if (!modalState.deletingItem) return;
+    const path = modalState.deletingItem.type === 'hero' ? 'heroes' : 'artifacts';
     try {
-      const response = await apiFetch(`/api/epic7/${path}/${deletingItem.id}`, {
+      const response = await apiFetch(`/api/epic7/${path}/${modalState.deletingItem.id}`, {
         method: 'DELETE',
       });
       const payload = (await response.json().catch(() => null)) as
@@ -298,11 +414,10 @@ export function Epic7Page() {
       if (!response.ok || payload?.error) {
         throw new Error(payload?.error || 'Failed to delete item');
       }
-      setDeleteModalOpen(false);
-      setDeletingItem(null);
+      dispatchModal({ type: 'CANCEL_DELETE' });
       await loadAccountsAndData();
     } catch {
-      setError('Failed to delete item.');
+      setOperationError('Failed to delete item.');
     }
   }
 
@@ -314,16 +429,29 @@ export function Epic7Page() {
       </div>
     );
   }
-  if (error) {
+  if (loadError) {
     return (
       <p className="error" role="alert">
-        {error}
+        {loadError}
       </p>
     );
   }
 
   return (
     <section className="space-y-4">
+      {operationError ? (
+        <div className="error flex items-center justify-between gap-3" role="alert">
+          <span>{operationError}</span>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setOperationError(null)}
+            aria-label="Dismiss error message"
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
       <h1 className="text-2xl font-semibold">Epic Seven</h1>
       <div className="flex flex-wrap gap-2">
         <button
@@ -338,7 +466,11 @@ export function Epic7Page() {
             Add {tab === 'heroes' ? 'Hero' : 'Artifact'}
           </button>
         ) : null}
-        <button type="button" className="btn btn-secondary" onClick={() => setAccountModalOpen(true)}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => dispatchModal({ type: 'OPEN_ACCOUNT_MODAL' })}
+        >
           Add Account
         </button>
       </div>
@@ -348,7 +480,11 @@ export function Epic7Page() {
           <select
             value={currentAccountId ?? ''}
             onChange={(event) => {
-              void switchAccount(Number(event.target.value));
+              const value = event.target.value;
+              if (value === '') return;
+              const id = parseInt(value, 10);
+              if (Number.isNaN(id)) return;
+              void switchAccount(id);
             }}
             aria-label="Select Epic Seven account"
           >
@@ -440,7 +576,7 @@ export function Epic7Page() {
                     )}
                   </td>
                   {editMode ? (
-                    <td className="row-actions" style={{ display: 'table-cell' }}>
+                    <td className="row-actions">
                       <button
                         type="button"
                         className="btn-icon btn-edit"
@@ -453,12 +589,14 @@ export function Epic7Page() {
                         type="button"
                         className="btn-icon btn-delete"
                         onClick={() => {
-                          setDeletingItem({
-                            id: row.id,
-                            type: tab === 'heroes' ? 'hero' : 'artifact',
-                            name: row.name,
+                          dispatchModal({
+                            type: 'START_DELETE',
+                            payload: {
+                              id: row.id,
+                              type: tab === 'heroes' ? 'hero' : 'artifact',
+                              name: row.name,
+                            },
                           });
-                          setDeleteModalOpen(true);
                         }}
                         aria-label={`Delete ${row.name}`}
                       >
@@ -474,8 +612,8 @@ export function Epic7Page() {
       </div>
 
       <Modal
-        open={accountModalOpen}
-        onClose={() => setAccountModalOpen(false)}
+        open={modalState.isAccountModalOpen}
+        onClose={() => dispatchModal({ type: 'CLOSE_ACCOUNT_MODAL' })}
         ariaLabelledBy="epic7-account-modal-title"
       >
         <h2 id="epic7-account-modal-title" className="mb-4 text-lg font-semibold">
@@ -485,12 +623,18 @@ export function Epic7Page() {
           <label htmlFor="epic7-account-name">Account name</label>
           <input
             id="epic7-account-name"
-            value={newAccountName}
-            onChange={(event) => setNewAccountName(event.target.value)}
+            value={modalState.accountNameDraft}
+            onChange={(event) =>
+              dispatchModal({ type: 'SET_ACCOUNT_NAME', payload: event.target.value })
+            }
           />
         </div>
         <div className="modal-actions">
-          <button type="button" className="btn btn-cancel" onClick={() => setAccountModalOpen(false)}>
+          <button
+            type="button"
+            className="btn btn-cancel"
+            onClick={() => dispatchModal({ type: 'CLOSE_ACCOUNT_MODAL' })}
+          >
             Cancel
           </button>
           <button type="button" className="btn btn-accent" onClick={() => void addAccount()}>
@@ -500,42 +644,59 @@ export function Epic7Page() {
       </Modal>
 
       <Modal
-        open={itemModalOpen}
-        onClose={() => setItemModalOpen(false)}
+        open={modalState.isItemModalOpen}
+        onClose={() => dispatchModal({ type: 'CLOSE_ITEM_MODAL' })}
         ariaLabelledBy="epic7-item-modal-title"
       >
         <h2 id="epic7-item-modal-title" className="mb-4 text-lg font-semibold">
-          {editingId === null ? `Add ${tab === 'heroes' ? 'Hero' : 'Artifact'}` : `Edit ${tab === 'heroes' ? 'Hero' : 'Artifact'}`}
+          {modalState.editingId === null
+            ? `Add ${modalState.modalItemType === 'heroes' ? 'Hero' : 'Artifact'}`
+            : `Edit ${modalState.modalItemType === 'heroes' ? 'Hero' : 'Artifact'}`}
         </h2>
         <div className="form-group">
           <label htmlFor="epic7-item-name">Name</label>
           <input
             id="epic7-item-name"
-            value={draftName}
-            onChange={(event) => setDraftName(event.target.value)}
+            value={modalState.draft.name}
+            onChange={(event) =>
+              dispatchModal({
+                type: 'SET_DRAFT_FIELD',
+                payload: { field: 'name', value: event.target.value },
+              })
+            }
           />
         </div>
         <div className="form-group">
           <label htmlFor="epic7-item-class">Class</label>
           <select
             id="epic7-item-class"
-            value={draftClass}
-            onChange={(event) => setDraftClass(event.target.value)}
+            value={modalState.draft.class}
+            onChange={(event) =>
+              dispatchModal({
+                type: 'SET_DRAFT_FIELD',
+                payload: { field: 'class', value: event.target.value },
+              })
+            }
           >
-            {(tab === 'heroes' ? HERO_CLASSES : ARTIFACT_CLASSES).map((value) => (
+            {(modalState.modalItemType === 'heroes' ? HERO_CLASSES : ARTIFACT_CLASSES).map((value) => (
               <option key={value} value={value}>
                 {value}
               </option>
             ))}
           </select>
         </div>
-        {tab === 'heroes' ? (
+        {modalState.modalItemType === 'heroes' ? (
           <div className="form-group">
             <label htmlFor="epic7-item-element">Element</label>
             <select
               id="epic7-item-element"
-              value={draftElement}
-              onChange={(event) => setDraftElement(event.target.value)}
+              value={modalState.draft.element}
+              onChange={(event) =>
+                dispatchModal({
+                  type: 'SET_DRAFT_FIELD',
+                  payload: { field: 'element', value: event.target.value },
+                })
+              }
             >
               {ELEMENTS.map((value) => (
                 <option key={value} value={value}>
@@ -549,8 +710,13 @@ export function Epic7Page() {
           <label htmlFor="epic7-item-stars">Stars</label>
           <select
             id="epic7-item-stars"
-            value={draftStars}
-            onChange={(event) => setDraftStars(Number(event.target.value))}
+            value={modalState.draft.stars}
+            onChange={(event) =>
+              dispatchModal({
+                type: 'SET_DRAFT_FIELD',
+                payload: { field: 'stars', value: Number(event.target.value) },
+              })
+            }
           >
             {[3, 4, 5].map((value) => (
               <option key={value} value={value}>
@@ -560,7 +726,11 @@ export function Epic7Page() {
           </select>
         </div>
         <div className="modal-actions">
-          <button type="button" className="btn btn-cancel" onClick={() => setItemModalOpen(false)}>
+          <button
+            type="button"
+            className="btn btn-cancel"
+            onClick={() => dispatchModal({ type: 'CLOSE_ITEM_MODAL' })}
+          >
             Cancel
           </button>
           <button type="button" className="btn btn-accent" onClick={() => void saveItem()}>
@@ -570,18 +740,22 @@ export function Epic7Page() {
       </Modal>
 
       <Modal
-        open={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
+        open={modalState.isDeleteModalOpen}
+        onClose={() => dispatchModal({ type: 'CANCEL_DELETE' })}
         ariaLabelledBy="epic7-delete-modal-title"
       >
         <h2 id="epic7-delete-modal-title" className="mb-4 text-lg font-semibold">
-          Delete {deletingItem?.type === 'hero' ? 'Hero' : 'Artifact'}
+          Delete {modalState.deletingItem?.type === 'hero' ? 'Hero' : 'Artifact'}
         </h2>
         <p className="text-sm text-muted">
-          Delete <strong>{deletingItem?.name || 'this item'}</strong>?
+          Delete <strong>{modalState.deletingItem?.name || 'this item'}</strong>?
         </p>
         <div className="modal-actions">
-          <button type="button" className="btn btn-cancel" onClick={() => setDeleteModalOpen(false)}>
+          <button
+            type="button"
+            className="btn btn-cancel"
+            onClick={() => dispatchModal({ type: 'CANCEL_DELETE' })}
+          >
             Cancel
           </button>
           <button type="button" className="btn btn-danger" onClick={() => void deleteItem()}>

@@ -1,4 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 
 import bgArt from '../../../packages/core/assets/background.txt?raw';
@@ -16,13 +21,80 @@ export function Layout() {
   const { mode, toggleMode } = useTheme();
   const { auth } = useAuth();
   const isLoggedIn = auth.status === 'ok' && auth.user !== null;
-  const isAdmin = auth.status === 'ok' && auth.user.is_admin;
+  const isAdmin = auth.status === 'ok' && auth.user?.isAdmin === true;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const firstMenuItemRef = useRef<HTMLElement | null>(null);
+  const menuItemRefs = useRef<Array<HTMLElement | null>>([]);
   const prevMenuOpenRef = useRef(menuOpen);
   const currentYear = new Date().getFullYear();
+
+  const setMenuItemRef =
+    (index: number, isFirst = false) =>
+    (node: HTMLElement | null) => {
+      menuItemRefs.current[index] = node;
+      if (isFirst) {
+        firstMenuItemRef.current = node;
+      }
+    };
+
+  const onMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const { key } = event;
+    if (
+      key !== 'ArrowDown' &&
+      key !== 'ArrowUp' &&
+      key !== 'Home' &&
+      key !== 'End' &&
+      key !== 'Escape'
+    ) {
+      return;
+    }
+
+    if (key === 'Escape') {
+      event.preventDefault();
+      setMenuOpen(false);
+      return;
+    }
+
+    const enabledItems = menuItemRefs.current.filter((item): item is HTMLElement => {
+      if (!item) {
+        return false;
+      }
+      if (item.hasAttribute('disabled')) {
+        return false;
+      }
+      return item.getAttribute('aria-disabled') !== 'true';
+    });
+
+    if (enabledItems.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (key === 'Home') {
+      enabledItems[0]?.focus();
+      return;
+    }
+    if (key === 'End') {
+      enabledItems[enabledItems.length - 1]?.focus();
+      return;
+    }
+
+    const activeElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const currentIndex = activeElement ? enabledItems.indexOf(activeElement) : -1;
+    const direction = key === 'ArrowDown' ? 1 : -1;
+    const nextIndex =
+      currentIndex === -1
+        ? key === 'ArrowDown'
+          ? 0
+          : enabledItems.length - 1
+        : (currentIndex + direction + enabledItems.length) % enabledItems.length;
+
+    enabledItems[nextIndex]?.focus();
+  };
 
   useEffect(() => {
     if (!menuOpen) {
@@ -46,21 +118,6 @@ export function Layout() {
       triggerRef.current?.focus();
     }
     prevMenuOpenRef.current = menuOpen;
-  }, [menuOpen]);
-
-  useEffect(() => {
-    if (!menuOpen) {
-      return undefined;
-    }
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener('keydown', onEscape);
-    return () => {
-      document.removeEventListener('keydown', onEscape);
-    };
   }, [menuOpen]);
 
   return (
@@ -127,12 +184,14 @@ export function Layout() {
                 </span>
               </button>
               {menuOpen ? (
-                <div className="absolute right-0 top-[calc(100%+8px)] z-50 min-w-[170px] rounded-xl border border-[var(--color-glass-border)] bg-[var(--color-surface-modal)] p-1.5 backdrop-blur">
+                <div
+                  role="menu"
+                  onKeyDown={onMenuKeyDown}
+                  className="absolute right-0 top-[calc(100%+8px)] z-50 min-w-[170px] rounded-xl border border-[var(--color-glass-border)] bg-[var(--color-surface-modal)] p-1.5 backdrop-blur"
+                >
                   {!isLoggedIn ? (
                     <a
-                      ref={(node) => {
-                        firstMenuItemRef.current = node;
-                      }}
+                      ref={setMenuItemRef(0, true)}
                       href="/auth/login"
                       className="user-menu-item block"
                       role="menuitem"
@@ -143,9 +202,7 @@ export function Layout() {
                   ) : (
                     <>
                       <a
-                        ref={(node) => {
-                          firstMenuItemRef.current = node;
-                        }}
+                        ref={setMenuItemRef(0, true)}
                         href="/auth/profile"
                         className="user-menu-item block"
                         role="menuitem"
@@ -155,6 +212,7 @@ export function Layout() {
                       </a>
                       {isAdmin ? (
                         <NavLink
+                          ref={setMenuItemRef(1)}
                           to={APP_PATHS.admin}
                           className="user-menu-item block"
                           role="menuitem"
@@ -164,6 +222,7 @@ export function Layout() {
                         </NavLink>
                       ) : null}
                       <a
+                        ref={setMenuItemRef(2)}
                         href="/logout"
                         className="user-menu-item block"
                         role="menuitem"

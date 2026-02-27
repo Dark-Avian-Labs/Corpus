@@ -15,10 +15,26 @@ describe('getAppPublicBaseUrl', () => {
         await import('../packages/core/src/middleware/auth.js');
       expect(getAppPublicBaseUrl()).toBe('https://corpus.example.com');
     } finally {
-      process.env.APP_PUBLIC_BASE_URL = originalBaseUrl;
-      process.env.COOKIE_DOMAIN = originalCookieDomain;
-      process.env.BASE_HOST = originalBaseHost;
-      process.env.AUTH_SERVICE_URL = originalAuthUrl;
+      if (originalBaseUrl === undefined) {
+        delete process.env.APP_PUBLIC_BASE_URL;
+      } else {
+        process.env.APP_PUBLIC_BASE_URL = originalBaseUrl;
+      }
+      if (originalCookieDomain === undefined) {
+        delete process.env.COOKIE_DOMAIN;
+      } else {
+        process.env.COOKIE_DOMAIN = originalCookieDomain;
+      }
+      if (originalBaseHost === undefined) {
+        delete process.env.BASE_HOST;
+      } else {
+        process.env.BASE_HOST = originalBaseHost;
+      }
+      if (originalAuthUrl === undefined) {
+        delete process.env.AUTH_SERVICE_URL;
+      } else {
+        process.env.AUTH_SERVICE_URL = originalAuthUrl;
+      }
     }
   });
 });

@@ -43,25 +43,36 @@ export const CENTRAL_DB_PATH = path.resolve(
 );
 
 /** Cookie domain for session sharing across subdomains (e.g. .domain.tld). */
-export const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
-if (!COOKIE_DOMAIN) {
+const _COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
+if (!_COOKIE_DOMAIN) {
   throw new Error('COOKIE_DOMAIN must be set.');
 }
+export const COOKIE_DOMAIN: string = _COOKIE_DOMAIN;
 
 /** Base host for login/game picker (e.g. corpus.domain.tld) */
-export const BASE_HOST = process.env.BASE_HOST ?? '';
-if (!BASE_HOST) {
+const _BASE_HOST = process.env.BASE_HOST;
+if (!_BASE_HOST) {
   throw new Error('BASE_HOST must be set.');
 }
+export const BASE_HOST: string = _BASE_HOST;
 
 /** Central auth service host (e.g. https://auth.example.com). */
-export const AUTH_SERVICE_URL = (process.env.AUTH_SERVICE_URL ?? '').replace(
-  /\/+$/,
-  '',
-);
-if (!AUTH_SERVICE_URL.startsWith('https://')) {
-  throw new Error('AUTH_SERVICE_URL must be set and use https://');
-}
+export const AUTH_SERVICE_URL: string = (() => {
+  const value = (process.env.AUTH_SERVICE_URL ?? '').replace(/\/+$/, '');
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'https:' || !parsed.hostname) {
+      throw new Error();
+    }
+  } catch {
+    throw new Error(
+      'AUTH_SERVICE_URL must be a valid absolute https URL with a non-empty hostname.',
+    );
+  }
+
+  return value;
+})();
 
 /** Game subdomains map host -> gameId (e.g. warframe.domain.tld -> warframe) */
 export const GAME_HOSTS: Record<string, string> = (() => {

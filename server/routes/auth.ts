@@ -11,6 +11,31 @@ import {
 
 export const authRouter = Router();
 
+type GameAppMetadata = {
+  label: string;
+  subtitle: string;
+  url: string;
+};
+
+const gameMetadata: Record<string, GameAppMetadata> = {
+  epic7: {
+    label: 'Epic Seven',
+    subtitle: 'Collection tracker',
+    url: '/epic7',
+  },
+  warframe: {
+    label: 'Warframe',
+    subtitle: 'Inventory tracker',
+    url: '/warframe',
+  },
+};
+
+const unknownGameMetadata: GameAppMetadata = {
+  label: 'Unknown Game',
+  subtitle: 'Unknown app',
+  url: '/apps',
+};
+
 authRouter.get('/csrf', (_req, res) => {
   res.json({
     csrfToken: (res.locals as { csrfToken?: string }).csrfToken || '',
@@ -23,19 +48,23 @@ authRouter.get('/me', (req, res) => {
     res.status(401).json({ authenticated: false, user: null, apps: [] });
     return;
   }
-  const apps = getGamesForUser(userId).map((id) => ({
-    id,
-    label: id === 'epic7' ? 'Epic Seven' : 'Warframe',
-    subtitle: id === 'epic7' ? 'Collection tracker' : 'Inventory tracker',
-    url: `/${id}`,
-  }));
+  const apps = getGamesForUser(userId).map((id) => {
+    const metadata = gameMetadata[id] ?? {
+      ...unknownGameMetadata,
+      url: `/${id}`,
+    };
+    return {
+      id,
+      ...metadata,
+    };
+  });
   res.json({
     authenticated: true,
     user: {
       id: userId,
       username: req.session.username ?? 'user',
       is_admin: req.session.is_admin === true,
-      avatar: 1,
+      avatar: (req.session as { avatar?: number }).avatar ?? 1,
       app: APP_ID,
     },
     apps,
@@ -43,11 +72,18 @@ authRouter.get('/me', (req, res) => {
 });
 
 authRouter.post('/logout', (req, res) => {
-  req.session.destroy(() => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('[Auth] Failed to destroy session:', err);
+      res
+        .status(500)
+        .json({ ok: false, error: 'Failed to destroy session' });
+      return;
+    }
     res.clearCookie(SESSION_COOKIE_NAME, {
       domain: COOKIE_DOMAIN,
       httpOnly: true,
-      sameSite: 'none',
+      sameSite: SECURE_COOKIES ? 'none' : 'lax',
       secure: SECURE_COOKIES,
     });
     res.json({ ok: true, next: '/login' });

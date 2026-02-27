@@ -1,4 +1,6 @@
-import * as warframeQueries from '../../packages/games/warframe/src/db/queries.js';
-import { getDb as getWarframeDb } from '../../packages/games/warframe/src/db/schema.js';
+import {
+  getDb as getWarframeDb,
+  queries as warframeQueries,
+} from '@corpus/game-warframe';
 
 export { getWarframeDb, warframeQueries };

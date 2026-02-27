@@ -7,11 +7,16 @@ import { defineConfig, loadEnv } from 'vite';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), 'VITE_');
+  const env = loadEnv(mode, process.cwd(), '');
+  const resolvedAppName =
+    env.VITE_APP_NAME?.trim() || env.APP_NAME?.trim() || 'Corpus';
   const base = env.VITE_BASE_PATH || '/';
   return {
     base,
     plugins: [react(), tailwindcss()],
+    define: {
+      'import.meta.env.VITE_APP_NAME': JSON.stringify(resolvedAppName),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'client'),

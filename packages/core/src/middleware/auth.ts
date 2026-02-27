@@ -23,10 +23,21 @@ export function getAppPublicBaseUrl(): string {
   if (!configured) {
     throw new Error('APP_PUBLIC_BASE_URL must be set.');
   }
-  if (!/^https:\/\//i.test(configured)) {
+  const normalized = configured.replace(/\/+$/, '');
+  let parsed: URL;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    throw new Error('APP_PUBLIC_BASE_URL must be a valid URL.');
+  }
+  const isLocalHttp =
+    parsed.protocol === 'http:' &&
+    (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1');
+  const isNonProduction = process.env.NODE_ENV !== 'production';
+  if (parsed.protocol !== 'https:' && !(isLocalHttp || isNonProduction)) {
     throw new Error('APP_PUBLIC_BASE_URL must use https://');
   }
-  return configured.replace(/\/+$/, '');
+  return normalized;
 }
 
 function getLoginRedirectUrl(req: Request, gameId?: string): string {

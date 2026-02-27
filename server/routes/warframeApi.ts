@@ -116,8 +116,11 @@ warframeApiRouter.get('/worksheets', (req, res) => {
     const db = await getDbOrFail(res);
     if (!db) return;
     try {
-      const worksheets = q.getWorksheets(db, userId);
+      const worksheets = await q.getWorksheets(db, userId);
       res.status(200).json({ worksheets });
+    } catch (error) {
+      console.error('Failed to fetch worksheets:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
     } finally {
       db.close();
     }
@@ -139,7 +142,7 @@ warframeApiRouter.get('/worksheets/:worksheetId', (req, res) => {
     const db = await getDbOrFail(res);
     if (!db) return;
     try {
-      const data = q.getWorksheetData(db, worksheetId, userId);
+      const data = await q.getWorksheetData(db, worksheetId, userId);
       if (!data) {
         res.status(404).json({ error: 'Worksheet not found.' });
         return;
@@ -149,6 +152,9 @@ warframeApiRouter.get('/worksheets/:worksheetId', (req, res) => {
         columns: data.columns,
         rows: data.rows,
       });
+    } catch (error) {
+      console.error('Failed to fetch worksheet data:', error);
+      res.status(500).json({ error: 'Failed to fetch worksheet.' });
     } finally {
       db.close();
     }
@@ -239,8 +245,21 @@ warframeApiRouter.post('/rows', (req, res) => {
         res.status(400).json({ error: 'Invalid column/value(s).', invalid });
         return;
       }
-      const rowId = q.addRow(db, data.worksheet_id, userId, data.item_name, valid);
-      res.status(200).json({ success: true, row_id: rowId });
+      try {
+        const rowId = q.addRow(
+          db,
+          data.worksheet_id,
+          userId,
+          data.item_name,
+          valid,
+        );
+        res.status(201).json({ success: true, row_id: rowId });
+      } catch (error) {
+        console.error('Failed to add row:', error);
+        res.status(500).json({
+          error: error instanceof Error ? error.message : 'Failed to add row.',
+        });
+      }
     } finally {
       db.close();
     }
@@ -280,6 +299,9 @@ warframeApiRouter.patch('/rows/:rowId', (req, res) => {
         return;
       }
       res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Failed to edit row:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
     } finally {
       db.close();
     }
@@ -308,6 +330,9 @@ warframeApiRouter.delete('/rows/:rowId', (req, res) => {
         return;
       }
       res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Failed to delete row:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
     } finally {
       db.close();
     }

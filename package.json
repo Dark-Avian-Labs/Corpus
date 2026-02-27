@@ -8,7 +8,7 @@
     "typecheck:server": "tsc -p tsconfig.server.json --noEmit",
     "typecheck:client": "tsc -p tsconfig.json --noEmit",
     "build": "npm run build --workspaces --if-present && npm run typecheck && tsc -p tsconfig.server.json && vite build",
-    "start": "node --env-file=.env dist/server/index.js",
+    "start": "node dist/server/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint server client packages",
@@ -25,6 +25,7 @@
     "@corpus/game-epic7": "2.3.0",
     "@corpus/game-warframe": "2.3.0",
     "better-sqlite3": "^12.6.2",
+    "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",
     "csrf-sync": "^4.2.1",
     "express": "^5.2.1",
@@ -33,7 +34,8 @@
     "helmet": "^8.1.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.0"
+    "react-router-dom": "^7.13.0",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",

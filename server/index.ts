@@ -24,7 +24,7 @@ import {
   ensureDataDirs,
 } from './config.js';
 import { ensureCentralSchema } from './db/centralSchema.js';
-import { getCentralDb } from './db/connection.js';
+import { closeCentralDb, getCentralDb } from './db/connection.js';
 import { apiRouter } from './routes/api.js';
 import { authRouter } from './routes/auth.js';
 
@@ -53,9 +53,20 @@ const baselineLimiter = rateLimit({
   max: 1200,
   standardHeaders: true,
   legacyHeaders: false,
+  // These routes have dedicated limiters below; skip to avoid double counting.
   skip: (req) =>
     req.path === '/healthz' ||
+    req.path === '/readyz' ||
     req.path === '/favicon.ico' ||
+    req.path === '/login' ||
+    req.path === '/legal' ||
+    req.path === '/logout' ||
+    req.path === '/admin' ||
+    req.path === '/warframe' ||
+    req.path === '/epic7' ||
+    req.path === '/' ||
+    req.path === '/auth/login' ||
+    req.path === '/auth/profile' ||
     /^\/assets\/.+\.(?:css|js|png|jpe?g|gif|webp|svg|ico|woff2?)$/i.test(
       req.path,
     ),
@@ -109,12 +120,41 @@ app.use((req, res, next) => {
   next();
 });
 
-const ALLOWED_APP_ORIGINS = (
-  process.env.ALLOWED_APP_ORIGINS || AUTH_SERVICE_URL
-)
+const IS_DEV_ENV = NODE_ENV !== 'production';
+const defaultDevOrigins = IS_DEV_ENV
+  ? [
+      'http://localhost',
+      'http://127.0.0.1',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:4173',
+      'http://127.0.0.1:4173',
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:8080',
+      'http://127.0.0.1:8080',
+    ]
+  : [];
+const configuredOrigins = [process.env.ALLOWED_APP_ORIGINS, AUTH_SERVICE_URL]
+  .filter((value): value is string => typeof value === 'string' && value.length > 0)
+  .join(',');
+const originCandidates = configuredOrigins
   .split(',')
   .map((value) => value.trim())
-  .filter((value) => value.startsWith('https://'));
+  .filter(Boolean);
+const excludedOrigins: string[] = [];
+const ALLOWED_APP_ORIGINS = [...new Set([...originCandidates, ...defaultDevOrigins])].filter(
+  (value) => {
+    const isHttps = value.startsWith('https://');
+    const isDevHttp = IS_DEV_ENV && value.startsWith('http://');
+    const allowed = isHttps || isDevHttp;
+    if (!allowed) excludedOrigins.push(value);
+    return allowed;
+  },
+);
+if (excludedOrigins.length > 0) {
+  console.warn('[CORS] Excluded app origins from ALLOWED_APP_ORIGINS:', excludedOrigins);
+}
 
 app.use((req: Request, res: Response, next) => {
   const origin = req.headers.origin;
@@ -251,7 +291,32 @@ app.use(
           : error.name === 'ForbiddenError'
             ? 403
             : 500;
-    res.status(status).json({ error: 'Internal server error' });
+    const isClientError = status >= 400 && status < 500;
+    const fallbackStatusText =
+      status === 400
+        ? 'Bad Request'
+        : status === 401
+          ? 'Unauthorized'
+          : status === 403
+            ? 'Forbidden'
+            : status === 404
+              ? 'Not Found'
+              : status === 405
+                ? 'Method Not Allowed'
+                : status === 409
+                  ? 'Conflict'
+                  : status === 422
+                    ? 'Unprocessable Entity'
+                    : status === 429
+                      ? 'Too Many Requests'
+                      : 'Request error';
+    const message =
+      isClientError
+        ? (typeof error.message === 'string' && error.message.trim()) ||
+          (typeof error.name === 'string' && error.name.trim()) ||
+          fallbackStatusText
+        : 'Internal server error';
+    res.status(status).json({ error: message });
   },
 );
 
@@ -268,7 +333,7 @@ function shutdown(): void {
   shutdownStarted = true;
   function closeAndExit(): void {
     try {
-      centralDb.close();
+      closeCentralDb();
     } catch (err) {
       console.error('[Shutdown] Failed to close DB:', err);
     }

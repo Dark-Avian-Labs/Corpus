@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { APP_PATHS } from '../../app/paths';
@@ -32,7 +32,7 @@ const ELEMENTS = ['fire', 'ice', 'earth', 'light', 'dark'] as const;
 
 export function AdminPage() {
   const { auth } = useAuth();
-  const isAdmin = auth.status === 'ok' && auth.user.is_admin;
+  const isAdmin = auth.status === 'ok' && auth.user.isAdmin;
   const [baseHeroes, setBaseHeroes] = useState<BaseHero[]>([]);
   const [baseArtifacts, setBaseArtifacts] = useState<BaseArtifact[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -46,13 +46,13 @@ export function AdminPage() {
   const [artifactClass, setArtifactClass] = useState<string>(ARTIFACT_CLASSES[0]);
   const [artifactStars, setArtifactStars] = useState(5);
 
-  async function loadBaseData(): Promise<void> {
+  const loadBaseData = useCallback(async (): Promise<void> => {
     if (!isAdmin) return;
     setError(null);
     try {
       const [heroesRes, artifactsRes] = await Promise.all([
-        fetch('/api/epic7/admin/base/heroes'),
-        fetch('/api/epic7/admin/base/artifacts'),
+        apiFetch('/api/epic7/admin/base/heroes'),
+        apiFetch('/api/epic7/admin/base/artifacts'),
       ]);
       if (!heroesRes.ok || !artifactsRes.ok) {
         throw new Error('Failed to load base tables.');
@@ -68,11 +68,11 @@ export function AdminPage() {
     } catch {
       setError('Failed to load base tables.');
     }
-  }
+  }, [isAdmin]);
 
   useEffect(() => {
     void loadBaseData();
-  }, [isAdmin]);
+  }, [loadBaseData]);
 
   async function addHero(): Promise<void> {
     if (!heroName.trim()) return;
@@ -122,6 +122,11 @@ export function AdminPage() {
   }
 
   async function deleteHero(heroId: number): Promise<void> {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this base hero? This action cannot be undone.',
+    );
+    if (!confirmed) return;
+
     try {
       const res = await apiFetch(`/api/epic7/admin/base/heroes/${heroId}`, {
         method: 'DELETE',
@@ -137,6 +142,11 @@ export function AdminPage() {
   }
 
   async function deleteArtifact(artifactId: number): Promise<void> {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this base artifact? This action cannot be undone.',
+    );
+    if (!confirmed) return;
+
     try {
       const res = await apiFetch(`/api/epic7/admin/base/artifacts/${artifactId}`, {
         method: 'DELETE',
@@ -223,21 +233,27 @@ export function AdminPage() {
             </button>
           </div>
           <div className="mt-4 space-y-2">
-            {baseHeroes.map((hero) => (
-              <div key={hero.id} className="flex items-center justify-between gap-2 text-sm">
-                <span>
-                  {hero.name} ({hero.class}/{hero.element}/{hero.star_rating}★)
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-danger btn-sm"
-                  onClick={() => void deleteHero(hero.id)}
-                  aria-label={`Delete ${hero.name}`}
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
+            {baseHeroes.length === 0 ? (
+              <p className="text-sm text-muted" aria-live="polite">
+                No base heroes
+              </p>
+            ) : (
+              baseHeroes.map((hero) => (
+                <div key={hero.id} className="flex items-center justify-between gap-2 text-sm">
+                  <span>
+                    {hero.name} ({hero.class}/{hero.element}/{hero.star_rating}★)
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
+                    onClick={() => void deleteHero(hero.id)}
+                    aria-label={`Delete ${hero.name}`}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -283,24 +299,30 @@ export function AdminPage() {
             </button>
           </div>
           <div className="mt-4 space-y-2">
-            {baseArtifacts.map((artifact) => (
-              <div
-                key={artifact.id}
-                className="flex items-center justify-between gap-2 text-sm"
-              >
-                <span>
-                  {artifact.name} ({artifact.class}/{artifact.star_rating}★)
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-danger btn-sm"
-                  onClick={() => void deleteArtifact(artifact.id)}
-                  aria-label={`Delete ${artifact.name}`}
+            {baseArtifacts.length === 0 ? (
+              <p className="text-sm text-muted" aria-live="polite">
+                No base artifacts
+              </p>
+            ) : (
+              baseArtifacts.map((artifact) => (
+                <div
+                  key={artifact.id}
+                  className="flex items-center justify-between gap-2 text-sm"
                 >
-                  Delete
-                </button>
-              </div>
-            ))}
+                  <span>
+                    {artifact.name} ({artifact.class}/{artifact.star_rating}★)
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
+                    onClick={() => void deleteArtifact(artifact.id)}
+                    aria-label={`Delete ${artifact.name}`}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

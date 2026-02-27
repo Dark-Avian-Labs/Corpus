@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 
-import type { AuthState } from './types';
+import type { AuthErrorDetail, AuthState, UserSummary } from './types';
 import { apiFetch, clearCsrfToken } from '../../utils/api';
 
 interface AuthContextValue {
@@ -26,12 +26,37 @@ const DEFAULT_AUTH_STATE: AuthState = {
 };
 
 function isSafeRelativePath(next: string): boolean {
+  const trimmed = next.trim();
+  if (trimmed.length !== next.length) {
+    return false;
+  }
+  if (trimmed.includes('\\') || /[\u0000-\u001f\u007f]/.test(trimmed)) {
+    return false;
+  }
+
   return (
-    next.startsWith('/') &&
-    !next.startsWith('//') &&
-    !next.includes('//') &&
-    !/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(next)
+    trimmed.startsWith('/') &&
+    !trimmed.startsWith('//') &&
+    !trimmed.includes('//') &&
+    !/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmed)
   );
+}
+
+function toAuthErrorDetail(error: unknown): AuthErrorDetail {
+  if (error instanceof Error || typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    const code = (error as { code?: unknown }).code;
+    if (typeof message === 'string') {
+      return {
+        message,
+        ...(typeof code === 'string' ? { code } : {}),
+      };
+    }
+  }
+  return { message: 'Unable to refresh authentication state.' };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -39,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await apiFetch('/api/auth/me');
       if (!response.ok) {
         setAuth({ status: 'unauthenticated', user: null, apps: [] });
         return;
@@ -64,13 +89,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAuth({ status: 'unauthenticated', user: null, apps: [] });
         return;
       }
+      const user: UserSummary = {
+        ...body.user,
+        isAdmin: body.user.is_admin,
+      };
       setAuth({
         status: 'ok',
-        user: body.user,
+        user,
         apps: Array.isArray(body.apps) ? body.apps : [],
       });
-    } catch {
-      setAuth({ status: 'error', user: null, apps: [] });
+    } catch (error) {
+      setAuth({
+        status: 'error',
+        user: null,
+        apps: [],
+        error: toAuthErrorDetail(error),
+      });
     }
   }, []);
 

@@ -16,10 +16,18 @@ export const LEGAL_ENTITY_NAME = readTrimmedEnv(
   'Dark Avian Labs',
 );
 
-export const LEGAL_PAGE_URL = readTrimmedEnv(
+const resolvedLegalPageUrl = readTrimmedEnv(
   import.meta.env.VITE_LEGAL_PAGE_URL as string | undefined,
   '/legal',
 );
+const isSafeRelativePath =
+  resolvedLegalPageUrl.startsWith('/') &&
+  !resolvedLegalPageUrl.includes('://') &&
+  !resolvedLegalPageUrl.toLowerCase().startsWith('javascript:');
+
+export const LEGAL_PAGE_URL = isSafeRelativePath
+  ? resolvedLegalPageUrl
+  : '/legal';
 
 export const SEARCH_PLACEHOLDER = readTrimmedEnv(
   import.meta.env.VITE_SEARCH_PLACEHOLDER as string | undefined,

@@ -16,7 +16,11 @@ export function ensureAuthenticatedPage(
   res: Response,
   next: NextFunction,
 ): void {
-  if (typeof req.session.user_id === 'number' && req.session.user_id > 0) {
+  if (
+    req.session &&
+    typeof req.session.user_id === 'number' &&
+    req.session.user_id > 0
+  ) {
     next();
     return;
   }

@@ -1,7 +1,6 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -25,14 +24,12 @@ function applyMode(mode: ThemeMode): void {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<ThemeMode>('dark');
-
-  useEffect(() => {
+  const [mode, setMode] = useState<ThemeMode>(() => {
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
     const nextMode: ThemeMode = stored === 'light' ? 'light' : 'dark';
-    setMode(nextMode);
     applyMode(nextMode);
-  }, []);
+    return nextMode;
+  });
 
   const value = useMemo<ThemeContextValue>(
     () => ({
@@ -42,7 +39,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setMode(nextMode);
         applyMode(nextMode);
         window.localStorage.setItem(THEME_STORAGE_KEY, nextMode);
-        document.cookie = `${THEME_STORAGE_KEY}=${nextMode}; path=/; samesite=lax`;
+        document.cookie = `${THEME_STORAGE_KEY}=${nextMode}; max-age=31536000; path=/; samesite=lax`;
       },
     }),
     [mode],

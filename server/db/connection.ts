@@ -9,5 +9,29 @@ export function getCentralDb(): Database.Database {
     return centralDb;
   }
   centralDb = new Database(CENTRAL_DB_PATH);
+  try {
+    const result = centralDb.prepare('PRAGMA journal_mode = WAL;').get() as
+      | { journal_mode?: string }
+      | undefined;
+    if (result?.journal_mode?.toLowerCase() !== 'wal') {
+      throw new Error(`Unexpected journal_mode: ${result?.journal_mode ?? 'unknown'}`);
+    }
+  } catch (error) {
+    console.error('Failed to enable WAL mode for central DB:', error);
+    throw error;
+  }
   return centralDb;
+}
+
+export function closeCentralDb(): void {
+  if (!centralDb) {
+    return;
+  }
+
+  const dbToClose = centralDb;
+  centralDb = null;
+
+  if (typeof dbToClose.close === 'function') {
+    dbToClose.close();
+  }
 }

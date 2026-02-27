@@ -5,6 +5,7 @@ import { APP_PUBLIC_BASE_URL, AUTH_SERVICE_URL } from '../config.js';
 function isSafeRelativePath(next: string): boolean {
   return (
     next.startsWith('/') &&
+    !next.includes('\\') &&
     !next.startsWith('//') &&
     !next.includes('//') &&
     !/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(next)
@@ -12,10 +13,13 @@ function isSafeRelativePath(next: string): boolean {
 }
 
 export function buildAuthLoginUrl(req: Request): string {
+  const requestedNext =
+    typeof req.query?.next === 'string' ? req.query.next : undefined;
+  const fallbackNext = isSafeRelativePath(req.originalUrl) ? req.originalUrl : '/';
   const requested =
-    typeof req.query?.next === 'string' && isSafeRelativePath(req.query.next)
-      ? req.query.next
-      : req.originalUrl || '/';
+    requestedNext && isSafeRelativePath(requestedNext)
+      ? requestedNext
+      : fallbackNext;
   const next = new URL(requested, APP_PUBLIC_BASE_URL).toString();
   const loginUrl = new URL(`${AUTH_SERVICE_URL}/login`);
   loginUrl.searchParams.set('next', next);

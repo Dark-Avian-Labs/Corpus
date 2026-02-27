@@ -13,11 +13,13 @@ function variantClass(variant: ButtonVariant): string {
   switch (variant) {
     case 'accent':
       return 'btn-accent';
+    case 'secondary':
+      return 'btn-secondary';
     case 'danger':
       return 'btn-danger';
-    default:
-      return 'btn-secondary';
   }
+  const exhaustiveVariant: never = variant;
+  throw new Error(`Unhandled ButtonVariant: ${exhaustiveVariant}`);
 }
 
 interface BaseProps {
@@ -54,6 +56,17 @@ export function Button(props: ButtonProps | LinkButtonProps) {
 
   if (asChild) {
     if (!isValidElement(children)) {
+      if (process.env.NODE_ENV !== 'production') {
+        const childType =
+          children === null
+            ? 'null'
+            : Array.isArray(children)
+              ? 'array'
+              : typeof children;
+        console.warn(
+          `[Button] "asChild" requires a single valid React element child; received ${childType}.`,
+        );
+      }
       return null;
     }
 

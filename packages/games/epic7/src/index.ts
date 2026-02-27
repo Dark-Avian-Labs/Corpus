@@ -30,7 +30,7 @@ export const epic7Game: GameModule = {
 
   theme: { primary: ACCENT_COLOR },
 
-  mount(app: Application, basePath: string, options?: GameMountOptions) {
+  mount(app: Application, basePath: string, _options?: GameMountOptions) {
     const base = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
     const assetsPath = getAssetsPath();
     const pkgRoot = path.join(__dirname, '..');
@@ -58,7 +58,6 @@ export const epic7Game: GameModule = {
       });
     });
     app.use(`${base}/assets`, express.static(assetsPath));
-    void options;
   },
 
   applyDefaultsForNewUser(userId: number): Promise<void> {

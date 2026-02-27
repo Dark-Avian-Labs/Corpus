@@ -452,34 +452,43 @@ epic7ApiRouter.post('/admin/base/heroes', requireAdmin, (req, res) => {
   if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
-  const heroId = q.addBaseHero(
-    db,
-    data.name,
-    data.class,
-    data.element,
-    data.star_rating,
-  );
-  if (!heroId) {
+  try {
+    db.exec('BEGIN');
+    const heroId = q.addBaseHero(
+      db,
+      data.name,
+      data.class,
+      data.element,
+      data.star_rating,
+    );
+    if (!heroId) {
+      throw new Error('Failed to create base hero.');
+    }
+    const row = db
+      .prepare('SELECT display_order FROM base_heroes WHERE id = ?')
+      .get(heroId) as { display_order: number } | undefined;
+    if (row == null) {
+      throw new Error('Failed to create base hero.');
+    }
+    q.addBaseHeroToAllAccounts(
+      db,
+      heroId,
+      data.name,
+      data.class,
+      data.element,
+      data.star_rating,
+      row.display_order,
+    );
+    db.exec('COMMIT');
+    json(res, { success: true, hero_id: heroId });
+  } catch {
+    try {
+      db.exec('ROLLBACK');
+    } catch {
+      // Nothing actionable: rollback itself failed.
+    }
     err(res, 'Failed to create base hero.');
-    return;
   }
-  const row = db
-    .prepare('SELECT display_order FROM base_heroes WHERE id = ?')
-    .get(heroId) as { display_order: number } | undefined;
-  if (row == null) {
-    err(res, 'Failed to create base hero.');
-    return;
-  }
-  q.addBaseHeroToAllAccounts(
-    db,
-    heroId,
-    data.name,
-    data.class,
-    data.element,
-    data.star_rating,
-    row.display_order,
-  );
-  json(res, { success: true, hero_id: heroId });
 });
 
 epic7ApiRouter.post('/admin/base/artifacts', requireAdmin, (req, res) => {
@@ -487,32 +496,41 @@ epic7ApiRouter.post('/admin/base/artifacts', requireAdmin, (req, res) => {
   if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
-  const artifactId = q.addBaseArtifact(
-    db,
-    data.name,
-    data.class,
-    data.star_rating,
-  );
-  if (!artifactId) {
+  try {
+    db.exec('BEGIN');
+    const artifactId = q.addBaseArtifact(
+      db,
+      data.name,
+      data.class,
+      data.star_rating,
+    );
+    if (!artifactId) {
+      throw new Error('Failed to create base artifact.');
+    }
+    const row = db
+      .prepare('SELECT display_order FROM base_artifacts WHERE id = ?')
+      .get(artifactId) as { display_order: number } | undefined;
+    if (row == null) {
+      throw new Error('Failed to create base artifact.');
+    }
+    q.addBaseArtifactToAllAccounts(
+      db,
+      artifactId,
+      data.name,
+      data.class,
+      data.star_rating,
+      row.display_order,
+    );
+    db.exec('COMMIT');
+    json(res, { success: true, artifact_id: artifactId });
+  } catch {
+    try {
+      db.exec('ROLLBACK');
+    } catch {
+      // Nothing actionable: rollback itself failed.
+    }
     err(res, 'Failed to create base artifact.');
-    return;
   }
-  const row = db
-    .prepare('SELECT display_order FROM base_artifacts WHERE id = ?')
-    .get(artifactId) as { display_order: number } | undefined;
-  if (row == null) {
-    err(res, 'Failed to create base artifact.');
-    return;
-  }
-  q.addBaseArtifactToAllAccounts(
-    db,
-    artifactId,
-    data.name,
-    data.class,
-    data.star_rating,
-    row.display_order,
-  );
-  json(res, { success: true, artifact_id: artifactId });
 });
 
 epic7ApiRouter.delete('/admin/base/heroes/:heroId', requireAdmin, (req, res) => {
@@ -524,7 +542,11 @@ epic7ApiRouter.delete('/admin/base/heroes/:heroId', requireAdmin, (req, res) => 
   if (!data) return;
   const db = getDbOrFail(res);
   if (!db) return;
-  q.deleteBaseHero(db, data.hero_id);
+  const deleted = q.deleteBaseHero(db, data.hero_id);
+  if (!deleted) {
+    res.status(404).json({ error: 'Base hero not found' });
+    return;
+  }
   json(res, { success: true });
 });
 
@@ -540,7 +562,11 @@ epic7ApiRouter.delete(
     if (!data) return;
     const db = getDbOrFail(res);
     if (!db) return;
-    q.deleteBaseArtifact(db, data.artifact_id);
+    const deleted = q.deleteBaseArtifact(db, data.artifact_id);
+    if (!deleted) {
+      res.status(404).json({ error: 'Base artifact not found' });
+      return;
+    }
     json(res, { success: true });
   },
 );
