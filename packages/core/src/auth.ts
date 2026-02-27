@@ -119,8 +119,8 @@ export function getClientIP(req: {
   ip?: string;
   headers?: Record<string, string | string[] | undefined>;
 }): string {
-  const trustProxy =
-    process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true';
+  const raw = (process.env.TRUST_PROXY?.trim() ?? '').toLowerCase();
+  const trustProxy = raw === '1' || raw === 'true';
   if (!trustProxy) {
     return req.ip ?? 'unknown';
   }

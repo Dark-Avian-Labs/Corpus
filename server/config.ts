@@ -28,8 +28,8 @@ if (SESSION_SECRET.length < 32) {
 function parseBooleanEnv(value: string | undefined): boolean | undefined {
   if (value == null) return undefined;
   const normalized = value.trim().toLowerCase();
-  if (normalized === 'true') return true;
-  if (normalized === 'false') return false;
+  if (normalized === 'true' || normalized === '1') return true;
+  if (normalized === 'false' || normalized === '0') return false;
   return undefined;
 }
 
