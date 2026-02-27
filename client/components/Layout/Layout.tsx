@@ -2,11 +2,12 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  type ReactNode,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import bgArt from '../../../packages/core/assets/background.txt?raw';
 import feathers from '../../../packages/core/assets/feathers.png';
@@ -21,8 +22,14 @@ import { useAuth } from '../../features/auth/AuthContext';
 import { getProfileIconSrc } from '../../utils/profileIcons';
 import { Menu } from '../ui/Menu';
 
+export type LayoutOutletContext = {
+  setHeaderCenter: (node: ReactNode | null) => void;
+  setHeaderActions: (node: ReactNode | null) => void;
+};
+
 export function Layout() {
   const { mode, toggleMode } = useTheme();
+  const location = useLocation();
   const { auth } = useAuth();
   const isLoggedIn = auth.status === 'ok' && auth.user !== null;
   const isAdmin = auth.status === 'ok' && auth.user?.isAdmin === true;
@@ -35,6 +42,9 @@ export function Layout() {
   const prevMenuOpenRef = useRef(menuOpen);
   const currentYear = new Date().getFullYear();
   const avatarSrc = getProfileIconSrc(auth.user?.avatar ?? 1);
+  const hasAvatar = avatarSrc.length > 0;
+  const [headerCenter, setHeaderCenter] = useState<ReactNode | null>(null);
+  const [headerActions, setHeaderActions] = useState<ReactNode | null>(null);
   const menuItemIds = useMemo(() => {
     if (!isLoggedIn) {
       return ['login'];
@@ -136,6 +146,19 @@ export function Layout() {
   };
 
   useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith(APP_PATHS.warframe)) {
+      document.title = 'Corpus - Warframe';
+      return;
+    }
+    if (path.startsWith(APP_PATHS.epic7)) {
+      document.title = 'Corpus - Epic Seven';
+      return;
+    }
+    document.title = 'Corpus';
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (!menuOpen) {
       return undefined;
     }
@@ -177,27 +200,32 @@ export function Layout() {
             </span>
           </Link>
 
-          <nav
-            className="justify-self-center flex items-center gap-2"
-            aria-label="Main"
-          >
-            <NavLink to={APP_PATHS.home} className="header-link">
-              Home
-            </NavLink>
-            <NavLink to={APP_PATHS.warframe} className="header-link">
-              Warframe
-            </NavLink>
-            <NavLink to={APP_PATHS.epic7} className="header-link">
-              Epic Seven
-            </NavLink>
-            {isAdmin ? (
-              <NavLink to={APP_PATHS.admin} className="header-link">
-                Admin
+          {headerCenter ? (
+            <div className="justify-self-center">{headerCenter}</div>
+          ) : (
+            <nav
+              className="justify-self-center flex items-center gap-2"
+              aria-label="Main"
+            >
+              <NavLink to={APP_PATHS.home} className="header-link">
+                Home
               </NavLink>
-            ) : null}
-          </nav>
+              <NavLink to={APP_PATHS.warframe} className="header-link">
+                Warframe
+              </NavLink>
+              <NavLink to={APP_PATHS.epic7} className="header-link">
+                Epic Seven
+              </NavLink>
+              {isAdmin ? (
+                <NavLink to={APP_PATHS.admin} className="header-link">
+                  Admin
+                </NavLink>
+              ) : null}
+            </nav>
+          )}
 
           <div className="flex flex-wrap items-center justify-end gap-3">
+            {headerActions}
             <button
               type="button"
               className="icon-toggle-btn"
@@ -219,11 +247,17 @@ export function Layout() {
                 onClick={() => setMenuOpen((prev) => !prev)}
               >
                 {isLoggedIn ? (
-                  <img
-                    src={avatarSrc}
-                    alt=""
-                    className="profile-avatar-image"
-                  />
+                  hasAvatar ? (
+                    <img
+                      src={avatarSrc}
+                      alt=""
+                      className="profile-avatar-image"
+                    />
+                  ) : (
+                    <span aria-hidden="true" className="text-xs font-semibold">
+                      #{auth.user?.avatar ?? 1}
+                    </span>
+                  )
                 ) : (
                   <span aria-hidden="true" className="text-xs font-semibold">
                     🔐
@@ -290,7 +324,7 @@ export function Layout() {
 
       <main className="relative z-0 flex-1 px-6 pb-6">
         <div className="mx-auto w-full max-w-[1900px]">
-          <Outlet />
+          <Outlet context={{ setHeaderCenter, setHeaderActions }} />
         </div>
       </main>
 

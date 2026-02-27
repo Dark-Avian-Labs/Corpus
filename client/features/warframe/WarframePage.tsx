@@ -1,15 +1,7 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Modal } from '../../components/ui/Modal';
+import { useLayoutSlots } from '../../components/Layout/useLayoutSlots';
 import { apiFetch } from '../../utils/api';
-import { useAuth } from '../auth/AuthContext';
 
 type Worksheet = { id: number; name: string };
 type Column = { id: number; name: string };
@@ -21,109 +13,29 @@ type Row = {
 };
 type WorksheetData = { columns: Column[]; rows: Row[] };
 
-type ModalState = {
-  itemModalOpen: boolean;
-  deleteModalOpen: boolean;
-  editingRowId: number | null;
-  deletingRow: Row | null;
-  draftName: string;
-  draftValues: Record<string, string>;
-};
-
-type ModalAction =
-  | { type: 'OPEN_ADD_MODAL'; columns: Column[] }
-  | { type: 'OPEN_EDIT_MODAL'; row: Row }
-  | { type: 'CLOSE_ITEM_MODAL' }
-  | { type: 'SET_DRAFT_NAME'; value: string }
-  | { type: 'SET_DRAFT_VALUE'; columnId: number; value: string }
-  | { type: 'OPEN_DELETE_MODAL'; row: Row }
-  | { type: 'CLOSE_DELETE_MODAL' };
-
-const initialModalState: ModalState = {
-  itemModalOpen: false,
-  deleteModalOpen: false,
-  editingRowId: null,
-  deletingRow: null,
-  draftName: '',
-  draftValues: {},
-};
-
-function modalReducer(state: ModalState, action: ModalAction): ModalState {
-  switch (action.type) {
-    case 'OPEN_ADD_MODAL': {
-      const draftValues = action.columns.reduce<Record<string, string>>(
-        (result, column) => {
-          result[String(column.id)] = '';
-          return result;
-        },
-        {},
-      );
-      return {
-        ...state,
-        itemModalOpen: true,
-        editingRowId: null,
-        draftName: '',
-        draftValues,
-      };
-    }
-    case 'OPEN_EDIT_MODAL':
-      return {
-        ...state,
-        itemModalOpen: true,
-        editingRowId: action.row.id,
-        draftName: action.row.name || action.row.item_name || '',
-        draftValues: { ...(action.row.values || {}) },
-      };
-    case 'CLOSE_ITEM_MODAL':
-      return {
-        ...state,
-        itemModalOpen: false,
-      };
-    case 'SET_DRAFT_NAME':
-      return {
-        ...state,
-        draftName: action.value,
-      };
-    case 'SET_DRAFT_VALUE':
-      return {
-        ...state,
-        draftValues: {
-          ...state.draftValues,
-          [String(action.columnId)]: action.value,
-        },
-      };
-    case 'OPEN_DELETE_MODAL':
-      return {
-        ...state,
-        deleteModalOpen: true,
-        deletingRow: action.row,
-      };
-    case 'CLOSE_DELETE_MODAL':
-      return {
-        ...state,
-        deleteModalOpen: false,
-        deletingRow: null,
-      };
-    default:
-      return state;
-  }
-}
-
 const STATUS_CYCLE = ['', 'Obtained', 'Complete'];
 const HELMINTH_CYCLE = ['', 'Yes'];
-const ADMIN_STATUS_CYCLE = ['', 'Obtained', 'Complete', 'Unavailable'];
+const TAB_ORDER = [
+  'Warframes',
+  'Primary Weapons',
+  'Secondary Weapons',
+  'Melee Weapons',
+  'Modular Weapons',
+  'Archwing Weapons',
+  'Accessories',
+] as const;
+const WORKSHEET_LABELS: Record<string, string> = {
+  Warframes: 'Warframes',
+  'Primary Weapons': 'Primary',
+  'Secondary Weapons': 'Secondary',
+  'Melee Weapons': 'Melee',
+  'Modular Weapons': 'Modular',
+  'Archwing Weapons': 'Archwing',
+  Accessories: 'Accessories',
+};
 
-function nextStatus(
-  current: string,
-  columnName: string,
-  isAdminOverride = false,
-): string {
-  const cycle =
-    columnName === 'Helminth'
-      ? HELMINTH_CYCLE
-      : isAdminOverride
-        ? ADMIN_STATUS_CYCLE
-        : STATUS_CYCLE;
+function nextStatus(current: string, columnName: string): string {
+  const cycle = columnName === 'Helminth' ? HELMINTH_CYCLE : STATUS_CYCLE;
   const idx = cycle.indexOf(current);
   return cycle[(idx + 1 + cycle.length) % cycle.length];
 }
@@ -138,22 +50,13 @@ function statusClass(value: string, columnName: string): string {
 }
 
 export function WarframePage() {
-  const { auth } = useAuth();
-  const isAdmin = auth.status === 'ok' && auth.user.isAdmin;
+  const { setHeaderCenter, setHeaderActions } = useLayoutSlots();
   const [worksheets, setWorksheets] = useState<Worksheet[]>([]);
   const [worksheetId, setWorksheetId] = useState<number | null>(null);
   const [data, setData] = useState<WorksheetData>({ columns: [], rows: [] });
   const [search, setSearch] = useState('');
-  const [editMode, setEditMode] = useState(false);
-  const [adminOverride, setAdminOverride] = useState(false);
-  const [modalState, dispatchModal] = useReducer(
-    modalReducer,
-    initialModalState,
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const worksheetIdRef = useRef<number | null>(worksheetId);
 
   useEffect(() => {
@@ -199,7 +102,22 @@ export function WarframePage() {
     setLoading(true);
     setError(null);
     try {
-      const items = await fetchWorksheets();
+      const items = (await fetchWorksheets())
+        .map((worksheet) => ({
+          ...worksheet,
+          name: worksheet.name.replace(/^\uFEFF/, '').trim(),
+        }))
+        .sort((a, b) => {
+          const indexA = TAB_ORDER.indexOf(
+            a.name as (typeof TAB_ORDER)[number],
+          );
+          const indexB = TAB_ORDER.indexOf(
+            b.name as (typeof TAB_ORDER)[number],
+          );
+          return (
+            (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB)
+          );
+        });
       setWorksheets(items);
       setWorksheetId(items[0]?.id ?? null);
     } catch {
@@ -269,25 +187,45 @@ export function WarframePage() {
     [data.rows, search],
   );
 
-  const reloadCurrentWorksheet = useCallback(async (): Promise<void> => {
-    if (worksheetId === null) {
-      return;
+  const stats = useMemo(() => {
+    const byColumn: Record<string, { total: number; complete: number }> = {};
+    for (const column of data.columns) {
+      if (column.name === 'Helminth') continue;
+      byColumn[String(column.id)] = { total: 0, complete: 0 };
     }
-    try {
-      const worksheetData = await fetchWorksheetData(worksheetId);
-      setData(worksheetData);
-    } catch {
-      setError('Could not refresh worksheet data.');
+    for (const row of data.rows) {
+      for (const column of data.columns) {
+        if (column.name === 'Helminth') continue;
+        const key = String(column.id);
+        byColumn[key].total += 1;
+        if ((row.values?.[key] ?? '') === 'Complete') {
+          byColumn[key].complete += 1;
+        }
+      }
     }
-  }, [fetchWorksheetData, worksheetId]);
+    return data.columns
+      .filter((column) => column.name !== 'Helminth')
+      .map((column) => {
+        const entry = byColumn[String(column.id)];
+        const percent =
+          entry.total > 0
+            ? Math.round((entry.complete / entry.total) * 100)
+            : 0;
+        return {
+          name: column.name,
+          complete: entry.complete,
+          total: entry.total,
+          percent,
+        };
+      });
+  }, [data.columns, data.rows]);
 
   async function handleToggle(row: Row, column: Column): Promise<void> {
     const oldValue = row.values?.[String(column.id)] ?? '';
-    const isAdminOverride = isAdmin && adminOverride;
-    if (oldValue === 'Unavailable' && !isAdminOverride) {
+    if (oldValue === 'Unavailable') {
       return;
     }
-    const value = nextStatus(oldValue, column.name, isAdminOverride);
+    const value = nextStatus(oldValue, column.name);
     const rowId = row.id;
     setData((previous) => ({
       ...previous,
@@ -304,18 +242,15 @@ export function WarframePage() {
       ),
     }));
     try {
-      const response = await apiFetch(
-        isAdminOverride ? '/api/warframe/admin/cells' : '/api/warframe/cells',
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            row_id: rowId,
-            column_id: column.id,
-            value,
-          }),
-        },
-      );
+      const response = await apiFetch('/api/warframe/cells', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          row_id: rowId,
+          column_id: column.id,
+          value,
+        }),
+      });
       const body = (await response.json().catch(() => null)) as {
         error?: string;
       } | null;
@@ -341,83 +276,35 @@ export function WarframePage() {
     }
   }
 
-  function openAddModal(): void {
-    dispatchModal({ type: 'OPEN_ADD_MODAL', columns: data.columns });
-  }
+  useEffect(() => {
+    setHeaderActions(null);
+  }, [setHeaderActions]);
 
-  function openEditModal(row: Row): void {
-    dispatchModal({ type: 'OPEN_EDIT_MODAL', row });
-  }
-
-  async function submitItem(): Promise<void> {
-    if (isSaving) {
-      return;
-    }
-    if (!worksheetId || modalState.draftName.trim().length === 0) {
-      setError('Item name is required.');
-      return;
-    }
-    const isEdit = modalState.editingRowId !== null;
-    const url = isEdit
-      ? `/api/warframe/rows/${modalState.editingRowId}`
-      : '/api/warframe/rows';
-    const method = isEdit ? 'PATCH' : 'POST';
-    const body = isEdit
-      ? {
-          item_name: modalState.draftName.trim(),
-          values: modalState.draftValues,
-        }
-      : {
-          worksheet_id: worksheetId,
-          item_name: modalState.draftName.trim(),
-          values: modalState.draftValues,
-        };
-    setIsSaving(true);
-    try {
-      const response = await apiFetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-      if (!response.ok || payload?.error) {
-        throw new Error(payload?.error || 'Failed to save row');
-      }
-      dispatchModal({ type: 'CLOSE_ITEM_MODAL' });
-      await reloadCurrentWorksheet();
-    } catch {
-      setError('Failed to save Warframe row.');
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function confirmDelete(): Promise<void> {
-    if (isDeleting || !modalState.deletingRow) return;
-    setIsDeleting(true);
-    try {
-      const response = await apiFetch(
-        `/api/warframe/rows/${modalState.deletingRow.id}`,
-        {
-          method: 'DELETE',
-        },
-      );
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-      if (!response.ok || payload?.error) {
-        throw new Error(payload?.error || 'Failed to delete row');
-      }
-      dispatchModal({ type: 'CLOSE_DELETE_MODAL' });
-      await reloadCurrentWorksheet();
-    } catch {
-      setError('Failed to delete Warframe row.');
-    } finally {
-      setIsDeleting(false);
-    }
-  }
+  useEffect(() => {
+    setHeaderCenter(
+      <div className="search-wrapper">
+        <input
+          className="search-box"
+          type="text"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          aria-label="Search Warframe items"
+          placeholder="Search..."
+        />
+        <button
+          type="button"
+          className={`search-clear ${search.length > 0 ? 'visible' : ''}`}
+          aria-label="Clear search"
+          onClick={() => setSearch('')}
+        >
+          &times;
+        </button>
+      </div>,
+    );
+    return () => {
+      setHeaderCenter(null);
+    };
+  }, [search, setHeaderCenter]);
 
   function handleRetry(): void {
     setError(null);
@@ -463,67 +350,31 @@ export function WarframePage() {
 
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Warframe</h1>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className={`btn ${editMode ? 'btn-accent' : 'btn-secondary'}`}
-          onClick={() => setEditMode((previous) => !previous)}
-          aria-label={editMode ? 'Exit edit mode' : 'Enter edit mode'}
-        >
-          {editMode ? 'Done Editing' : 'Edit Mode'}
-        </button>
-        {editMode ? (
+      <div className="tabs" role="tablist" aria-label="Warframe categories">
+        {worksheets.map((worksheet) => (
           <button
+            key={worksheet.id}
             type="button"
-            className="btn btn-secondary"
-            onClick={openAddModal}
-            aria-label="Add Warframe row"
+            className={`tab ${worksheetId === worksheet.id ? 'active' : ''}`}
+            role="tab"
+            aria-selected={worksheetId === worksheet.id}
+            onClick={() => setWorksheetId(worksheet.id)}
           >
-            Add Item
+            {WORKSHEET_LABELS[worksheet.name] ?? worksheet.name}
           </button>
-        ) : null}
-        {isAdmin ? (
-          <label className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-glass-border)] px-3 py-2 text-sm">
-            <input
-              type="checkbox"
-              checked={adminOverride}
-              onChange={(event) => setAdminOverride(event.target.checked)}
-              aria-label="Enable admin override updates"
-            />
-            Admin override
-          </label>
-        ) : null}
+        ))}
       </div>
-      <label className="form-group">
-        <span className="mb-2 block text-sm text-muted">Worksheet</span>
-        <select
-          value={worksheetId ?? ''}
-          onChange={(event) =>
-            setWorksheetId(
-              event.target.value === '' ? null : Number(event.target.value),
-            )
-          }
-          aria-label="Select Warframe worksheet"
-        >
-          {worksheets.map((worksheet) => (
-            <option key={worksheet.id} value={worksheet.id}>
-              {worksheet.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="form-group">
-        <span className="mb-2 block text-sm text-muted">Search</span>
-        <input
-          className="search-box"
-          type="text"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          aria-label="Search Warframe items"
-          placeholder="Search..."
-        />
-      </label>
+      <div className="stats-bar">
+        {stats.map((entry) => (
+          <div key={entry.name} className="stat">
+            <span>{entry.name}:</span>
+            <span className="stat-value stat-complete">{entry.complete}</span>
+            <span>/</span>
+            <span className="stat-value">{entry.total}</span>
+            <span>({entry.percent}%)</span>
+          </div>
+        ))}
+      </div>
       <div className="table-container">
         <div className="table-scroll">
           <table>
@@ -533,7 +384,6 @@ export function WarframePage() {
                 {data.columns.map((column) => (
                   <th key={column.id}>{column.name}</th>
                 ))}
-                {editMode ? <th>Actions</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -556,10 +406,7 @@ export function WarframePage() {
                             void handleToggle(row, column);
                           }}
                           aria-label={`${column.name} status for ${row.name || row.item_name || 'item'}`}
-                          disabled={
-                            value === 'Unavailable' &&
-                            !(isAdmin && adminOverride)
-                          }
+                          disabled={value === 'Unavailable'}
                         >
                           {column.name === 'Helminth'
                             ? value === 'Yes'
@@ -570,152 +417,12 @@ export function WarframePage() {
                       </td>
                     );
                   })}
-                  {editMode ? (
-                    <td className="row-actions">
-                      <button
-                        type="button"
-                        className="btn-icon btn-edit"
-                        onClick={() => openEditModal(row)}
-                        aria-label={`Edit ${row.name || row.item_name || 'row'}`}
-                      >
-                        ✎
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-icon btn-delete"
-                        onClick={() => {
-                          dispatchModal({ type: 'OPEN_DELETE_MODAL', row });
-                        }}
-                        aria-label={`Delete ${row.name || row.item_name || 'row'}`}
-                      >
-                        🗑
-                      </button>
-                    </td>
-                  ) : null}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
-      <button
-        type="button"
-        className="btn btn-secondary"
-        onClick={() => {
-          void reloadCurrentWorksheet();
-        }}
-      >
-        Refresh
-      </button>
-
-      <Modal
-        open={modalState.itemModalOpen}
-        onClose={() => dispatchModal({ type: 'CLOSE_ITEM_MODAL' })}
-        ariaLabelledBy="warframe-item-modal-title"
-      >
-        <h2
-          id="warframe-item-modal-title"
-          className="mb-4 text-lg font-semibold"
-        >
-          {modalState.editingRowId === null ? 'Add Item' : 'Edit Item'}
-        </h2>
-        <div className="form-group">
-          <label htmlFor="warframe-item-name">Name</label>
-          <input
-            id="warframe-item-name"
-            value={modalState.draftName}
-            onChange={(event) =>
-              dispatchModal({
-                type: 'SET_DRAFT_NAME',
-                value: event.target.value,
-              })
-            }
-          />
-        </div>
-        {data.columns.map((column) => (
-          <div key={column.id} className="form-group">
-            <label htmlFor={`warframe-col-${column.id}`}>{column.name}</label>
-            <select
-              id={`warframe-col-${column.id}`}
-              value={modalState.draftValues[String(column.id)] ?? ''}
-              onChange={(event) => {
-                dispatchModal({
-                  type: 'SET_DRAFT_VALUE',
-                  columnId: column.id,
-                  value: event.target.value,
-                });
-              }}
-            >
-              {(column.name === 'Helminth'
-                ? HELMINTH_CYCLE
-                : isAdmin && adminOverride
-                  ? ADMIN_STATUS_CYCLE
-                  : STATUS_CYCLE
-              ).map((value) => (
-                <option key={value || 'empty'} value={value}>
-                  {value || '—'}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
-        <div className="modal-actions">
-          <button
-            type="button"
-            className="btn btn-cancel"
-            onClick={() => dispatchModal({ type: 'CLOSE_ITEM_MODAL' })}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="btn btn-accent"
-            onClick={() => void submitItem()}
-            disabled={isSaving}
-          >
-            Save
-          </button>
-        </div>
-      </Modal>
-
-      <Modal
-        open={modalState.deleteModalOpen}
-        onClose={() => dispatchModal({ type: 'CLOSE_DELETE_MODAL' })}
-        ariaLabelledBy="warframe-delete-modal-title"
-      >
-        <h2
-          id="warframe-delete-modal-title"
-          className="mb-4 text-lg font-semibold"
-        >
-          Delete Item
-        </h2>
-        <p className="text-sm text-muted">
-          Delete{' '}
-          <strong>
-            {modalState.deletingRow?.name ||
-              modalState.deletingRow?.item_name ||
-              'this item'}
-          </strong>
-          ?
-        </p>
-        <div className="modal-actions">
-          <button
-            type="button"
-            className="btn btn-cancel"
-            onClick={() => dispatchModal({ type: 'CLOSE_DELETE_MODAL' })}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="btn btn-danger"
-            onClick={() => void confirmDelete()}
-            disabled={isDeleting}
-          >
-            Delete
-          </button>
-        </div>
-      </Modal>
     </section>
   );
 }

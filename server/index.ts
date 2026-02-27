@@ -285,6 +285,9 @@ app.get('/auth/login', publicPageLimiter, (req, res) => {
 app.get('/auth/profile', publicPageLimiter, (_req, res) => {
   res.redirect(`${AUTH_SERVICE_URL}/profile`);
 });
+app.get('/profile', publicPageLimiter, (_req, res) => {
+  res.redirect('/auth/profile');
+});
 app.get('/auth/legal', publicPageLimiter, (_req, res) => {
   res.redirect(`${AUTH_SERVICE_URL}/legal`);
 });
