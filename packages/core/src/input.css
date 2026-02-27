@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/inter';
 
 @source "../../../src/**/*.{ejs,html,js,ts,jsx,tsx}";
 @source "../../../client/**/*.{js,ts,jsx,tsx}";
@@ -128,6 +129,8 @@ html.theme-light .invert-on-light {
 
   body {
     font-family:
+      'Inter Variable',
+      Inter,
       system-ui,
       -apple-system,
       'Segoe UI',

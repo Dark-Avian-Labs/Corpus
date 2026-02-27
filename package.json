@@ -24,6 +24,7 @@
     "@corpus/core": "3.0.0",
     "@corpus/game-epic7": "3.0.0",
     "@corpus/game-warframe": "3.0.0",
+    "@fontsource-variable/inter": "^5.2.8",
     "better-sqlite3": "^12.6.2",
     "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",

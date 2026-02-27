@@ -1,3 +1,4 @@
+import { requireAuth, requireAdmin } from '@corpus/core';
 import cookieParser from 'cookie-parser';
 import { csrfSync } from 'csrf-sync';
 import express, { type Request, type Response } from 'express';
@@ -7,7 +8,6 @@ import helmet from 'helmet';
 import { createRequire } from 'module';
 import path from 'path';
 
-import { ensureAuthenticatedPage, requireAdmin } from './auth/middleware.js';
 import { buildAuthLoginUrl, buildAuthLogoutUrl } from './auth/remoteAuth.js';
 import {
   APP_NAME,
@@ -268,18 +268,13 @@ app.post('/logout', publicPageLimiter, (req, res) => {
 app.get('/admin', publicPageLimiter, requireAdmin, (_req, res) => {
   res.sendFile(clientIndexPath);
 });
-app.get(
-  '/warframe',
-  publicPageLimiter,
-  ensureAuthenticatedPage,
-  (_req, res) => {
-    res.sendFile(clientIndexPath);
-  },
-);
-app.get('/epic7', publicPageLimiter, ensureAuthenticatedPage, (_req, res) => {
+app.get('/warframe', publicPageLimiter, requireAuth, (_req, res) => {
   res.sendFile(clientIndexPath);
 });
-app.get('/', publicPageLimiter, ensureAuthenticatedPage, (_req, res) => {
+app.get('/epic7', publicPageLimiter, requireAuth, (_req, res) => {
+  res.sendFile(clientIndexPath);
+});
+app.get('/', publicPageLimiter, requireAuth, (_req, res) => {
   res.sendFile(clientIndexPath);
 });
 
