@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 
 import { type AuthSession } from '../auth.js';
-import { AUTH_SERVICE_URL, BASE_HOST } from '../config.js';
+import { AUTH_SERVICE_URL } from '../config.js';
 
 function getSession(req: Request): AuthSession {
   return req.session as AuthSession;
@@ -20,17 +20,13 @@ const AUTH_STATE_CACHE_KEY = Symbol('authStateCache');
 
 export function getAppPublicBaseUrl(): string {
   const configured = process.env.APP_PUBLIC_BASE_URL?.trim();
-  if (configured) return configured.replace(/\/+$/, '');
-
-  if (BASE_HOST === 'localhost' || BASE_HOST.startsWith('localhost:')) {
-    return `http://${BASE_HOST}`;
+  if (!configured) {
+    throw new Error('APP_PUBLIC_BASE_URL must be set.');
   }
-
-  if (/^https?:\/\//i.test(BASE_HOST)) {
-    return BASE_HOST.replace(/\/+$/, '');
+  if (!/^https:\/\//i.test(configured)) {
+    throw new Error('APP_PUBLIC_BASE_URL must use https://');
   }
-
-  return `https://${BASE_HOST}`;
+  return configured.replace(/\/+$/, '');
 }
 
 function getLoginRedirectUrl(req: Request, gameId?: string): string {

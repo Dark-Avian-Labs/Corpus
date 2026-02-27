@@ -39,4 +39,3 @@ export {
 export type { GameModule, GameMountOptions, GameTheme } from './types/game.js';
 export { createDbSingleton } from './db/singleton.js';
 export type { DbSingleton, DbSingletonOptions } from './db/singleton.js';
-export { getActionFromRequest, createJsonHelpers } from './api/helpers.js';

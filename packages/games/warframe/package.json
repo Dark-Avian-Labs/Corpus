@@ -5,8 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc && node scripts/copy-views.mjs",
-    "copy-views": "node scripts/copy-views.mjs",
+    "build": "tsc",
     "lint": "eslint .",
     "format": "prettier --write .",
     "check-format": "prettier --check ."

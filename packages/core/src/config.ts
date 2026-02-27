@@ -42,16 +42,26 @@ export const CENTRAL_DB_PATH = path.resolve(
   process.env.CENTRAL_DB_PATH ?? './data/central.db',
 );
 
-/** Cookie domain for session sharing across subdomains (e.g. .domain.tld). Omit on localhost. */
+/** Cookie domain for session sharing across subdomains (e.g. .domain.tld). */
 export const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
+if (!COOKIE_DOMAIN) {
+  throw new Error('COOKIE_DOMAIN must be set.');
+}
 
 /** Base host for login/game picker (e.g. corpus.domain.tld) */
-export const BASE_HOST = process.env.BASE_HOST ?? 'localhost';
+export const BASE_HOST = process.env.BASE_HOST ?? '';
+if (!BASE_HOST) {
+  throw new Error('BASE_HOST must be set.');
+}
 
 /** Central auth service host (e.g. https://auth.example.com). */
-export const AUTH_SERVICE_URL = (
-  process.env.AUTH_SERVICE_URL ?? 'http://localhost:3010'
-).replace(/\/+$/, '');
+export const AUTH_SERVICE_URL = (process.env.AUTH_SERVICE_URL ?? '').replace(
+  /\/+$/,
+  '',
+);
+if (!AUTH_SERVICE_URL.startsWith('https://')) {
+  throw new Error('AUTH_SERVICE_URL must be set and use https://');
+}
 
 /** Game subdomains map host -> gameId (e.g. warframe.domain.tld -> warframe) */
 export const GAME_HOSTS: Record<string, string> = (() => {

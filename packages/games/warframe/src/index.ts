@@ -5,8 +5,6 @@ import { fileURLToPath } from 'url';
 
 import { WARFRAME_DB_PATH } from './config.js';
 import { getDb } from './db/schema.js';
-import { apiRouter } from './routes/apiRouter.js';
-import { registerPageRoutes } from './routes/pages.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,13 +36,7 @@ export const warframeGame: GameModule = {
       });
     });
     app.use(`${base}/assets`, express.static(assetsPath));
-    registerPageRoutes(app, base, {
-      viewPrefix: 'warframe',
-      appName: options?.appName ?? 'Corpus',
-      getCsrfToken: options?.csrfToken,
-      accentColor: ACCENT_COLOR,
-    });
-    app.use(`${base}/api`, apiRouter);
+    void options;
   },
 
   async applyDefaultsForNewUser(userId: number): Promise<void> {
