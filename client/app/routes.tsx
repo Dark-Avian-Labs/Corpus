@@ -42,6 +42,10 @@ const AdminPage = lazyNamed(
   () => import('../features/admin/AdminPage'),
   'AdminPage',
 );
+const WarframeAdminPage = lazyNamed(
+  () => import('../features/admin/WarframeAdminPage'),
+  'WarframeAdminPage',
+);
 
 function RouteFallback() {
   return (
@@ -159,12 +163,24 @@ export function AppRoutes() {
               }
             />
             <Route
-              path={APP_PATHS.admin}
+              path={APP_PATHS.epic7Admin}
               element={
                 <RequireAuth>
                   <AdminPage />
                 </RequireAuth>
               }
+            />
+            <Route
+              path={APP_PATHS.warframeAdmin}
+              element={
+                <RequireAuth>
+                  <WarframeAdminPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path={APP_PATHS.admin}
+              element={<Navigate to={APP_PATHS.epic7Admin} replace />}
             />
             <Route
               path="*"

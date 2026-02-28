@@ -56,6 +56,18 @@ export function Layout() {
   const menuItemIndexById = useMemo(() => {
     return new Map(menuItemIds.map((id, index) => [id, index]));
   }, [menuItemIds]);
+  const isWarframeRoute = location.pathname.startsWith(APP_PATHS.warframe);
+  const isEpic7Route = location.pathname.startsWith(APP_PATHS.epic7);
+  const adminPath = isWarframeRoute
+    ? APP_PATHS.warframeAdmin
+    : isEpic7Route
+      ? APP_PATHS.epic7Admin
+      : APP_PATHS.admin;
+  const brandTitle = isWarframeRoute
+    ? 'Corpus - Warframe'
+    : isEpic7Route
+      ? 'Corpus - Epic7'
+      : APP_DISPLAY_NAME;
 
   const setMenuItemRef = (id: string) => (node: HTMLElement | null) => {
     menuItemNodeMap.current[id] = node;
@@ -154,7 +166,7 @@ export function Layout() {
       document.title = 'Corpus - Warframe';
       faviconHref = warframeFavicon;
     } else if (path.startsWith(APP_PATHS.epic7)) {
-      document.title = 'Corpus - Epic Seven';
+      document.title = 'Corpus - Epic7';
       faviconHref = epic7Favicon;
     } else {
       document.title = 'Corpus';
@@ -206,33 +218,11 @@ export function Layout() {
               className="brand-lockup__icon"
             />
             <span className="brand-lockup__title brand-lockup--fx">
-              {APP_DISPLAY_NAME}
+              {brandTitle}
             </span>
           </Link>
 
-          {headerCenter ? (
-            <div className="justify-self-center">{headerCenter}</div>
-          ) : (
-            <nav
-              className="justify-self-center flex items-center gap-2"
-              aria-label="Main"
-            >
-              <NavLink to={APP_PATHS.home} className="header-link">
-                Home
-              </NavLink>
-              <NavLink to={APP_PATHS.warframe} className="header-link">
-                Warframe
-              </NavLink>
-              <NavLink to={APP_PATHS.epic7} className="header-link">
-                Epic Seven
-              </NavLink>
-              {isAdmin ? (
-                <NavLink to={APP_PATHS.admin} className="header-link">
-                  Admin
-                </NavLink>
-              ) : null}
-            </nav>
-          )}
+          <div className="justify-self-center">{headerCenter}</div>
 
           <div className="flex flex-wrap items-center justify-end gap-3">
             {headerActions}
@@ -303,7 +293,7 @@ export function Layout() {
                         {isAdmin ? (
                           <NavLink
                             ref={nextMenuItemRef('admin')}
-                            to={APP_PATHS.admin}
+                            to={adminPath}
                             className="user-menu-item"
                             role="menuitem"
                             tabIndex={-1}

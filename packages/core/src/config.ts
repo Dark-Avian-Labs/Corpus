@@ -37,9 +37,18 @@ export const AUTH_ATTEMPT_WINDOW_MINUTES =
     : 15;
 export const AUTH_ATTEMPT_WINDOW_SECONDS = AUTH_ATTEMPT_WINDOW_MINUTES * 60;
 
-export const CENTRAL_DB_PATH = path.resolve(
-  process.env.CENTRAL_DB_PATH ?? './data/central.db',
-);
+const _centralDbPath = process.env.CENTRAL_DB_PATH?.trim();
+if (!_centralDbPath) {
+  throw new Error(
+    'CENTRAL_DB_PATH must be set to an absolute shared SQLite path.',
+  );
+}
+if (!path.isAbsolute(_centralDbPath)) {
+  throw new Error(
+    'CENTRAL_DB_PATH must be absolute; relative sibling paths are not supported.',
+  );
+}
+export const CENTRAL_DB_PATH = _centralDbPath;
 
 const _COOKIE_DOMAIN = process.env.COOKIE_DOMAIN;
 if (!_COOKIE_DOMAIN) {

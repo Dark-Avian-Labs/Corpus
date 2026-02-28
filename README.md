@@ -40,10 +40,17 @@ Corpus is a game collection tracker with pluggable modules. It currently ships w
 | `SESSION_SECRET`                    | Required; 32+ characters.                                       |
 | `TRUST_PROXY`                       | Optional, defaults to `false`; set to `1` behind reverse proxy. |
 | `AUTH_SERVICE_URL`                  | Shared Auth base URL.                                           |
-| `CENTRAL_DB_PATH`                   | Shared central DB path for users/sessions/access.               |
+| `CENTRAL_DB_PATH`                   | Absolute mounted path to the shared Auth SQLite database.       |
+| `PARAMETRIC_DB_PATH`                | Absolute mounted path to the Parametric SQLite database.        |
 | `WARFRAME_DB_PATH`, `EPIC7_DB_PATH` | Per-game DB paths.                                              |
 | `COOKIE_DOMAIN`                     | Optional cross-subdomain cookie domain.                         |
 | `GAME_HOSTS`                        | Optional host-to-game map (`host=gameId` pairs).                |
+
+### Shared SQLite deployment notes
+
+- `CENTRAL_DB_PATH` and `PARAMETRIC_DB_PATH` must be absolute mount paths available inside the Corpus runtime container/host.
+- Do not use relative `../service/...` paths; deploy each service with explicit shared mounts instead.
+- `CENTRAL_DB_PATH` is opened in WAL mode by Corpus; keep a single writer service boundary for schema/migration changes and avoid multi-host writes over network filesystems that do not support SQLite file locking semantics.
 
 ## Scripts
 

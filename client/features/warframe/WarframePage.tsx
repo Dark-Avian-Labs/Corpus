@@ -393,7 +393,9 @@ export function WarframePage() {
               <tr>
                 <th>Name</th>
                 {data.columns.map((column) => (
-                  <th key={column.id}>{column.name}</th>
+                  <th key={column.id} className="text-center">
+                    {column.name}
+                  </th>
                 ))}
               </tr>
             </thead>

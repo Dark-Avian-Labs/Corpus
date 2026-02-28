@@ -71,6 +71,8 @@ const baselineLimiter = rateLimit({
     req.path === '/legal' ||
     req.path === '/logout' ||
     req.path === '/admin' ||
+    req.path === '/warframe/admin' ||
+    req.path === '/epic7/admin' ||
     req.path === '/warframe' ||
     req.path === '/epic7' ||
     req.path === '/' ||
@@ -267,6 +269,12 @@ app.post('/logout', publicPageLimiter, (req, res) => {
 });
 
 app.get('/admin', publicPageLimiter, requireAdmin, (_req, res) => {
+  res.sendFile(clientIndexPath);
+});
+app.get('/warframe/admin', publicPageLimiter, requireAdmin, (_req, res) => {
+  res.sendFile(clientIndexPath);
+});
+app.get('/epic7/admin', publicPageLimiter, requireAdmin, (_req, res) => {
   res.sendFile(clientIndexPath);
 });
 app.get('/warframe', publicPageLimiter, requireAuth, (_req, res) => {

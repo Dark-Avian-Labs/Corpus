@@ -27,6 +27,12 @@ export interface WorksheetData {
   rows: DataRow[];
 }
 
+export interface WorksheetRowRecord {
+  id: number;
+  item_name: string;
+  display_order: number;
+}
+
 const HELMINTH_COLUMN_NAME = 'Helminth';
 const WARFRAMES_WORKSHEET_NAME = 'Warframes';
 
@@ -51,6 +57,22 @@ export function getWorksheetById(
       'SELECT id, name, display_order FROM worksheets WHERE id = ? AND user_id = ?',
     )
     .get(id, userId) as (Worksheet & { display_order: number }) | undefined;
+}
+
+export function getWorksheetByName(
+  db: Database.Database,
+  userId: number,
+  worksheetName: string,
+): (Worksheet & { display_order: number }) | undefined {
+  return db
+    .prepare(
+      'SELECT id, name, display_order FROM worksheets WHERE user_id = ? AND name = ?',
+    )
+    .get(userId, worksheetName) as
+    | (Worksheet & {
+        display_order: number;
+      })
+    | undefined;
 }
 
 export function getFirstWorksheetId(
@@ -109,6 +131,30 @@ export function getRowWorksheetId(
     )
     .get(rowId, userId) as { worksheet_id: number } | undefined;
   return row?.worksheet_id ?? null;
+}
+
+export function getWorksheetRows(
+  db: Database.Database,
+  worksheetId: number,
+  userId: number,
+): WorksheetRowRecord[] {
+  return db
+    .prepare(
+      `SELECT r.id, r.item_name, r.display_order
+       FROM rows r
+       JOIN worksheets w ON r.worksheet_id = w.id
+       WHERE w.id = ? AND w.user_id = ?
+       ORDER BY r.display_order`,
+    )
+    .all(worksheetId, userId) as WorksheetRowRecord[];
+}
+
+export function getWorksheetUserIds(db: Database.Database): number[] {
+  return (
+    db
+      .prepare('SELECT DISTINCT user_id FROM worksheets ORDER BY user_id')
+      .all() as { user_id: number }[]
+  ).map((row) => row.user_id);
 }
 
 export function ensureHelminthColumn(
@@ -501,4 +547,36 @@ export function insertRowRecord(
     )
     .run(worksheetId, itemName, displayOrder);
   return Number(r.lastInsertRowid);
+}
+
+export function addRowWithEmptyValues(
+  db: Database.Database,
+  worksheetId: number,
+  userId: number,
+  itemName: string,
+): number {
+  return addRow(db, worksheetId, userId, itemName, {});
+}
+
+export function setRowUnavailable(
+  db: Database.Database,
+  rowId: number,
+  userId: number,
+): boolean {
+  const worksheetId = getRowWorksheetId(db, rowId, userId);
+  if (worksheetId === null) return false;
+  const columns = getWorksheetColumns(db, worksheetId, userId);
+  const upsert = db.prepare(
+    `INSERT INTO cell_values (row_id, column_id, value)
+     VALUES (?, ?, ?)
+     ON CONFLICT(row_id, column_id) DO UPDATE SET value = excluded.value`,
+  );
+  const tx = db.transaction(() => {
+    for (const column of columns) {
+      const value = column.name === HELMINTH_COLUMN_NAME ? '' : 'Unavailable';
+      upsert.run(rowId, column.id, value);
+    }
+  });
+  tx();
+  return true;
 }

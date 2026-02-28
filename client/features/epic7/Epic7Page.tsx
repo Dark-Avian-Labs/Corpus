@@ -907,19 +907,19 @@ export function Epic7Page() {
               {tab === 'heroes' ? (
                 <tr>
                   <th>Name</th>
-                  <th className="icon-cell">Class</th>
-                  <th className="icon-cell">Element</th>
-                  <th>Stars</th>
-                  <th>Imprint</th>
-                  {editMode ? <th>Actions</th> : null}
+                  <th className="icon-cell text-center">Class</th>
+                  <th className="icon-cell text-center">Element</th>
+                  <th className="text-center">Stars</th>
+                  <th className="text-center">Imprint</th>
+                  {editMode ? <th className="text-center">Actions</th> : null}
                 </tr>
               ) : (
                 <tr>
                   <th>Name</th>
-                  <th className="icon-cell">Class</th>
-                  <th>Stars</th>
-                  <th>Limit Break</th>
-                  {editMode ? <th>Actions</th> : null}
+                  <th className="icon-cell text-center">Class</th>
+                  <th className="text-center">Stars</th>
+                  <th className="text-center">Limit Break</th>
+                  {editMode ? <th className="text-center">Actions</th> : null}
                 </tr>
               )}
             </thead>

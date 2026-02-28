@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { APP_PATHS } from '../../app/paths';
 import { apiFetch } from '../../utils/api';
 import { useAuth } from '../auth/AuthContext';
 
@@ -33,9 +31,13 @@ const ELEMENTS = ['fire', 'ice', 'earth', 'light', 'dark'] as const;
 export function AdminPage() {
   const { auth } = useAuth();
   const isAdmin = auth.status === 'ok' && auth.user.isAdmin;
+  const [tab, setTab] = useState<'heroes' | 'artifacts'>('heroes');
   const [baseHeroes, setBaseHeroes] = useState<BaseHero[]>([]);
   const [baseArtifacts, setBaseArtifacts] = useState<BaseArtifact[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [elementFilter, setElementFilter] = useState('');
 
   const [heroName, setHeroName] = useState('');
   const [heroClass, setHeroClass] = useState<string>(HERO_CLASSES[0]);
@@ -75,6 +77,55 @@ export function AdminPage() {
   useEffect(() => {
     void loadBaseData();
   }, [loadBaseData]);
+
+  const filteredHeroes = useMemo(
+    () =>
+      baseHeroes.filter((hero) => {
+        const q = search.trim().toLowerCase();
+        const matchesSearch =
+          q.length === 0 || hero.name.toLowerCase().includes(q);
+        const matchesClass = classFilter === '' || hero.class === classFilter;
+        const matchesElement =
+          elementFilter === '' || hero.element === elementFilter;
+        return matchesSearch && matchesClass && matchesElement;
+      }),
+    [baseHeroes, classFilter, elementFilter, search],
+  );
+
+  const filteredArtifacts = useMemo(
+    () =>
+      baseArtifacts.filter((artifact) => {
+        const q = search.trim().toLowerCase();
+        const matchesSearch =
+          q.length === 0 || artifact.name.toLowerCase().includes(q);
+        const matchesClass =
+          classFilter === '' || artifact.class === classFilter;
+        return matchesSearch && matchesClass;
+      }),
+    [baseArtifacts, classFilter, search],
+  );
+
+  const setActiveTab = useCallback((nextTab: 'heroes' | 'artifacts') => {
+    setTab(nextTab);
+    if (nextTab === 'heroes') {
+      setClassFilter((current) =>
+        HERO_CLASSES.includes(current as (typeof HERO_CLASSES)[number])
+          ? current
+          : '',
+      );
+      setElementFilter((current) =>
+        ELEMENTS.includes(current as (typeof ELEMENTS)[number]) ? current : '',
+      );
+      return;
+    }
+
+    setClassFilter((current) =>
+      ARTIFACT_CLASSES.includes(current as (typeof ARTIFACT_CLASSES)[number])
+        ? current
+        : '',
+    );
+    setElementFilter('');
+  }, []);
 
   async function addHero(): Promise<void> {
     if (!heroName.trim()) return;
@@ -185,27 +236,180 @@ export function AdminPage() {
 
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Corpus Admin: Base Tables</h1>
-      <p className="text-sm text-muted">
-        User management stays in the shared Auth app. This page only manages
-        game base tables.
-      </p>
+      <h1 className="text-2xl font-semibold">Epic7 Admin: Base Tables</h1>
       {error ? (
         <p className="text-sm text-red-400" role="alert">
           {error}
         </p>
       ) : null}
+      <div className="tab-bar">
+        <button
+          type="button"
+          className={`tab-btn ${tab === 'heroes' ? 'active' : ''}`}
+          onClick={() => setActiveTab('heroes')}
+        >
+          Heroes
+        </button>
+        <button
+          type="button"
+          className={`tab-btn ${tab === 'artifacts' ? 'active' : ''}`}
+          onClick={() => setActiveTab('artifacts')}
+        >
+          Artifacts
+        </button>
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="panel">
-          <div className="panel-header">
-            <h2>Epic Seven Base Heroes</h2>
-          </div>
-          <div className="space-y-2">
+      <div className="filter-group">
+        <div className="search-wrapper">
+          <input
+            className="search-box"
+            type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            aria-label="Search base table entries"
+            placeholder="Search..."
+          />
+          <button
+            type="button"
+            className={`search-clear ${search.length > 0 ? 'visible' : ''}`}
+            aria-label="Clear search"
+            onClick={() => setSearch('')}
+          >
+            &times;
+          </button>
+        </div>
+        <select
+          className="header-link"
+          value={classFilter}
+          onChange={(event) => setClassFilter(event.target.value)}
+          aria-label="Filter by class"
+        >
+          <option value="">All classes</option>
+          {(tab === 'heroes' ? HERO_CLASSES : ARTIFACT_CLASSES).map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+        {tab === 'heroes' ? (
+          <select
+            className="header-link"
+            value={elementFilter}
+            onChange={(event) => setElementFilter(event.target.value)}
+            aria-label="Filter by element"
+          >
+            <option value="">All elements</option>
+            {ELEMENTS.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        ) : null}
+      </div>
+
+      <div className="table-container">
+        <div className="table-scroll">
+          <table style={{ tableLayout: 'fixed' }}>
+            {tab === 'heroes' ? (
+              <colgroup>
+                <col style={{ width: 'auto' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '200px' }} />
+                <col style={{ width: '120px' }} />
+              </colgroup>
+            ) : (
+              <colgroup>
+                <col style={{ width: 'auto' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '200px' }} />
+                <col style={{ width: '120px' }} />
+              </colgroup>
+            )}
+            <thead>
+              {tab === 'heroes' ? (
+                <tr>
+                  <th>Name</th>
+                  <th className="text-center">Class</th>
+                  <th className="text-center">Element</th>
+                  <th className="text-center">Stars</th>
+                  <th className="text-center">Actions</th>
+                </tr>
+              ) : (
+                <tr>
+                  <th>Name</th>
+                  <th className="text-center">Class</th>
+                  <th className="text-center">Stars</th>
+                  <th className="text-center">Actions</th>
+                </tr>
+              )}
+            </thead>
+            <tbody>
+              {tab === 'heroes' ? (
+                filteredHeroes.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="status-cell text-center">
+                      No heroes match your filters.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredHeroes.map((hero) => (
+                    <tr key={hero.id}>
+                      <td className="item-name">{hero.name}</td>
+                      <td className="status-cell">{hero.class}</td>
+                      <td className="status-cell">{hero.element}</td>
+                      <td className="status-cell">{hero.star_rating}★</td>
+                      <td className="status-cell">
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          onClick={() => void deleteHero(hero.id)}
+                          aria-label={`Delete ${hero.name}`}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )
+              ) : filteredArtifacts.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="status-cell text-center">
+                    No artifacts match your filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredArtifacts.map((artifact) => (
+                  <tr key={artifact.id}>
+                    <td className="item-name">{artifact.name}</td>
+                    <td className="status-cell">{artifact.class}</td>
+                    <td className="status-cell">{artifact.star_rating}★</td>
+                    <td className="status-cell">
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() => void deleteArtifact(artifact.id)}
+                        aria-label={`Delete ${artifact.name}`}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="filter-group">
+        {tab === 'heroes' ? (
+          <>
             <input
               value={heroName}
               onChange={(event) => setHeroName(event.target.value)}
-              placeholder="Hero name"
+              placeholder="New hero name"
               aria-label="New base hero name"
             />
             <select
@@ -246,45 +450,15 @@ export function AdminPage() {
               className="btn btn-accent"
               onClick={() => void addHero()}
             >
-              Add Base Hero
+              Add Hero
             </button>
-          </div>
-          <div className="mt-4 space-y-2">
-            {baseHeroes.length === 0 ? (
-              <p className="text-sm text-muted">No base heroes</p>
-            ) : (
-              baseHeroes.map((hero) => (
-                <div
-                  key={hero.id}
-                  className="flex items-center justify-between gap-2 text-sm"
-                >
-                  <span>
-                    {hero.name} ({hero.class}/{hero.element}/{hero.star_rating}
-                    ★)
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-danger btn-sm"
-                    onClick={() => void deleteHero(hero.id)}
-                    aria-label={`Delete ${hero.name}`}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="panel">
-          <div className="panel-header">
-            <h2>Epic Seven Base Artifacts</h2>
-          </div>
-          <div className="space-y-2">
+          </>
+        ) : (
+          <>
             <input
               value={artifactName}
               onChange={(event) => setArtifactName(event.target.value)}
-              placeholder="Artifact name"
+              placeholder="New artifact name"
               aria-label="New base artifact name"
             />
             <select
@@ -314,42 +488,10 @@ export function AdminPage() {
               className="btn btn-accent"
               onClick={() => void addArtifact()}
             >
-              Add Base Artifact
+              Add Artifact
             </button>
-          </div>
-          <div className="mt-4 space-y-2">
-            {baseArtifacts.length === 0 ? (
-              <p className="text-sm text-muted">No base artifacts</p>
-            ) : (
-              baseArtifacts.map((artifact) => (
-                <div
-                  key={artifact.id}
-                  className="flex items-center justify-between gap-2 text-sm"
-                >
-                  <span>
-                    {artifact.name} ({artifact.class}/{artifact.star_rating}★)
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-danger btn-sm"
-                    onClick={() => void deleteArtifact(artifact.id)}
-                    aria-label={`Delete ${artifact.name}`}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-[var(--color-glass-border)] bg-[var(--color-glass)] p-4 text-sm text-muted">
-        Warframe worksheet admin overrides are available on{' '}
-        <Link to={APP_PATHS.warframe} className="underline">
-          the Warframe page
-        </Link>{' '}
-        via the Admin override toggle.
+          </>
+        )}
       </div>
     </section>
   );
