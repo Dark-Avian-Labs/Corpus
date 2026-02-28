@@ -56,7 +56,7 @@ export type WorksheetSyncResult = {
   added: string[];
   deleted: string[];
   markedUnavailable: string[];
-  mismatched: string[];
+  mismatched: number[];
 };
 
 export type UserSyncResult = {
@@ -142,7 +142,10 @@ function loadWorksheetSource(parametricDb: Database.Database): Record<
     ),
   );
   const modular = new Set(
-    loadNames(parametricDb, 'SELECT name FROM weapons WHERE name IS NOT NULL'),
+    loadNames(
+      parametricDb,
+      "SELECT name FROM weapons WHERE product_category IN ('ModularPrimary', 'ModularSecondary', 'Amps') AND name IS NOT NULL",
+    ),
   );
 
   return {
@@ -180,6 +183,16 @@ function appendCurrentSpecialItemPlacements(
   }
 }
 
+function cloneWorksheetSource(
+  sourceByWorksheet: Record<WorksheetName, Set<string>>,
+): Record<WorksheetName, Set<string>> {
+  const cloned = {} as Record<WorksheetName, Set<string>>;
+  for (const worksheet of WORKSHEET_NAMES) {
+    cloned[worksheet] = new Set(sourceByWorksheet[worksheet]);
+  }
+  return cloned;
+}
+
 function createDesiredEntries(
   worksheet: WorksheetName,
   sourceNames: Set<string>,
@@ -214,12 +227,22 @@ function createDesiredEntries(
 type RunSyncOptions = {
   execute: boolean;
   userIds?: number[];
+  initiatedByUserId?: number;
 };
 
 export function runWarframeSync(
   corpusDb: Database.Database,
   options: RunSyncOptions,
 ): WarframeSyncResult {
+  if (
+    options.execute &&
+    (!Number.isInteger(options.initiatedByUserId) ||
+      (options.initiatedByUserId ?? 0) <= 0)
+  ) {
+    throw new Error(
+      'A valid initiating admin user id is required for execute mode.',
+    );
+  }
   const mode = options.execute ? 'execute' : 'preview';
   const parametricDb = new Database(PARAMETRIC_DB_PATH, {
     readonly: true,
@@ -237,6 +260,7 @@ export function runWarframeSync(
     };
 
     for (const userId of userIds) {
+      const sourceByWorksheetForUser = cloneWorksheetSource(sourceByWorksheet);
       const currentRowsByWorksheet = new Map<WorksheetName, string[]>();
       for (const worksheet of WORKSHEET_NAMES) {
         const sheet = q.getWorksheetByName(corpusDb, userId, worksheet);
@@ -248,7 +272,7 @@ export function runWarframeSync(
         );
       }
       appendCurrentSpecialItemPlacements(
-        sourceByWorksheet,
+        sourceByWorksheetForUser,
         currentRowsByWorksheet,
         parametricDb,
       );
@@ -257,7 +281,10 @@ export function runWarframeSync(
       for (const worksheet of WORKSHEET_NAMES) {
         const sheet = q.getWorksheetByName(corpusDb, userId, worksheet);
         if (!sheet) continue;
-        const desired = createDesiredEntries(worksheet, sourceByWorksheet[worksheet]);
+        const desired = createDesiredEntries(
+          worksheet,
+          sourceByWorksheetForUser[worksheet],
+        );
         let rows = q.getWorksheetRows(corpusDb, sheet.id, userId);
 
         const existingByKey = new Map<string, typeof rows>();
@@ -286,22 +313,20 @@ export function runWarframeSync(
 
         const deleted: string[] = [];
         const markedUnavailable: string[] = [];
-        const mismatched: string[] = [];
+        const mismatched: number[] = [];
 
         for (const row of rows) {
           if (DISCARDED_ROWS.has(row.item_name)) {
             if (options.execute) {
               q.deleteRow(corpusDb, row.id, userId);
-              deleted.push(row.item_name);
-            } else {
-              deleted.push(row.item_name);
             }
+            deleted.push(row.item_name);
             continue;
           }
           const key = resolveMatchKey(row.item_name);
           const desiredEntry = desired.get(key);
           if (!desiredEntry) {
-            mismatched.push(row.item_name);
+            mismatched.push(row.id);
             continue;
           }
           if (desiredEntry.markUnavailable) {

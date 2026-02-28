@@ -7,11 +7,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 
 export const DATA_DIR = path.join(PROJECT_ROOT, 'data');
-export const CENTRAL_DB_PATH =
-  process.env.CENTRAL_DB_PATH || path.join(DATA_DIR, 'central.db');
-export const PARAMETRIC_DB_PATH =
-  process.env.PARAMETRIC_DB_PATH ||
-  path.resolve(PROJECT_ROOT, '..', 'Parametric', 'data', 'parametric.db');
+function requireAbsolutePathEnv(name: 'CENTRAL_DB_PATH' | 'PARAMETRIC_DB_PATH'): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`${name} must be set to an absolute shared SQLite path.`);
+  }
+  if (!path.isAbsolute(value)) {
+    throw new Error(
+      `${name} must be absolute; relative sibling paths are not supported.`,
+    );
+  }
+  return value;
+}
+
+export const CENTRAL_DB_PATH = requireAbsolutePathEnv('CENTRAL_DB_PATH');
+export const PARAMETRIC_DB_PATH = requireAbsolutePathEnv('PARAMETRIC_DB_PATH');
 
 const _port = parseInt(process.env.PORT || '3001', 10);
 export const PORT = Number.isFinite(_port) && _port > 0 ? _port : 3001;

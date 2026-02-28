@@ -60,7 +60,9 @@ export function Layout() {
   const isEpic7Route = location.pathname.startsWith(APP_PATHS.epic7);
   const adminPath = isWarframeRoute
     ? APP_PATHS.warframeAdmin
-    : APP_PATHS.epic7Admin;
+    : isEpic7Route
+      ? APP_PATHS.epic7Admin
+      : APP_PATHS.admin;
   const brandTitle = isWarframeRoute
     ? 'Corpus - Warframe'
     : isEpic7Route

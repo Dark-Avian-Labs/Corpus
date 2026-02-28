@@ -1086,11 +1086,11 @@ html.theme-light .invert-on-light {
   }
 
   .sync-mismatch-row {
-    background: color-mix(in srgb, #ef4444 15%, transparent);
+    background: color-mix(in srgb, var(--color-danger) 15%, transparent);
   }
 
   .sync-mismatch-row:hover {
-    background: color-mix(in srgb, #ef4444 22%, transparent);
+    background: color-mix(in srgb, var(--color-danger) 22%, transparent);
   }
 
   .filter-label {

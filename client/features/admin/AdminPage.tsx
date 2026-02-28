@@ -104,6 +104,28 @@ export function AdminPage() {
     [baseArtifacts, classFilter, search],
   );
 
+  const setActiveTab = useCallback((nextTab: 'heroes' | 'artifacts') => {
+    setTab(nextTab);
+    if (nextTab === 'heroes') {
+      setClassFilter((current) =>
+        HERO_CLASSES.includes(current as (typeof HERO_CLASSES)[number])
+          ? current
+          : '',
+      );
+      setElementFilter((current) =>
+        ELEMENTS.includes(current as (typeof ELEMENTS)[number]) ? current : '',
+      );
+      return;
+    }
+
+    setClassFilter((current) =>
+      ARTIFACT_CLASSES.includes(current as (typeof ARTIFACT_CLASSES)[number])
+        ? current
+        : '',
+    );
+    setElementFilter('');
+  }, []);
+
   async function addHero(): Promise<void> {
     if (!heroName.trim()) return;
     try {
@@ -223,14 +245,14 @@ export function AdminPage() {
         <button
           type="button"
           className={`tab-btn ${tab === 'heroes' ? 'active' : ''}`}
-          onClick={() => setTab('heroes')}
+          onClick={() => setActiveTab('heroes')}
         >
           Heroes
         </button>
         <button
           type="button"
           className={`tab-btn ${tab === 'artifacts' ? 'active' : ''}`}
-          onClick={() => setTab('artifacts')}
+          onClick={() => setActiveTab('artifacts')}
         >
           Artifacts
         </button>
@@ -323,8 +345,15 @@ export function AdminPage() {
               )}
             </thead>
             <tbody>
-              {tab === 'heroes'
-                ? filteredHeroes.map((hero) => (
+              {tab === 'heroes' ? (
+                filteredHeroes.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="status-cell text-center">
+                      No heroes match your filters.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredHeroes.map((hero) => (
                     <tr key={hero.id}>
                       <td className="item-name">{hero.name}</td>
                       <td className="status-cell">{hero.class}</td>
@@ -342,23 +371,32 @@ export function AdminPage() {
                       </td>
                     </tr>
                   ))
-                : filteredArtifacts.map((artifact) => (
-                    <tr key={artifact.id}>
-                      <td className="item-name">{artifact.name}</td>
-                      <td className="status-cell">{artifact.class}</td>
-                      <td className="status-cell">{artifact.star_rating}★</td>
-                      <td className="status-cell">
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => void deleteArtifact(artifact.id)}
-                          aria-label={`Delete ${artifact.name}`}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                )
+              ) : filteredArtifacts.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="status-cell text-center">
+                    No artifacts match your filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredArtifacts.map((artifact) => (
+                  <tr key={artifact.id}>
+                    <td className="item-name">{artifact.name}</td>
+                    <td className="status-cell">{artifact.class}</td>
+                    <td className="status-cell">{artifact.star_rating}★</td>
+                    <td className="status-cell">
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() => void deleteArtifact(artifact.id)}
+                        aria-label={`Delete ${artifact.name}`}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -18,7 +18,7 @@ type WorksheetSyncResult = {
   added: string[];
   deleted: string[];
   markedUnavailable: string[];
-  mismatched: string[];
+  mismatched: number[];
 };
 type SyncResult = {
   users: Array<{
@@ -52,6 +52,13 @@ function statusClass(value: string, columnName: string): string {
   return `status-btn ${value.toLowerCase() || 'empty'}`;
 }
 
+function cellDisplay(value: string | undefined, columnName: string): string {
+  if (columnName === 'Helminth' && value === 'Yes') {
+    return '✓';
+  }
+  return value || '—';
+}
+
 export function WarframeAdminPage() {
   const { auth } = useAuth();
   const { setHeaderCenter, setHeaderActions } = useLayoutSlots();
@@ -61,11 +68,12 @@ export function WarframeAdminPage() {
   const [data, setData] = useState<WorksheetData>({ columns: [], rows: [] });
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadingData, setLoadingData] = useState(false);
   const [runningSync, setRunningSync] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<SyncResult['summary'] | null>(null);
   const [mismatchedByWorksheet, setMismatchedByWorksheet] = useState<
-    Record<string, Set<string>>
+    Record<string, Set<number>>
   >({});
 
   const loadWorksheets = useCallback(async (): Promise<void> => {
@@ -86,16 +94,23 @@ export function WarframeAdminPage() {
   }, []);
 
   const loadWorksheetData = useCallback(async (targetWorksheetId: number) => {
-    const response = await apiFetch(`/api/warframe/worksheets/${targetWorksheetId}`);
-    if (!response.ok) throw new Error('Failed to load worksheet data');
-    const body = (await response.json()) as {
-      columns?: Column[];
-      rows?: Row[];
-    };
-    setData({
-      columns: Array.isArray(body.columns) ? body.columns : [],
-      rows: Array.isArray(body.rows) ? body.rows : [],
-    });
+    setLoadingData(true);
+    try {
+      const response = await apiFetch(
+        `/api/warframe/worksheets/${targetWorksheetId}`,
+      );
+      if (!response.ok) throw new Error('Failed to load worksheet data');
+      const body = (await response.json()) as {
+        columns?: Column[];
+        rows?: Row[];
+      };
+      setData({
+        columns: Array.isArray(body.columns) ? body.columns : [],
+        rows: Array.isArray(body.rows) ? body.rows : [],
+      });
+    } finally {
+      setLoadingData(false);
+    }
   }, []);
 
   const loadPreview = useCallback(async (): Promise<void> => {
@@ -105,7 +120,7 @@ export function WarframeAdminPage() {
       const body = (await response.json()) as SyncResult;
       setSummary(body.summary ?? null);
       const firstUser = body.users?.[0];
-      const mismatchMap: Record<string, Set<string>> = {};
+      const mismatchMap: Record<string, Set<number>> = {};
       if (firstUser?.worksheets) {
         for (const sheet of firstUser.worksheets) {
           mismatchMap[sheet.worksheet] = new Set(sheet.mismatched ?? []);
@@ -136,7 +151,8 @@ export function WarframeAdminPage() {
     [worksheetId, worksheets],
   );
 
-  const mismatchedRows = mismatchedByWorksheet[activeWorksheetName] ?? new Set();
+  const mismatchedRows =
+    mismatchedByWorksheet[activeWorksheetName] ?? new Set<number>();
 
   const filteredRows = useMemo(
     () =>
@@ -147,6 +163,36 @@ export function WarframeAdminPage() {
       ),
     [data.rows, search],
   );
+
+  const handleSync = useCallback(async (): Promise<void> => {
+    setRunningSync(true);
+    setError(null);
+    try {
+      const response = await apiFetch('/api/warframe/admin/sync-source', {
+        method: 'POST',
+      });
+      const body = (await response.json().catch(() => null)) as
+        | SyncResult
+        | { error?: string }
+        | null;
+      if (!response.ok || (body && 'error' in body && body.error)) {
+        throw new Error(
+          (body && 'error' in body && body.error) || 'Failed to run sync',
+        );
+      }
+      const result = body as SyncResult;
+      setSummary(result.summary ?? null);
+      await loadWorksheets();
+      if (worksheetId !== null) {
+        await loadWorksheetData(worksheetId);
+      }
+      await loadPreview();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to run sync');
+    } finally {
+      setRunningSync(false);
+    }
+  }, [loadPreview, loadWorksheetData, loadWorksheets, worksheetId]);
 
   useEffect(() => {
     setHeaderCenter(
@@ -179,38 +225,7 @@ export function WarframeAdminPage() {
       <button
         type="button"
         className="header-link"
-        onClick={() => {
-          void (async () => {
-            setRunningSync(true);
-            setError(null);
-            try {
-              const response = await apiFetch('/api/warframe/admin/sync-source', {
-                method: 'POST',
-              });
-              const body = (await response.json().catch(() => null)) as
-                | SyncResult
-                | { error?: string }
-                | null;
-              if (!response.ok || (body && 'error' in body && body.error)) {
-                throw new Error(
-                  (body && 'error' in body && body.error) ||
-                    'Failed to run sync',
-                );
-              }
-              const result = body as SyncResult;
-              setSummary(result.summary ?? null);
-              await loadWorksheets();
-              if (worksheetId !== null) {
-                await loadWorksheetData(worksheetId);
-              }
-              await loadPreview();
-            } catch (err) {
-              setError(err instanceof Error ? err.message : 'Failed to run sync');
-            } finally {
-              setRunningSync(false);
-            }
-          })();
-        }}
+        onClick={() => void handleSync()}
         disabled={runningSync}
       >
         {runningSync ? 'Syncing…' : 'Sync From Parametric'}
@@ -220,12 +235,9 @@ export function WarframeAdminPage() {
       setHeaderActions(null);
     };
   }, [
-    loadPreview,
-    loadWorksheetData,
-    loadWorksheets,
+    handleSync,
     runningSync,
     setHeaderActions,
-    worksheetId,
   ]);
 
   if (!isAdmin) {
@@ -277,8 +289,17 @@ export function WarframeAdminPage() {
         ))}
       </div>
 
-      <div className="table-container">
-        <div className="table-scroll">
+      <div className="table-container" aria-busy={loadingData}>
+        {loadingData ? (
+          <div
+            className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[1px]"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="loading p-0">Loading worksheet data...</span>
+          </div>
+        ) : null}
+        <div className={`table-scroll ${loadingData ? 'opacity-60' : ''}`}>
           <table style={{ tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: 'auto' }} />
@@ -302,37 +323,44 @@ export function WarframeAdminPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredRows.map((row) => {
-                const displayName = row.name || row.item_name || 'Unnamed';
-                const isMismatch = mismatchedRows.has(displayName);
-                return (
-                  <tr
-                    key={row.id}
-                    className={isMismatch ? 'sync-mismatch-row' : undefined}
+              {loadingData ? (
+                <tr>
+                  <td
+                    className="text-center text-muted"
+                    colSpan={Math.max(data.columns.length + 1, 1)}
                   >
-                    <td className="item-name">{displayName}</td>
-                    {data.columns.map((column) => {
-                      const value = row.values?.[String(column.id)] ?? '';
-                      return (
-                        <td key={`${row.id}-${column.id}`} className="status-cell">
-                          <button
-                            type="button"
-                            className={statusClass(value, column.name)}
-                            disabled
-                            aria-label={`${column.name} status for ${displayName}`}
-                          >
-                            {column.name === 'Helminth'
-                              ? value === 'Yes'
-                                ? '✓'
-                                : '—'
-                              : value || '—'}
-                          </button>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
+                    Loading worksheet data...
+                  </td>
+                </tr>
+              ) : (
+                filteredRows.map((row) => {
+                  const displayName = row.name || row.item_name || 'Unnamed';
+                  const isMismatch = mismatchedRows.has(row.id);
+                  return (
+                    <tr
+                      key={row.id}
+                      className={isMismatch ? 'sync-mismatch-row' : undefined}
+                    >
+                      <td className="item-name">{displayName}</td>
+                      {data.columns.map((column) => {
+                        const value = row.values?.[String(column.id)];
+                        return (
+                          <td key={`${row.id}-${column.id}`} className="status-cell">
+                            <button
+                              type="button"
+                              className={statusClass(value ?? '', column.name)}
+                              disabled
+                              aria-label={`${column.name} status for ${displayName}`}
+                            >
+                              {cellDisplay(value, column.name)}
+                            </button>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
