@@ -2,6 +2,12 @@ import { warframeQueries as q } from '@corpus/game-warframe';
 import Database from 'better-sqlite3';
 
 import { PARAMETRIC_DB_PATH } from '../config.js';
+import {
+  isPrimeVariantName,
+  normalizeDisplayName,
+  resolveCanonicalKey as resolveCanonicalKeyWithAliases,
+  stripPrimeSuffix,
+} from './warframeSyncNaming.js';
 
 const WORKSHEET_NAMES = [
   'Warframes',
@@ -48,7 +54,8 @@ const MATCH_NAME_ALIASES = new Map<string, string>([
 
 type DesiredEntry = {
   displayName: string;
-  markUnavailable: boolean;
+  hasBaseVariant: boolean;
+  hasPrimeVariant: boolean;
 };
 
 export type WorksheetSyncResult = {
@@ -73,21 +80,29 @@ export type WarframeSyncResult = {
     markedUnavailable: number;
     mismatched: number;
   };
+  cleanup: {
+    deleted: number;
+    requiresConfirmation: number;
+    deletedRows: CleanupCandidate[];
+    requiresConfirmationRows: CleanupCandidate[];
+  };
 };
 
-function normalizeName(value: string): string {
-  const normalized = value.normalize('NFKC').trim();
-  const withoutArchwingTag = normalized.replace(/^<[^>]+>\s*/i, '');
-  const withoutQualifier = withoutArchwingTag.replace(
-    /\s*\((primary|secondary|dual swords|heavy blade)\)\s*$/i,
-    '',
-  );
-  return withoutQualifier.toLowerCase();
-}
+type CleanupCandidate = {
+  userId: number;
+  worksheet: WorksheetName;
+  rowId: number;
+  itemName: string;
+  canonicalKey: string;
+};
 
-function resolveMatchKey(value: string): string {
-  const key = normalizeName(value);
-  return MATCH_NAME_ALIASES.get(key) ?? key;
+type VariantColumns = {
+  baseColumnIds: number[];
+  primeColumnIds: number[];
+};
+
+function resolveCanonicalKey(value: string): string {
+  return resolveCanonicalKeyWithAliases(value, MATCH_NAME_ALIASES);
 }
 
 function loadNames(
@@ -198,29 +213,200 @@ function createDesiredEntries(
 ): Map<string, DesiredEntry> {
   const desired = new Map<string, DesiredEntry>();
   for (const sourceName of sourceNames) {
-    desired.set(normalizeName(sourceName), {
-      displayName: sourceName,
-      markUnavailable: false,
+    const displayName = normalizeDisplayName(sourceName);
+    if (!displayName) continue;
+    const key = resolveCanonicalKey(displayName);
+    if (!key) continue;
+    const isPrime = isPrimeVariantName(displayName);
+    const existing = desired.get(key);
+    if (!existing) {
+      desired.set(key, {
+        displayName: isPrime ? stripPrimeSuffix(displayName) : displayName,
+        hasBaseVariant: !isPrime,
+        hasPrimeVariant: isPrime,
+      });
+      continue;
+    }
+    desired.set(key, {
+      displayName: existing.hasBaseVariant
+        ? existing.displayName
+        : isPrime
+          ? existing.displayName
+          : displayName,
+      hasBaseVariant: existing.hasBaseVariant || !isPrime,
+      hasPrimeVariant: existing.hasPrimeVariant || isPrime,
     });
   }
 
   for (const [itemName, itemWorksheet] of KEPT_SPECIAL_ROWS.entries()) {
     if (itemWorksheet !== worksheet) continue;
-    desired.set(resolveMatchKey(itemName), {
-      displayName: itemName,
-      markUnavailable: false,
+    const displayName = normalizeDisplayName(itemName);
+    desired.set(resolveCanonicalKey(displayName), {
+      displayName,
+      hasBaseVariant: true,
+      hasPrimeVariant: true,
     });
   }
 
   for (const [itemName, itemWorksheet] of PRIME_ONLY_UNAVAILABLE.entries()) {
     if (itemWorksheet !== worksheet) continue;
-    desired.set(resolveMatchKey(itemName), {
+    const displayName = normalizeDisplayName(itemName);
+    desired.set(resolveCanonicalKey(displayName), {
       displayName: itemName,
-      markUnavailable: true,
+      hasBaseVariant: false,
+      hasPrimeVariant: true,
     });
   }
 
   return desired;
+}
+
+function resolveVariantColumns(
+  columns: Array<{ id: number; name: string }>,
+): VariantColumns {
+  const baseColumnIds: number[] = [];
+  const primeColumnIds: number[] = [];
+  for (const column of columns) {
+    if (column.name === 'Helminth') continue;
+    if (/prime/i.test(column.name)) {
+      primeColumnIds.push(column.id);
+      continue;
+    }
+    baseColumnIds.push(column.id);
+  }
+  return { baseColumnIds, primeColumnIds };
+}
+
+function markMissingVariantsUnavailable(params: {
+  corpusDb: Database.Database;
+  userId: number;
+  rowId: number;
+  desiredEntry: DesiredEntry;
+  variantColumns: VariantColumns;
+  execute: boolean;
+}): boolean {
+  const { corpusDb, userId, rowId, desiredEntry, variantColumns, execute } =
+    params;
+  const columnsToMark = new Set<number>();
+  if (!desiredEntry.hasBaseVariant) {
+    for (const columnId of variantColumns.baseColumnIds) {
+      columnsToMark.add(columnId);
+    }
+  }
+  if (!desiredEntry.hasPrimeVariant) {
+    for (const columnId of variantColumns.primeColumnIds) {
+      columnsToMark.add(columnId);
+    }
+  }
+  if (columnsToMark.size === 0) return false;
+  if (execute) {
+    for (const columnId of columnsToMark) {
+      q.adminUpdateCell(corpusDb, rowId, columnId, 'Unavailable', userId);
+    }
+  }
+  return true;
+}
+
+function rowHasUserProgress(
+  rowValues: Record<number, string>,
+  columns: Array<{ id: number; name: string }>,
+): boolean {
+  for (const column of columns) {
+    const value = rowValues[column.id] ?? '';
+    if (column.name === 'Helminth') {
+      if (value === 'Yes') return true;
+      continue;
+    }
+    if (value !== '' && value !== 'Unavailable') {
+      return true;
+    }
+  }
+  return false;
+}
+
+function cleanupDuplicateVariantRows(params: {
+  corpusDb: Database.Database;
+  userId: number;
+  sheetId: number;
+  worksheet: WorksheetName;
+  execute: boolean;
+}): {
+  deletedItemNames: string[];
+  deletedRows: CleanupCandidate[];
+  requiresConfirmationRows: CleanupCandidate[];
+} {
+  const { corpusDb, userId, sheetId, worksheet, execute } = params;
+  const worksheetData = q.getWorksheetData(corpusDb, sheetId, userId);
+  if (!worksheetData) {
+    return {
+      deletedItemNames: [],
+      deletedRows: [],
+      requiresConfirmationRows: [],
+    };
+  }
+
+  const groups = new Map<
+    string,
+    Array<{
+      id: number;
+      name: string;
+      hasProgress: boolean;
+      isPrime: boolean;
+    }>
+  >();
+  for (const row of worksheetData.rows) {
+    const key = resolveCanonicalKey(row.name);
+    if (!key) continue;
+    const bucket = groups.get(key) ?? [];
+    bucket.push({
+      id: row.id,
+      name: row.name,
+      hasProgress: rowHasUserProgress(row.values, worksheetData.columns),
+      isPrime: isPrimeVariantName(row.name),
+    });
+    groups.set(key, bucket);
+  }
+
+  const deletedRows: CleanupCandidate[] = [];
+  const requiresConfirmationRows: CleanupCandidate[] = [];
+
+  for (const [canonicalKey, bucket] of groups.entries()) {
+    if (bucket.length <= 1) continue;
+    bucket.sort((a, b) => {
+      if (a.hasProgress !== b.hasProgress) {
+        return a.hasProgress ? -1 : 1;
+      }
+      if (a.isPrime !== b.isPrime) {
+        return a.isPrime ? 1 : -1;
+      }
+      return a.id - b.id;
+    });
+    const keep = bucket[0];
+    for (const row of bucket) {
+      if (row.id === keep?.id) continue;
+      const candidate: CleanupCandidate = {
+        userId,
+        worksheet,
+        rowId: row.id,
+        itemName: row.name,
+        canonicalKey,
+      };
+      if (row.hasProgress) {
+        requiresConfirmationRows.push(candidate);
+        continue;
+      }
+      if (execute) {
+        q.deleteRow(corpusDb, row.id, userId);
+      }
+      deletedRows.push(candidate);
+    }
+  }
+
+  return {
+    deletedItemNames: deletedRows.map((row) => row.itemName),
+    deletedRows,
+    requiresConfirmationRows,
+  };
 }
 
 type RunSyncOptions = {
@@ -257,6 +443,8 @@ export function runWarframeSync(
       markedUnavailable: 0,
       mismatched: 0,
     };
+    const cleanupDeletedRows: CleanupCandidate[] = [];
+    const cleanupRequiresConfirmationRows: CleanupCandidate[] = [];
 
     for (const userId of userIds) {
       const sourceByWorksheetForUser = cloneWorksheetSource(sourceByWorksheet);
@@ -285,10 +473,12 @@ export function runWarframeSync(
           sourceByWorksheetForUser[worksheet],
         );
         let rows = q.getWorksheetRows(corpusDb, sheet.id, userId);
+        const columns = q.getWorksheetColumns(corpusDb, sheet.id, userId);
+        const variantColumns = resolveVariantColumns(columns);
 
         const existingByKey = new Map<string, typeof rows>();
         for (const row of rows) {
-          const key = resolveMatchKey(row.item_name);
+          const key = resolveCanonicalKey(row.item_name);
           const bucket = existingByKey.get(key) ?? [];
           bucket.push(row);
           existingByKey.set(key, bucket);
@@ -322,19 +512,39 @@ export function runWarframeSync(
             deleted.push(row.item_name);
             continue;
           }
-          const key = resolveMatchKey(row.item_name);
+          const key = resolveCanonicalKey(row.item_name);
           const desiredEntry = desired.get(key);
           if (!desiredEntry) {
             mismatched.push(row.id);
             continue;
           }
-          if (desiredEntry.markUnavailable) {
-            if (options.execute) {
-              q.setRowUnavailable(corpusDb, row.id, userId);
-            }
+          const didMarkUnavailable = markMissingVariantsUnavailable({
+            corpusDb,
+            userId,
+            rowId: row.id,
+            desiredEntry,
+            variantColumns,
+            execute: options.execute,
+          });
+          if (didMarkUnavailable) {
             markedUnavailable.push(row.item_name);
           }
         }
+
+        const cleanup = cleanupDuplicateVariantRows({
+          corpusDb,
+          userId,
+          sheetId: sheet.id,
+          worksheet,
+          execute: options.execute,
+        });
+        if (cleanup.deletedItemNames.length > 0) {
+          deleted.push(...cleanup.deletedItemNames);
+        }
+        cleanupDeletedRows.push(...cleanup.deletedRows);
+        cleanupRequiresConfirmationRows.push(
+          ...cleanup.requiresConfirmationRows,
+        );
 
         worksheetResults.push({
           worksheet,
@@ -353,7 +563,17 @@ export function runWarframeSync(
       users.push({ userId, worksheets: worksheetResults });
     }
 
-    return { mode, users, summary };
+    return {
+      mode,
+      users,
+      summary,
+      cleanup: {
+        deleted: cleanupDeletedRows.length,
+        requiresConfirmation: cleanupRequiresConfirmationRows.length,
+        deletedRows: cleanupDeletedRows,
+        requiresConfirmationRows: cleanupRequiresConfirmationRows,
+      },
+    };
   } finally {
     parametricDb.close();
   }

@@ -37,6 +37,22 @@ type SyncResult = {
     markedUnavailable: number;
     mismatched: number;
   };
+  cleanup?: {
+    deleted: number;
+    requiresConfirmation: number;
+    deletedRows: Array<{
+      worksheet: string;
+      itemName: string;
+      rowId: number;
+      canonicalKey: string;
+    }>;
+    requiresConfirmationRows: Array<{
+      worksheet: string;
+      itemName: string;
+      rowId: number;
+      canonicalKey: string;
+    }>;
+  };
 };
 
 const WORKSHEET_LABELS: Record<string, string> = {
@@ -94,6 +110,7 @@ export function WarframeAdminPage() {
   const [runningSync, setRunningSync] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<SyncResult['summary'] | null>(null);
+  const [cleanup, setCleanup] = useState<SyncResult['cleanup'] | null>(null);
   const [mismatchedByWorksheet, setMismatchedByWorksheet] = useState<
     Record<string, Set<number>>
   >({});
@@ -149,6 +166,7 @@ export function WarframeAdminPage() {
       if (!response.ok) throw new Error('Failed to load sync preview');
       const body = (await response.json()) as SyncResult;
       setSummary(body.summary ?? null);
+      setCleanup(body.cleanup ?? null);
       const firstUser = body.users?.[0];
       const mismatchMap: Record<string, Set<number>> = {};
       if (firstUser?.worksheets) {
@@ -215,6 +233,7 @@ export function WarframeAdminPage() {
       }
       const result = body as SyncResult;
       setSummary(result.summary ?? null);
+      setCleanup(result.cleanup ?? null);
       await loadWorksheets();
       if (worksheetId !== null) {
         await loadWorksheetData(worksheetId);
@@ -288,20 +307,10 @@ export function WarframeAdminPage() {
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Warframe Admin</h1>
-        <button
-          type="button"
-          className="btn btn-accent"
-          onClick={() => void handleSync()}
-          disabled={runningSync}
-        >
-          {runningSync ? 'Importing…' : 'Import From Parametric'}
-        </button>
-      </div>
+      <h1 className="text-2xl font-semibold">Warframe Admin</h1>
       <p className="text-sm text-muted">
-        Opening this page loads a preview only. Import runs when you click the
-        import button.
+        Opening this page loads a preview only. Import runs from the header
+        action button.
       </p>
       {error ? (
         <p className="text-sm text-red-400" role="alert">
@@ -314,7 +323,17 @@ export function WarframeAdminPage() {
           <span>Deleted: {summary.deleted}</span>
           <span>Unavailable: {summary.markedUnavailable}</span>
           <span>Mismatched: {summary.mismatched}</span>
+          {cleanup ? <span>Cleanup Deleted: {cleanup.deleted}</span> : null}
+          {cleanup && cleanup.requiresConfirmation > 0 ? (
+            <span>Cleanup Review Needed: {cleanup.requiresConfirmation}</span>
+          ) : null}
         </div>
+      ) : null}
+      {cleanup && cleanup.requiresConfirmationRows.length > 0 ? (
+        <p className="text-sm text-yellow-300" role="status">
+          Some duplicate rows contain user progress and were not deleted. Review
+          required before manual cleanup.
+        </p>
       ) : null}
 
       <div
