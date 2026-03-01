@@ -32,7 +32,7 @@ export type LayoutOutletContext = {
 export function Layout() {
   const { mode, toggleMode } = useTheme();
   const location = useLocation();
-  const { auth } = useAuth();
+  const { auth, logout } = useAuth();
   const isLoggedIn = auth.status === 'ok' && auth.user !== null;
   const isAdmin = auth.status === 'ok' && auth.user?.isAdmin === true;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -206,6 +206,12 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-black focus:px-3 focus:py-2 focus:text-white"
+      >
+        Skip to main content
+      </a>
       <div className="bg-art" aria-hidden="true">
         {bgArt}
       </div>
@@ -302,16 +308,19 @@ export function Layout() {
                             Admin
                           </NavLink>
                         ) : null}
-                        <a
+                        <button
                           ref={nextMenuItemRef('logout')}
-                          href="/logout"
                           className="user-menu-item"
                           role="menuitem"
+                          type="button"
                           tabIndex={-1}
-                          onClick={() => setMenuOpen(false)}
+                          onClick={() => {
+                            setMenuOpen(false);
+                            void logout('/login');
+                          }}
                         >
                           Logout
-                        </a>
+                        </button>
                       </>
                     )}
                   </div>
@@ -322,7 +331,7 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="relative z-0 flex-1 px-6 pb-6">
+      <main id="main-content" className="relative z-0 flex-1 px-6 pb-6">
         <div className="mx-auto w-full max-w-[1900px]">
           <Outlet context={{ setHeaderCenter, setHeaderActions }} />
         </div>

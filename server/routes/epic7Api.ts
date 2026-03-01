@@ -27,11 +27,11 @@ import {
 import { Router, type Request, type Response } from 'express';
 import fs from 'fs';
 
-import { requireAdmin, requireAuthApi } from '../auth/middleware.js';
+import { requireAdmin } from '../auth/middleware.js';
 
 export const epic7ApiRouter = Router();
 
-epic7ApiRouter.use(requireAuthApi, requireGameAccess('epic7'));
+epic7ApiRouter.use(requireGameAccess('epic7'));
 
 type Epic7Session = {
   user_id?: number;

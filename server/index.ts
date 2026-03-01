@@ -1,4 +1,6 @@
 import { requireAuth, requireAdmin } from '@corpus/core';
+import { getEpic7Db } from '@corpus/game-epic7';
+import { getWarframeDb } from '@corpus/game-warframe';
 import cookieParser from 'cookie-parser';
 import { csrfSync } from 'csrf-sync';
 import express, { type Request, type Response } from 'express';
@@ -8,7 +10,7 @@ import helmet from 'helmet';
 import { createRequire } from 'module';
 import path from 'path';
 
-import { buildAuthLoginUrl, buildAuthLogoutUrl } from './auth/remoteAuth.js';
+import { buildAuthLoginUrl, proxyAuthLogout } from './auth/remoteAuth.js';
 import {
   APP_NAME,
   AUTH_SERVICE_URL,
@@ -44,6 +46,38 @@ const STATUS_TEXT: Record<number, string> = {
 ensureDataDirs();
 ensureCentralSchema();
 const centralDb = getCentralDb();
+function assertTableExists(
+  db: { prepare: (sql: string) => { get: (...args: unknown[]) => unknown } },
+  tableName: string,
+): void {
+  const row = db
+    .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
+    .get(tableName);
+  if (!row) {
+    throw new Error(`Required table "${tableName}" was not found.`);
+  }
+}
+
+function ensureGameSchemasReady(): void {
+  const warframeDb = getWarframeDb();
+  const epic7Db = getEpic7Db();
+  try {
+    assertTableExists(warframeDb, 'worksheets');
+    assertTableExists(warframeDb, 'columns');
+    assertTableExists(warframeDb, 'rows');
+    assertTableExists(warframeDb, 'cell_values');
+
+    assertTableExists(epic7Db, 'game_accounts');
+    assertTableExists(epic7Db, 'base_heroes');
+    assertTableExists(epic7Db, 'base_artifacts');
+    assertTableExists(epic7Db, 'account_heroes');
+    assertTableExists(epic7Db, 'account_artifacts');
+  } finally {
+    warframeDb.close();
+    epic7Db.close();
+  }
+}
+ensureGameSchemasReady();
 
 const app = express();
 if (TRUST_PROXY) app.set('trust proxy', 1);
@@ -251,21 +285,24 @@ function clearLocalSessionAndRedirectToAuthLogout(
   req: Request,
   res: Response,
 ): void {
-  req.session.destroy(() => {
+  req.session.destroy(async () => {
+    await proxyAuthLogout(req, res).catch((error) => {
+      console.warn('[Auth] Upstream logout sync failed:', error);
+    });
     res.clearCookie(SESSION_COOKIE_NAME, {
       domain: COOKIE_DOMAIN,
       httpOnly: true,
-      sameSite: 'none',
+      sameSite: SECURE_COOKIES ? 'none' : 'lax',
       secure: SECURE_COOKIES,
     });
-    res.redirect(buildAuthLogoutUrl('/login'));
+    res.redirect('/login');
   });
 }
-app.get('/logout', publicPageLimiter, (req, res) => {
-  clearLocalSessionAndRedirectToAuthLogout(req, res);
-});
 app.post('/logout', publicPageLimiter, (req, res) => {
   clearLocalSessionAndRedirectToAuthLogout(req, res);
+});
+app.get('/logout', publicPageLimiter, (_req, res) => {
+  res.status(405).json({ error: 'Use POST /logout' });
 });
 
 app.get('/admin', publicPageLimiter, requireAdmin, (_req, res) => {

@@ -149,7 +149,11 @@ html.theme-light .invert-on-light {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    transition: all 0.2s;
+    transition:
+      color 0.2s,
+      background-color 0.2s,
+      border-color 0.2s,
+      box-shadow 0.2s;
     font-family: inherit;
     background: transparent;
     color: var(--color-foreground);
@@ -226,7 +230,10 @@ html.theme-light .invert-on-light {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease,
+      border-color 0.2s ease;
     backdrop-filter: blur(12px);
     cursor: pointer;
   }
@@ -275,7 +282,9 @@ html.theme-light .invert-on-light {
     font-size: 14px;
     line-height: 1.2;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition:
+      color 0.15s ease,
+      background-color 0.15s ease;
   }
 
   .user-menu-item:hover,
@@ -341,7 +350,10 @@ html.theme-light .invert-on-light {
     text-decoration: none;
     border: 1px solid var(--color-glass-border);
     border-radius: 1rem;
-    transition: all 0.2s;
+    transition:
+      color 0.2s,
+      background-color 0.2s,
+      border-color 0.2s;
     background: transparent;
     font-family: inherit;
     cursor: pointer;
@@ -512,7 +524,9 @@ html.theme-light .invert-on-light {
     border: none;
     border-radius: 0.75rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      color 0.2s,
+      background-color 0.2s;
     font-family: inherit;
   }
 
@@ -639,7 +653,9 @@ html.theme-light .invert-on-light {
     font-size: 14px;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      opacity 0.2s,
+      pointer-events 0.2s;
   }
 
   .form-group {
@@ -702,7 +718,10 @@ html.theme-light .invert-on-light {
     border-radius: 6px;
     border: 1px solid transparent;
     cursor: pointer;
-    transition: all 0.15s;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      color 0.15s;
     box-sizing: border-box;
     font-family: inherit;
     background: transparent;
@@ -836,7 +855,10 @@ html.theme-light .invert-on-light {
     font-size: 14px;
     border-radius: 4px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      color 0.15s;
     border: 1px solid transparent;
     background: transparent;
     color: var(--color-muted);
@@ -896,7 +918,7 @@ html.theme-light .invert-on-light {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    transition: all 0.2s;
+    transition: border-color 0.2s;
     font-family: inherit;
     position: relative;
   }
@@ -967,7 +989,9 @@ html.theme-light .invert-on-light {
     cursor: pointer;
     color: var(--color-foreground);
     font-size: 13px;
-    transition: all 0.15s;
+    transition:
+      color 0.15s,
+      background-color 0.15s;
     border-radius: 0 0 8px 8px;
   }
 
@@ -1031,7 +1055,10 @@ html.theme-light .invert-on-light {
     border-radius: 6px;
     cursor: pointer;
     opacity: 0.5;
-    transition: all 0.15s;
+    transition:
+      opacity 0.15s,
+      background-color 0.15s,
+      box-shadow 0.15s;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1064,7 +1091,9 @@ html.theme-light .invert-on-light {
     border-radius: 6px;
     border: 1px solid transparent;
     cursor: pointer;
-    transition: all 0.15s;
+    transition:
+      color 0.15s,
+      background-color 0.15s;
     font-family: inherit;
     background: transparent;
   }
@@ -1080,7 +1109,9 @@ html.theme-light .invert-on-light {
     border: 1px solid var(--color-glass-active);
     background: var(--color-glass);
     cursor: pointer;
-    transition: all 0.15s;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s;
     font-family: inherit;
   }
 
@@ -1354,5 +1385,16 @@ html.theme-light .invert-on-light {
     .filter-bar {
       gap: 8px;
     }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

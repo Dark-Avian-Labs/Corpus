@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -9,6 +10,10 @@ import {
 type ThemeMode = 'light' | 'dark';
 
 const THEME_STORAGE_KEY = 'dal.theme.mode';
+const SHARED_THEME_COOKIE = 'dal.theme.mode';
+const SHARED_THEME_COOKIE_DOMAIN =
+  (import.meta.env.VITE_SHARED_THEME_COOKIE_DOMAIN as string | undefined) ?? '';
+const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 interface ThemeContextValue {
   mode: ThemeMode;
@@ -23,6 +28,15 @@ function applyMode(mode: ThemeMode): void {
   html.classList.toggle('theme-dark', mode === 'dark');
 }
 
+function writeThemeCookie(mode: ThemeMode): void {
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  const base = `${SHARED_THEME_COOKIE}=${mode}; Max-Age=${ONE_YEAR_SECONDS}; Path=/; SameSite=Lax${secure}`;
+  document.cookie = base;
+  if (SHARED_THEME_COOKIE_DOMAIN) {
+    document.cookie = `${base}; Domain=${SHARED_THEME_COOKIE_DOMAIN}`;
+  }
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>(() => {
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -31,15 +45,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return nextMode;
   });
 
+  useEffect(() => {
+    applyMode(mode);
+    window.localStorage.setItem(THEME_STORAGE_KEY, mode);
+    writeThemeCookie(mode);
+  }, [mode]);
+
   const value = useMemo<ThemeContextValue>(
     () => ({
       mode,
       toggleMode: () => {
-        const nextMode: ThemeMode = mode === 'dark' ? 'light' : 'dark';
-        setMode(nextMode);
-        applyMode(nextMode);
-        window.localStorage.setItem(THEME_STORAGE_KEY, nextMode);
-        document.cookie = `${THEME_STORAGE_KEY}=${nextMode}; max-age=31536000; path=/; samesite=lax`;
+        setMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
       },
     }),
     [mode],

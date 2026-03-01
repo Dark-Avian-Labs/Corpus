@@ -17,12 +17,12 @@ import {
 import { Router, type Request, type Response } from 'express';
 import fs from 'fs';
 
-import { requireAdmin, requireAuthApi } from '../auth/middleware.js';
+import { requireAdmin } from '../auth/middleware.js';
 import { runWarframeSync } from '../services/warframeSync.js';
 
 export const warframeApiRouter = Router();
 
-warframeApiRouter.use(requireAuthApi, requireGameAccess('warframe'));
+warframeApiRouter.use(requireGameAccess('warframe'));
 
 function getUserId(req: Request): number | null {
   const id = (req.session as { user_id?: number })?.user_id;
