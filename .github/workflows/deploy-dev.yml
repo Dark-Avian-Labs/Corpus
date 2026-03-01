@@ -1,11 +1,11 @@
-name: Deploy Corpus
+name: Deploy Corpus Development
 
 permissions:
   contents: read
 
 on:
   push:
-    branches: [main]
+    branches: [development]
     paths:
       - 'server/**'
       - 'src/**'
@@ -17,7 +17,7 @@ on:
       - 'tsconfig*.json'
       - 'vite.config.ts'
       - 'favicon.ico'
-      - '.github/workflows/deploy.yml'
+      - '.github/workflows/deploy-dev.yml'
   workflow_dispatch:
 
 jobs:
@@ -47,9 +47,9 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          echo "${{ secrets.SSH_PRIVATE_KEY_DEV }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          echo "${{ secrets.SERVER_KNOWN_HOST }}" >> ~/.ssh/known_hosts
+          echo "${{ secrets.SERVER_KNOWN_HOST_DEV }}" >> ~/.ssh/known_hosts
 
       - name: Prepare deployment
         run: |
@@ -70,14 +70,14 @@ jobs:
           --exclude='/import/' \
           -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts" \
           /tmp/deploy/ \
-          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }}/
+          ${{ secrets.SERVER_USER_DEV }}@${{ secrets.SERVER_HOST_DEV }}:${{ secrets.SERVER_PATH_DEV }}/
 
       - name: Restart PM2
         run: |
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "cd ${{ secrets.SERVER_PATH }} && source ~/.nvm/nvm.sh && pm2 restart 'Corpus' --update-env"
+            ${{ secrets.SERVER_USER_DEV }}@${{ secrets.SERVER_HOST_DEV }} \
+            "cd ${{ secrets.SERVER_PATH_DEV }} && source ~/.nvm/nvm.sh && pm2 restart '[DEV] Corpus' --update-env"
 
       - name: Cleanup SSH key
         if: always()
