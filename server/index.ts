@@ -281,14 +281,22 @@ app.get('/login', publicPageLimiter, (req, res) => {
 app.get('/legal', publicPageLimiter, (_req, res) => {
   res.sendFile(clientIndexPath);
 });
-function clearLocalSessionAndRedirectToAuthLogout(
+async function clearLocalSessionAndRedirectToAuthLogout(
   req: Request,
   res: Response,
-): void {
-  req.session.destroy(async () => {
-    await proxyAuthLogout(req, res).catch((error) => {
-      console.warn('[Auth] Upstream logout sync failed:', error);
-    });
+): Promise<void> {
+  try {
+    const synced = await proxyAuthLogout(req, res);
+    if (!synced) {
+      console.warn('[Auth] Upstream logout sync failed.');
+    }
+  } catch (error) {
+    console.warn('[Auth] Upstream logout sync failed:', error);
+  }
+  req.session.destroy((err) => {
+    if (err) {
+      console.warn('[Session] Failed to destroy session during logout:', err);
+    }
     res.clearCookie(SESSION_COOKIE_NAME, {
       domain: COOKIE_DOMAIN,
       httpOnly: true,
@@ -298,10 +306,11 @@ function clearLocalSessionAndRedirectToAuthLogout(
     res.redirect('/login');
   });
 }
-app.post('/logout', publicPageLimiter, (req, res) => {
-  clearLocalSessionAndRedirectToAuthLogout(req, res);
+app.post('/logout', publicPageLimiter, async (req, res) => {
+  await clearLocalSessionAndRedirectToAuthLogout(req, res);
 });
 app.get('/logout', publicPageLimiter, (_req, res) => {
+  res.set('Allow', 'POST');
   res.status(405).json({ error: 'Use POST /logout' });
 });
 

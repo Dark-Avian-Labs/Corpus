@@ -316,7 +316,9 @@ export function Layout() {
                           tabIndex={-1}
                           onClick={() => {
                             setMenuOpen(false);
-                            void logout('/login');
+                            void logout('/login').catch(() => {
+                              // AuthContext logout always redirects in a finally block.
+                            });
                           }}
                         >
                           Logout

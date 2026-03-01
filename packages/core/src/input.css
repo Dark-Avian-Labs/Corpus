@@ -653,9 +653,7 @@ html.theme-light .invert-on-light {
     font-size: 14px;
     border-radius: 8px;
     cursor: pointer;
-    transition:
-      opacity 0.2s,
-      pointer-events 0.2s;
+    transition: opacity 0.2s;
   }
 
   .form-group {

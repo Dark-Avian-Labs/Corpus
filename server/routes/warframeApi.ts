@@ -24,30 +24,7 @@ export const warframeApiRouter = Router();
 
 warframeApiRouter.use(requireGameAccess('warframe'));
 
-function getUserId(req: Request): number | null {
-  const id = (req.session as { user_id?: number })?.user_id;
-  return typeof id === 'number' && id > 0 ? id : null;
-}
-
-async function getDbOrFail(
-  res: Response,
-): Promise<ReturnType<typeof getWarframeDb> | null> {
-  try {
-    await fs.promises.access(WARFRAME_DB_PATH);
-  } catch {
-    res.status(500).json({ error: 'Database not found.' });
-    return null;
-  }
-  try {
-    return getWarframeDb();
-  } catch (error) {
-    console.error('Failed to open Warframe database connection:', error);
-    res.status(500).json({ error: 'Database connection failed.' });
-    return null;
-  }
-}
-
-function getAdminActorId(req: Request): number | null {
+function extractUserIdFromRequest(req: Request): number | null {
   const userFromSessionSnake = (req.session as { user_id?: unknown })?.user_id;
   if (
     typeof userFromSessionSnake === 'number' &&
@@ -73,6 +50,32 @@ function getAdminActorId(req: Request): number | null {
     return userFromReqUser;
   }
   return null;
+}
+
+function getUserId(req: Request): number {
+  const userId = extractUserIdFromRequest(req);
+  if (!userId) {
+    throw new Error('Authenticated user id missing from request.');
+  }
+  return userId;
+}
+
+async function getDbOrFail(
+  res: Response,
+): Promise<ReturnType<typeof getWarframeDb> | null> {
+  try {
+    await fs.promises.access(WARFRAME_DB_PATH);
+  } catch {
+    res.status(500).json({ error: 'Database not found.' });
+    return null;
+  }
+  try {
+    return getWarframeDb();
+  } catch (error) {
+    console.error('Failed to open Warframe database connection:', error);
+    res.status(500).json({ error: 'Database connection failed.' });
+    return null;
+  }
 }
 
 const ALLOWED_UPDATE_VALUES = ['', 'Obtained', 'Complete'];
@@ -136,7 +139,7 @@ function validateColumnValues(
 
 warframeApiRouter.get('/worksheets', (req, res) => {
   void (async () => {
-    const userId = getUserId(req);
+    const userId = extractUserIdFromRequest(req);
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
@@ -157,7 +160,7 @@ warframeApiRouter.get('/worksheets', (req, res) => {
 
 warframeApiRouter.get('/worksheets/:worksheetId', (req, res) => {
   void (async () => {
-    const userId = getUserId(req);
+    const userId = extractUserIdFromRequest(req);
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
@@ -191,7 +194,7 @@ warframeApiRouter.get('/worksheets/:worksheetId', (req, res) => {
 
 warframeApiRouter.patch('/cells', (req, res) => {
   void (async () => {
-    const userId = getUserId(req);
+    const userId = extractUserIdFromRequest(req);
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
@@ -254,7 +257,7 @@ warframeApiRouter.patch('/cells', (req, res) => {
 
 warframeApiRouter.post('/rows', (req, res) => {
   void (async () => {
-    const userId = getUserId(req);
+    const userId = extractUserIdFromRequest(req);
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
@@ -299,7 +302,7 @@ warframeApiRouter.post('/rows', (req, res) => {
 
 warframeApiRouter.patch('/rows/:rowId', (req, res) => {
   void (async () => {
-    const userId = getUserId(req);
+    const userId = extractUserIdFromRequest(req);
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
@@ -341,7 +344,7 @@ warframeApiRouter.patch('/rows/:rowId', (req, res) => {
 
 warframeApiRouter.delete('/rows/:rowId', (req, res) => {
   void (async () => {
-    const userId = getUserId(req);
+    const userId = extractUserIdFromRequest(req);
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
@@ -372,11 +375,6 @@ warframeApiRouter.delete('/rows/:rowId', (req, res) => {
 
 warframeApiRouter.patch('/admin/cells', requireAdmin, (req, res) => {
   void (async () => {
-    const userId = getUserId(req);
-    if (!userId) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
     const data = validateBody(warframeAdminUpdateSchema, req.body, res);
     if (!data) return;
     const db = await getDbOrFail(res);
@@ -387,7 +385,7 @@ warframeApiRouter.patch('/admin/cells', requireAdmin, (req, res) => {
         data.row_id,
         data.column_id,
         data.value,
-        userId,
+        getUserId(req),
       );
       if (result <= 0) {
         res.status(404).json({ error: 'Row or column not updated.' });
@@ -406,7 +404,7 @@ warframeApiRouter.patch('/admin/cells', requireAdmin, (req, res) => {
 
 warframeApiRouter.get('/admin/sync-preview', requireAdmin, (req, res) => {
   void (async () => {
-    const userId = getUserId(req);
+    const userId = extractUserIdFromRequest(req);
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
@@ -435,7 +433,7 @@ warframeApiRouter.get('/admin/sync-preview', requireAdmin, (req, res) => {
 
 warframeApiRouter.post('/admin/sync-source', requireAdmin, (req, res) => {
   void (async () => {
-    const adminUserId = getAdminActorId(req);
+    const adminUserId = extractUserIdFromRequest(req);
     if (!adminUserId) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
