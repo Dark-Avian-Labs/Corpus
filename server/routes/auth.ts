@@ -1,7 +1,11 @@
 import { getGamesForUser } from '@corpus/core';
 import { Router } from 'express';
 
-import { buildAuthLoginUrl, buildAuthLogoutUrl } from '../auth/remoteAuth.js';
+import {
+  buildAuthLoginUrl,
+  buildAuthLogoutUrl,
+  proxyAuthLogout,
+} from '../auth/remoteAuth.js';
 import {
   APP_ID,
   COOKIE_DOMAIN,
@@ -71,7 +75,19 @@ authRouter.get('/me', (req, res) => {
   });
 });
 
-authRouter.post('/logout', (req, res) => {
+authRouter.post('/logout', async (req, res) => {
+  try {
+    const synced = await proxyAuthLogout(req, res);
+    if (!synced) {
+      console.warn('[Auth] Upstream logout sync failed for /api/auth/logout');
+    }
+  } catch (error) {
+    console.warn(
+      '[Auth] Upstream logout sync threw for /api/auth/logout:',
+      error,
+    );
+  }
+
   req.session.destroy((err) => {
     if (err) {
       console.error('[Auth] Failed to destroy session:', err);

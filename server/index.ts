@@ -278,7 +278,7 @@ app.get('/readyz', (_req, res) => {
 });
 
 app.get('/login', publicPageLimiter, (req, res) => {
-  res.redirect(buildAuthLoginUrl(req));
+  res.redirect(buildAuthLoginUrl(req, '/'));
 });
 app.get('/legal', publicPageLimiter, (_req, res) => {
   res.sendFile(clientIndexPath);
@@ -336,7 +336,7 @@ app.get('/', publicPageLimiter, requireAuth, (_req, res) => {
 });
 
 app.get('/auth/login', publicPageLimiter, (req, res) => {
-  res.redirect(buildAuthLoginUrl(req));
+  res.redirect(buildAuthLoginUrl(req, '/'));
 });
 app.get('/auth/profile', publicPageLimiter, (_req, res) => {
   res.redirect(`${AUTH_SERVICE_URL}/profile`);

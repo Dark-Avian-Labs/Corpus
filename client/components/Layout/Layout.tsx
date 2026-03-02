@@ -310,14 +310,14 @@ export function Layout() {
                         ) : null}
                         <button
                           ref={nextMenuItemRef('logout')}
-                          className="user-menu-item"
+                          className="user-menu-item text-left"
                           role="menuitem"
                           type="button"
                           tabIndex={-1}
                           onClick={() => {
                             setMenuOpen(false);
                             void logout('/login').catch(() => {
-                              // AuthContext logout always redirects in a finally block.
+                              // ignore
                             });
                           }}
                         >

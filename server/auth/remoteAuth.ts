@@ -12,12 +12,19 @@ function isSafeRelativePath(next: string): boolean {
   );
 }
 
-export function buildAuthLoginUrl(req: Request): string {
+export function buildAuthLoginUrl(req: Request, fallbackPath = '/'): string {
   const requestedNext =
     typeof req.query?.next === 'string' ? req.query.next : undefined;
-  const fallbackNext = isSafeRelativePath(req.originalUrl)
-    ? req.originalUrl
-    : '/';
+  const normalizedFallback =
+    isSafeRelativePath(fallbackPath) && fallbackPath !== '/login'
+      ? fallbackPath
+      : '/';
+  const fallbackNext =
+    isSafeRelativePath(req.originalUrl) &&
+    req.originalUrl !== '/login' &&
+    req.originalUrl !== '/auth/login'
+      ? req.originalUrl
+      : normalizedFallback;
   const requested =
     requestedNext && isSafeRelativePath(requestedNext)
       ? requestedNext
