@@ -18,6 +18,7 @@ import {
   epic7DeleteHeroSchema,
   epic7Queries as q,
   epic7SwitchAccountSchema,
+  epic7UpdateAccountSchema,
   epic7UpdateArtifactDetailsSchema,
   epic7UpdateArtifactSchema,
   epic7UpdateHeroDetailsSchema,
@@ -375,13 +376,55 @@ epic7ApiRouter.post('/accounts', (req, res) => {
   const accountsBefore = q.getGameAccountsByUserId(db, userId);
   const isFirst = accountsBefore.length === 0;
   const accountId = q.createGameAccount(db, userId, data.account_name, isFirst);
+  q.seedAccountHeroesFromBase(db, accountId);
+  q.seedAccountArtifactsFromBase(db, accountId);
   if (isFirst) {
     req.session.account_id = accountId;
     req.session.account_name = data.account_name;
-    q.seedAccountHeroesFromBase(db, accountId);
-    q.seedAccountArtifactsFromBase(db, accountId);
   }
   json(res, { success: true, account_id: accountId });
+});
+
+epic7ApiRouter.patch('/accounts/:accountId', (req, res) => {
+  const userId = session(req).user_id;
+  if (!userId) {
+    err(res, 'Unauthorized', 401);
+    return;
+  }
+  const data = validateBody(
+    epic7UpdateAccountSchema,
+    {
+      account_id: Number(req.params.accountId),
+      account_name: req.body?.account_name,
+    },
+    res,
+  );
+  if (!data) return;
+  const db = getDbOrFail(res);
+  if (!db) return;
+  const existingById = q.getGameAccountByIdAndUser(db, data.account_id, userId);
+  if (!existingById) {
+    err(res, 'Account not found.', 404);
+    return;
+  }
+  const duplicate = q.getAccountByNameAndUser(db, userId, data.account_name);
+  if (duplicate && duplicate.id !== data.account_id) {
+    err(res, 'An account with this name already exists.');
+    return;
+  }
+  if (
+    !q.updateGameAccountName(db, data.account_id, userId, data.account_name)
+  ) {
+    err(res, 'Failed to update account name.');
+    return;
+  }
+  if (session(req).account_id === data.account_id) {
+    req.session.account_name = data.account_name;
+  }
+  json(res, {
+    success: true,
+    account: { id: data.account_id, account_name: data.account_name },
+  });
 });
 
 epic7ApiRouter.delete('/accounts/:accountId', (req, res) => {

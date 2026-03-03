@@ -197,8 +197,12 @@ export function WarframePage() {
       for (const column of data.columns) {
         if (column.name === 'Helminth') continue;
         const key = String(column.id);
+        const value = row.values?.[key] ?? '';
+        if (value === 'Unavailable') {
+          continue;
+        }
         byColumn[key].total += 1;
-        if ((row.values?.[key] ?? '') === 'Complete') {
+        if (value === 'Complete') {
           byColumn[key].complete += 1;
         }
       }
