@@ -375,10 +375,22 @@ html.theme-light .invert-on-light {
     -moz-appearance: none;
     min-width: 200px;
     padding-right: 38px;
+    color: var(--color-foreground);
+    background-color: var(--color-surface-modal);
+    border-color: var(--color-glass-active);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.25L6 6.25L11 1.25' stroke='%23e2e8f0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 14px center;
     background-size: 12px 8px;
+  }
+
+  .epic7-account-select:hover {
+    border-color: var(--color-glass-border-hover);
+  }
+
+  .epic7-account-select option {
+    color: var(--color-foreground);
+    background: var(--color-surface-modal);
   }
 
   html.theme-dark .epic7-account-select {
@@ -637,6 +649,8 @@ html.theme-light .invert-on-light {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     display: flex;
     align-items: center;
     justify-content: center;
