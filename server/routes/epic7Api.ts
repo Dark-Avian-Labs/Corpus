@@ -412,7 +412,9 @@ epic7ApiRouter.patch('/accounts/:accountId', (req, res) => {
     err(res, 'An account with this name already exists.');
     return;
   }
-  if (!q.updateGameAccountName(db, data.account_id, userId, data.account_name)) {
+  if (
+    !q.updateGameAccountName(db, data.account_id, userId, data.account_name)
+  ) {
     err(res, 'Failed to update account name.');
     return;
   }

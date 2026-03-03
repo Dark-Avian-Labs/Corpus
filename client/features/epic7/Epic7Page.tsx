@@ -37,6 +37,7 @@ type Epic7Account = {
   created_at?: string;
 };
 type DeletingItem = { id: number; type: 'hero' | 'artifact'; name: string };
+type DeletingAccount = { id: number; account_name: string };
 type Epic7ModalDraft = {
   name: string;
   class: string;
@@ -54,6 +55,8 @@ type Epic7ModalState = {
   editingId: number | null;
   isDeleteModalOpen: boolean;
   deletingItem: DeletingItem | null;
+  isAccountDeleteModalOpen: boolean;
+  deletingAccount: DeletingAccount | null;
 };
 type Epic7ModalAction =
   | { type: 'OPEN_ACCOUNT_MODAL' }
@@ -78,7 +81,10 @@ type Epic7ModalAction =
     }
   | { type: 'START_DELETE'; payload: DeletingItem }
   | { type: 'CANCEL_DELETE' }
-  | { type: 'CONFIRM_DELETE' };
+  | { type: 'CONFIRM_DELETE' }
+  | { type: 'START_ACCOUNT_DELETE'; payload: DeletingAccount }
+  | { type: 'CANCEL_ACCOUNT_DELETE' }
+  | { type: 'CONFIRM_ACCOUNT_DELETE' };
 
 type HeroClass =
   | 'warrior'
@@ -168,6 +174,8 @@ const initialModalState: Epic7ModalState = {
   editingId: null,
   isDeleteModalOpen: false,
   deletingItem: null,
+  isAccountDeleteModalOpen: false,
+  deletingAccount: null,
 };
 
 function epic7ModalReducer(
@@ -243,6 +251,19 @@ function epic7ModalReducer(
         ...state,
         isDeleteModalOpen: false,
         deletingItem: null,
+      };
+    case 'START_ACCOUNT_DELETE':
+      return {
+        ...state,
+        isAccountDeleteModalOpen: true,
+        deletingAccount: action.payload,
+      };
+    case 'CANCEL_ACCOUNT_DELETE':
+    case 'CONFIRM_ACCOUNT_DELETE':
+      return {
+        ...state,
+        isAccountDeleteModalOpen: false,
+        deletingAccount: null,
       };
     default:
       return state;
@@ -600,26 +621,28 @@ export function Epic7Page() {
     }
   }
 
-  async function deleteAccount(account: Epic7Account): Promise<void> {
-    const confirmed = window.confirm(
-      `Delete account "${account.account_name}"? This also removes its heroes and artifacts.`,
-    );
-    if (!confirmed) {
+  async function deleteAccount(): Promise<void> {
+    const deletingAccount = modalState.deletingAccount;
+    if (!deletingAccount) {
       return;
     }
     const signal = beginUserActionRequest();
     try {
-      const response = await apiFetch(`/api/epic7/accounts/${account.id}`, {
-        method: 'DELETE',
-        signal,
-      });
+      const response = await apiFetch(
+        `/api/epic7/accounts/${deletingAccount.id}`,
+        {
+          method: 'DELETE',
+          signal,
+        },
+      );
       const body = (await response.json().catch(() => null)) as {
         error?: string;
       } | null;
       if (!response.ok || body?.error) {
         throw new Error(body?.error || 'Failed to delete account');
       }
-      if (modalState.accountEditId === account.id) {
+      dispatchModal({ type: 'CONFIRM_ACCOUNT_DELETE' });
+      if (modalState.accountEditId === deletingAccount.id) {
         dispatchModal({ type: 'CANCEL_ACCOUNT_EDIT' });
       }
       await loadAccountsAndData(signal);
@@ -628,6 +651,42 @@ export function Epic7Page() {
         return;
       }
       setOperationError('Failed to delete account.');
+    }
+  }
+
+  function openDeleteAccountModal(account: Epic7Account): void {
+    dispatchModal({
+      type: 'START_ACCOUNT_DELETE',
+      payload: { id: account.id, account_name: account.account_name },
+    });
+  }
+
+  async function deleteItem(): Promise<void> {
+    if (!modalState.deletingItem) return;
+    const path =
+      modalState.deletingItem.type === 'hero' ? 'heroes' : 'artifacts';
+    const signal = beginUserActionRequest();
+    try {
+      const response = await apiFetch(
+        `/api/epic7/${path}/${modalState.deletingItem.id}`,
+        {
+          method: 'DELETE',
+          signal,
+        },
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok || payload?.error) {
+        throw new Error(payload?.error || 'Failed to delete item');
+      }
+      dispatchModal({ type: 'CONFIRM_DELETE' });
+      await loadAccountsAndData(signal);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+      setOperationError('Failed to delete item.');
     }
   }
 
@@ -702,35 +761,6 @@ export function Epic7Page() {
         return;
       }
       setOperationError('Failed to save item.');
-    }
-  }
-
-  async function deleteItem(): Promise<void> {
-    if (!modalState.deletingItem) return;
-    const path =
-      modalState.deletingItem.type === 'hero' ? 'heroes' : 'artifacts';
-    const signal = beginUserActionRequest();
-    try {
-      const response = await apiFetch(
-        `/api/epic7/${path}/${modalState.deletingItem.id}`,
-        {
-          method: 'DELETE',
-          signal,
-        },
-      );
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-      if (!response.ok || payload?.error) {
-        throw new Error(payload?.error || 'Failed to delete item');
-      }
-      dispatchModal({ type: 'CONFIRM_DELETE' });
-      await loadAccountsAndData(signal);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        return;
-      }
-      setOperationError('Failed to delete item.');
     }
   }
 
@@ -1217,7 +1247,7 @@ export function Epic7Page() {
                           type="button"
                           className="btn btn-danger"
                           onClick={() => {
-                            void deleteAccount(account);
+                            openDeleteAccountModal(account);
                           }}
                         >
                           Delete
@@ -1360,6 +1390,42 @@ export function Epic7Page() {
             onClick={() => void saveItem()}
           >
             Save
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={modalState.isAccountDeleteModalOpen}
+        onClose={() => dispatchModal({ type: 'CANCEL_ACCOUNT_DELETE' })}
+        ariaLabelledBy="epic7-account-delete-modal-title"
+      >
+        <h2
+          id="epic7-account-delete-modal-title"
+          className="mb-4 text-lg font-semibold"
+        >
+          Delete Account
+        </h2>
+        <p className="text-sm text-muted">
+          Delete{' '}
+          <strong>
+            {modalState.deletingAccount?.account_name || 'this account'}
+          </strong>
+          ? This also removes heroes and artifacts in this account.
+        </p>
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="btn btn-cancel"
+            onClick={() => dispatchModal({ type: 'CANCEL_ACCOUNT_DELETE' })}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger"
+            onClick={() => void deleteAccount()}
+          >
+            Delete
           </button>
         </div>
       </Modal>
