@@ -59,6 +59,7 @@
 
 html.theme-light {
   --theme-mode: light;
+  color-scheme: light;
   --color-foreground: #0f172a;
   --color-muted: #475569;
   --color-glass: rgba(255, 255, 255, 0.58);
@@ -77,6 +78,7 @@ html.theme-light {
 
 html.theme-dark {
   --theme-mode: dark;
+  color-scheme: dark;
 }
 
 html.theme-light .invert-on-light {
@@ -404,10 +406,12 @@ html.theme-light .invert-on-light {
   }
 
   html.theme-dark select.epic7-account-select {
+    color-scheme: dark;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.25L6 6.25L11 1.25' stroke='%23e2e8f0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
 
   html.theme-light select.epic7-account-select {
+    color-scheme: light;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.25L6 6.25L11 1.25' stroke='%23334155' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
 
@@ -679,6 +683,8 @@ html.theme-light .invert-on-light {
     background: var(--color-surface-modal);
     border: 1px solid var(--color-glass-active);
     border-radius: 1rem;
+    backdrop-filter: blur(16px) saturate(130%);
+    -webkit-backdrop-filter: blur(16px) saturate(130%);
     padding: 24px;
     max-width: 500px;
     width: 90%;
