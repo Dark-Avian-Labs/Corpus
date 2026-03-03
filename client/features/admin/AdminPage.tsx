@@ -348,7 +348,11 @@ export function AdminPage() {
                 className={`filter-icon ${isActive ? 'active' : ''}`}
                 aria-pressed={isActive}
                 title={CLASS_NAMES[value]}
-                onClick={() => setClassFilter((previous) => (previous === value ? '' : value))}
+                onClick={() =>
+                  setClassFilter((previous) =>
+                    previous === value ? '' : value,
+                  )
+                }
               >
                 <img
                   className="invert-on-light"
@@ -360,7 +364,11 @@ export function AdminPage() {
           })}
         </div>
         {tab === 'heroes' ? (
-          <div className="filter-group" role="group" aria-label="Filter by element">
+          <div
+            className="filter-group"
+            role="group"
+            aria-label="Filter by element"
+          >
             <span className="filter-label">Element:</span>
             {ELEMENTS.map((value) => {
               const isActive = elementFilter === value;
@@ -372,7 +380,9 @@ export function AdminPage() {
                   aria-pressed={isActive}
                   title={ELEMENT_NAMES[value]}
                   onClick={() =>
-                    setElementFilter((previous) => (previous === value ? '' : value))
+                    setElementFilter((previous) =>
+                      previous === value ? '' : value,
+                    )
                   }
                 >
                   <img src={ICONS[value]} alt={ELEMENT_NAMES[value]} />
