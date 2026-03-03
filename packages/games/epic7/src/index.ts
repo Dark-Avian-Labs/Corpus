@@ -130,6 +130,7 @@ export {
   deleteArtifactSchema as epic7DeleteArtifactSchema,
   deleteHeroSchema as epic7DeleteHeroSchema,
   switchAccountSchema as epic7SwitchAccountSchema,
+  updateAccountSchema as epic7UpdateAccountSchema,
   updateArtifactDetailsSchema as epic7UpdateArtifactDetailsSchema,
   updateArtifactSchema as epic7UpdateArtifactSchema,
   updateHeroDetailsSchema as epic7UpdateHeroDetailsSchema,

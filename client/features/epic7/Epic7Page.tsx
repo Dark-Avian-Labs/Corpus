@@ -30,7 +30,12 @@ type Epic7Artifact = {
 function isHero(item: Epic7Hero | Epic7Artifact): item is Epic7Hero {
   return 'rating' in item;
 }
-type Epic7Account = { id: number; account_name: string };
+type Epic7Account = {
+  id: number;
+  account_name: string;
+  is_active?: number;
+  created_at?: string;
+};
 type DeletingItem = { id: number; type: 'hero' | 'artifact'; name: string };
 type Epic7ModalDraft = {
   name: string;
@@ -41,6 +46,8 @@ type Epic7ModalDraft = {
 type Epic7ModalState = {
   isAccountModalOpen: boolean;
   accountNameDraft: string;
+  accountEditId: number | null;
+  accountEditDraft: string;
   isItemModalOpen: boolean;
   modalItemType: 'heroes' | 'artifacts';
   draft: Epic7ModalDraft;
@@ -52,6 +59,9 @@ type Epic7ModalAction =
   | { type: 'OPEN_ACCOUNT_MODAL' }
   | { type: 'CLOSE_ACCOUNT_MODAL' }
   | { type: 'SET_ACCOUNT_NAME'; payload: string }
+  | { type: 'START_ACCOUNT_EDIT'; payload: { id: number; name: string } }
+  | { type: 'SET_ACCOUNT_EDIT_NAME'; payload: string }
+  | { type: 'CANCEL_ACCOUNT_EDIT' }
   | { type: 'OPEN_ITEM_MODAL'; payload: { itemType: 'heroes' | 'artifacts' } }
   | { type: 'CLOSE_ITEM_MODAL' }
   | {
@@ -145,6 +155,8 @@ for (const [path, src] of Object.entries(ICON_MODULES)) {
 const initialModalState: Epic7ModalState = {
   isAccountModalOpen: false,
   accountNameDraft: '',
+  accountEditId: null,
+  accountEditDraft: '',
   isItemModalOpen: false,
   modalItemType: 'heroes',
   draft: {
@@ -166,9 +178,25 @@ function epic7ModalReducer(
     case 'OPEN_ACCOUNT_MODAL':
       return { ...state, isAccountModalOpen: true };
     case 'CLOSE_ACCOUNT_MODAL':
-      return { ...state, isAccountModalOpen: false, accountNameDraft: '' };
+      return {
+        ...state,
+        isAccountModalOpen: false,
+        accountNameDraft: '',
+        accountEditId: null,
+        accountEditDraft: '',
+      };
     case 'SET_ACCOUNT_NAME':
       return { ...state, accountNameDraft: action.payload };
+    case 'START_ACCOUNT_EDIT':
+      return {
+        ...state,
+        accountEditId: action.payload.id,
+        accountEditDraft: action.payload.name,
+      };
+    case 'SET_ACCOUNT_EDIT_NAME':
+      return { ...state, accountEditDraft: action.payload };
+    case 'CANCEL_ACCOUNT_EDIT':
+      return { ...state, accountEditId: null, accountEditDraft: '' };
     case 'OPEN_ITEM_MODAL':
       return {
         ...state,
@@ -542,6 +570,67 @@ export function Epic7Page() {
     }
   }
 
+  async function renameAccount(accountId: number): Promise<void> {
+    const nextName = modalState.accountEditDraft.trim();
+    if (!nextName) {
+      setOperationError('Account name is required.');
+      return;
+    }
+    const signal = beginUserActionRequest();
+    try {
+      const response = await apiFetch(`/api/epic7/accounts/${accountId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_name: nextName }),
+        signal,
+      });
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok || body?.error) {
+        throw new Error(body?.error || 'Failed to rename account');
+      }
+      dispatchModal({ type: 'CANCEL_ACCOUNT_EDIT' });
+      await loadAccountsAndData(signal);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+      setOperationError('Failed to rename account.');
+    }
+  }
+
+  async function deleteAccount(account: Epic7Account): Promise<void> {
+    const confirmed = window.confirm(
+      `Delete account "${account.account_name}"? This also removes its heroes and artifacts.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+    const signal = beginUserActionRequest();
+    try {
+      const response = await apiFetch(`/api/epic7/accounts/${account.id}`, {
+        method: 'DELETE',
+        signal,
+      });
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok || body?.error) {
+        throw new Error(body?.error || 'Failed to delete account');
+      }
+      if (modalState.accountEditId === account.id) {
+        dispatchModal({ type: 'CANCEL_ACCOUNT_EDIT' });
+      }
+      await loadAccountsAndData(signal);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+      setOperationError('Failed to delete account.');
+    }
+  }
+
   const openAddItemModal = useCallback((): void => {
     dispatchModal({
       type: 'OPEN_ITEM_MODAL',
@@ -683,7 +772,7 @@ export function Epic7Page() {
             }
           }}
           aria-label="Select Epic Seven account"
-          className="header-link"
+          className="header-link epic7-account-select"
         >
           {accounts.length === 0 ? (
             <option value="">No account</option>
@@ -716,7 +805,7 @@ export function Epic7Page() {
           className="header-link"
           onClick={() => dispatchModal({ type: 'OPEN_ACCOUNT_MODAL' })}
         >
-          Add Account
+          Game Accounts
         </button>
       </div>,
     );
@@ -1044,8 +1133,103 @@ export function Epic7Page() {
           id="epic7-account-modal-title"
           className="mb-4 text-lg font-semibold"
         >
-          Add Account
+          Game Accounts
         </h2>
+        <div className="account-manager-list">
+          {accounts.length === 0 ? (
+            <p className="text-sm text-muted">No accounts yet.</p>
+          ) : (
+            accounts.map((account) => {
+              const isEditing = modalState.accountEditId === account.id;
+              const isActive = currentAccountId === account.id;
+              return (
+                <div key={account.id} className="account-manager-row">
+                  {isEditing ? (
+                    <input
+                      value={modalState.accountEditDraft}
+                      onChange={(event) =>
+                        dispatchModal({
+                          type: 'SET_ACCOUNT_EDIT_NAME',
+                          payload: event.target.value,
+                        })
+                      }
+                      aria-label={`Edit name for ${account.account_name}`}
+                    />
+                  ) : (
+                    <div className="account-manager-name">
+                      <span>{account.account_name}</span>
+                      {isActive ? (
+                        <span className="account-manager-active">Active</span>
+                      ) : null}
+                    </div>
+                  )}
+                  <div className="account-manager-actions">
+                    {!isEditing && !isActive ? (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          void switchAccount(account.id);
+                        }}
+                      >
+                        Use
+                      </button>
+                    ) : null}
+                    {isEditing ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-accent"
+                          onClick={() => {
+                            void renameAccount(account.id);
+                          }}
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-cancel"
+                          onClick={() =>
+                            dispatchModal({ type: 'CANCEL_ACCOUNT_EDIT' })
+                          }
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() =>
+                            dispatchModal({
+                              type: 'START_ACCOUNT_EDIT',
+                              payload: {
+                                id: account.id,
+                                name: account.account_name,
+                              },
+                            })
+                          }
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          onClick={() => {
+                            void deleteAccount(account);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
         <div className="form-group">
           <label htmlFor="epic7-account-name">Account name</label>
           <input
@@ -1072,7 +1256,7 @@ export function Epic7Page() {
             className="btn btn-accent"
             onClick={() => void addAccount()}
           >
-            Create
+            Add Account
           </button>
         </div>
       </Modal>

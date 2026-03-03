@@ -151,6 +151,20 @@ export function deleteGameAccount(
   return r.changes > 0;
 }
 
+export function updateGameAccountName(
+  db: Database.Database,
+  accountId: number,
+  userId: number,
+  accountName: string,
+): boolean {
+  const r = db
+    .prepare(
+      'UPDATE game_accounts SET account_name = ? WHERE id = ? AND user_id = ?',
+    )
+    .run(accountName, accountId, userId);
+  return r.changes > 0;
+}
+
 export function getUserAccountsForApi(
   db: Database.Database,
   userId: number,

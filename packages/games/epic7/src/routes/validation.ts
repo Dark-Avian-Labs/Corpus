@@ -75,6 +75,11 @@ export const addAccountSchema = z.object({
   account_name: z.string().trim().min(1, 'Account name is required.'),
 });
 
+export const updateAccountSchema = z.object({
+  account_id: positiveInt,
+  account_name: z.string().trim().min(1, 'Account name is required.'),
+});
+
 export const deleteAccountSchema = z.object({
   account_id: positiveInt,
 });
