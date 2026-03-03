@@ -318,7 +318,7 @@ export function AdminPage() {
         </button>
       </div>
 
-      <div className="filter-group">
+      <div className="filter-bar">
         <div className="search-wrapper">
           <input
             className="search-box"
@@ -337,33 +337,59 @@ export function AdminPage() {
             &times;
           </button>
         </div>
-        <select
-          className="header-link"
-          value={classFilter}
-          onChange={(event) => setClassFilter(event.target.value)}
-          aria-label="Filter by class"
-        >
-          <option value="">All classes</option>
-          {(tab === 'heroes' ? HERO_CLASSES : ARTIFACT_CLASSES).map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
+        <div className="filter-group" role="group" aria-label="Filter by class">
+          <span className="filter-label">Class:</span>
+          {(tab === 'heroes' ? HERO_CLASSES : ARTIFACT_CLASSES).map((value) => {
+            const isActive = classFilter === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                className={`filter-icon ${isActive ? 'active' : ''}`}
+                aria-pressed={isActive}
+                title={CLASS_NAMES[value]}
+                onClick={() =>
+                  setClassFilter((previous) =>
+                    previous === value ? '' : value,
+                  )
+                }
+              >
+                <img
+                  className="invert-on-light"
+                  src={ICONS[value]}
+                  alt={CLASS_NAMES[value]}
+                />
+              </button>
+            );
+          })}
+        </div>
         {tab === 'heroes' ? (
-          <select
-            className="header-link"
-            value={elementFilter}
-            onChange={(event) => setElementFilter(event.target.value)}
+          <div
+            className="filter-group"
+            role="group"
             aria-label="Filter by element"
           >
-            <option value="">All elements</option>
-            {ELEMENTS.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
+            <span className="filter-label">Element:</span>
+            {ELEMENTS.map((value) => {
+              const isActive = elementFilter === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  className={`filter-icon ${isActive ? 'active' : ''}`}
+                  aria-pressed={isActive}
+                  title={ELEMENT_NAMES[value]}
+                  onClick={() =>
+                    setElementFilter((previous) =>
+                      previous === value ? '' : value,
+                    )
+                  }
+                >
+                  <img src={ICONS[value]} alt={ELEMENT_NAMES[value]} />
+                </button>
+              );
+            })}
+          </div>
         ) : null}
       </div>
 

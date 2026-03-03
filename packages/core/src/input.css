@@ -381,40 +381,6 @@ html.theme-light .invert-on-light {
     background: var(--color-surface-modal);
   }
 
-  select.epic7-account-select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    min-width: 200px;
-    padding-right: 38px;
-    color: var(--color-foreground);
-    background-color: var(--color-surface-modal);
-    border-color: var(--color-glass-active);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.25L6 6.25L11 1.25' stroke='%23e2e8f0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    background-size: 12px 8px;
-  }
-
-  select.epic7-account-select:hover {
-    border-color: var(--color-glass-border-hover);
-  }
-
-  select.epic7-account-select option {
-    color: var(--color-foreground, #f8fafc);
-    background: var(--color-surface-modal, rgba(255, 255, 255, 0.024));
-  }
-
-  html.theme-dark select.epic7-account-select {
-    color-scheme: dark;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.25L6 6.25L11 1.25' stroke='%23e2e8f0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  }
-
-  html.theme-light select.epic7-account-select {
-    color-scheme: light;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.25L6 6.25L11 1.25' stroke='%23334155' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  }
-
   .header-link:hover {
     color: var(--color-foreground);
     border-color: var(--color-glass-border-hover);
@@ -1072,6 +1038,11 @@ html.theme-light .invert-on-light {
     justify-content: space-between;
     align-items: center;
     color: var(--color-foreground);
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    text-align: left;
     transition: background 0.15s;
   }
 
@@ -1086,6 +1057,11 @@ html.theme-light .invert-on-light {
   .account-dropdown-item.active::after {
     content: '\2713';
     color: var(--color-accent);
+  }
+
+  .account-dropdown-item.muted {
+    color: var(--color-muted);
+    cursor: default;
   }
 
   .account-dropdown-divider {

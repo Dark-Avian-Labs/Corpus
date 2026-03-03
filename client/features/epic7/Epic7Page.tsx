@@ -302,6 +302,7 @@ export function Epic7Page() {
   const { setHeaderCenter, setHeaderActions } = useLayoutSlots();
   const [accounts, setAccounts] = useState<Epic7Account[]>([]);
   const [currentAccountId, setCurrentAccountId] = useState<number | null>(null);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [heroes, setHeroes] = useState<Epic7Hero[]>([]);
   const [artifacts, setArtifacts] = useState<Epic7Artifact[]>([]);
   const [tab, setTab] = useState<'heroes' | 'artifacts'>('heroes');
@@ -319,6 +320,7 @@ export function Epic7Page() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
 
   const beginUserActionRequest = useCallback((): AbortSignal => {
     abortControllerRef.current?.abort();
@@ -462,6 +464,10 @@ export function Epic7Page() {
     ).length;
     return { total, owned, maxed };
   }, [activeRows, tab]);
+  const currentAccount = useMemo(
+    () => accounts.find((account) => account.id === currentAccountId) ?? null,
+    [accounts, currentAccountId],
+  );
 
   const switchAccount = useCallback(
     async (accountId: number): Promise<void> => {
@@ -490,6 +496,35 @@ export function Epic7Page() {
     },
     [beginUserActionRequest, currentAccountId, loadAccountsAndData],
   );
+
+  useEffect(() => {
+    if (!isAccountMenuOpen) {
+      return undefined;
+    }
+
+    const closeMenu = () => setIsAccountMenuOpen(false);
+    const onPointerDown = (event: MouseEvent) => {
+      if (
+        accountMenuRef.current &&
+        event.target instanceof Node &&
+        !accountMenuRef.current.contains(event.target)
+      ) {
+        closeMenu();
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeMenu();
+      }
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isAccountMenuOpen]);
 
   async function cycleHero(hero: Epic7Hero): Promise<void> {
     const index = HERO_RATINGS.indexOf(hero.rating);
@@ -793,28 +828,53 @@ export function Epic7Page() {
   useEffect(() => {
     setHeaderActions(
       <div className="flex items-center gap-2">
-        <select
-          id="epic7-account-select"
-          value={currentAccountId ?? ''}
-          onChange={(event) => {
-            const value = Number(event.target.value);
-            if (!Number.isNaN(value) && value > 0) {
-              void switchAccount(value);
-            }
-          }}
-          aria-label="Select Epic Seven account"
-          className="header-link epic7-account-select"
-        >
-          {accounts.length === 0 ? (
-            <option value="">No account</option>
-          ) : (
-            accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.account_name}
-              </option>
-            ))
-          )}
-        </select>
+        <div className="account-selector" ref={accountMenuRef}>
+          <button
+            id="epic7-account-select"
+            type="button"
+            className="account-btn"
+            aria-label="Select Epic Seven account"
+            aria-haspopup="listbox"
+            aria-expanded={isAccountMenuOpen}
+            aria-controls="epic7-account-listbox"
+            onClick={() => setIsAccountMenuOpen((previous) => !previous)}
+          >
+            {currentAccount?.account_name ?? 'No account'}
+          </button>
+          <div
+            id="epic7-account-listbox"
+            className={`account-dropdown ${isAccountMenuOpen ? 'show' : ''}`}
+            role="listbox"
+            aria-label="Epic Seven accounts"
+          >
+            {accounts.length === 0 ? (
+              <div className="account-dropdown-item muted" role="option">
+                No account
+              </div>
+            ) : (
+              accounts.map((account) => {
+                const isActive = account.id === currentAccountId;
+                return (
+                  <button
+                    key={account.id}
+                    type="button"
+                    role="option"
+                    aria-selected={isActive}
+                    className={`account-dropdown-item ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      setIsAccountMenuOpen(false);
+                      if (!isActive) {
+                        void switchAccount(account.id);
+                      }
+                    }}
+                  >
+                    {account.account_name}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
         <button
           type="button"
           className={`header-link ${editMode ? 'active' : ''}`}
@@ -846,7 +906,9 @@ export function Epic7Page() {
   }, [
     accounts,
     currentAccountId,
+    currentAccount,
     editMode,
+    isAccountMenuOpen,
     openAddItemModal,
     setHeaderActions,
     switchAccount,
