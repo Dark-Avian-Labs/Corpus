@@ -518,6 +518,14 @@ html.theme-light .invert-on-light {
     border-bottom: none;
   }
 
+  .warframe-completed-row {
+    background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  }
+
+  .warframe-completed-row:hover {
+    background: color-mix(in srgb, var(--color-success) 18%, transparent);
+  }
+
   .item-name {
     font-weight: 500;
   }
