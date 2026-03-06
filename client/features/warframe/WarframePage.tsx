@@ -470,19 +470,27 @@ export function WarframePage() {
           </div>
         ))}
         <div className="stat stat-option">
-          <label
+          <button
+            type="button"
+            onClick={() => {
+              void handleHideCompletedChange(!hideCompleted);
+            }}
+            aria-pressed={hideCompleted}
             className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-glass-border px-2.5 py-1.5 text-sm text-muted transition-all hover:border-glass-border-hover hover:bg-glass-hover hover:text-foreground"
             title='Toggle "Hide completed"'
           >
             <span>Hide completed</span>
-            <input
-              type="checkbox"
-              checked={hideCompleted}
-              onChange={(event) => {
-                void handleHideCompletedChange(event.target.checked);
-              }}
-            />
-          </label>
+            <span
+              className={`inline-flex h-5 w-5 items-center justify-center rounded text-xs font-bold transition-colors ${
+                hideCompleted
+                  ? 'bg-success/20 text-success hover:bg-success/30'
+                  : 'bg-muted/10 text-muted/40 hover:bg-muted/20'
+              }`}
+              aria-hidden="true"
+            >
+              {hideCompleted ? '\u2713' : '\u2715'}
+            </span>
+          </button>
         </div>
       </div>
       <div className="table-container">
@@ -511,7 +519,12 @@ export function WarframePage() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id}>
+                <tr
+                  key={row.id}
+                  className={
+                    isRowCompleted(row, data.columns) ? 'warframe-completed-row' : ''
+                  }
+                >
                   <td className="item-name">
                     {row.name || row.item_name || 'Unnamed'}
                   </td>
