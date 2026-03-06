@@ -255,10 +255,13 @@ export function WarframePage() {
   }, [data.columns, data.rows, hideCompleted, search]);
 
   const stats = useMemo(() => {
-    const byColumn: Record<string, { total: number; complete: number }> = {};
+    const byColumn: Record<
+      string,
+      { total: number; complete: number; obtained: number }
+    > = {};
     for (const column of data.columns) {
       if (column.name === 'Helminth') continue;
-      byColumn[String(column.id)] = { total: 0, complete: 0 };
+      byColumn[String(column.id)] = { total: 0, complete: 0, obtained: 0 };
     }
     for (const row of data.rows) {
       for (const column of data.columns) {
@@ -271,6 +274,8 @@ export function WarframePage() {
         byColumn[key].total += 1;
         if (value === 'Complete') {
           byColumn[key].complete += 1;
+        } else if (value === 'Obtained') {
+          byColumn[key].obtained += 1;
         }
       }
     }
@@ -287,6 +292,7 @@ export function WarframePage() {
           complete: entry.complete,
           total: entry.total,
           percent,
+          obtained: entry.obtained,
         };
       });
   }, [data.columns, data.rows]);
@@ -467,6 +473,7 @@ export function WarframePage() {
             <span>/</span>
             <span className="stat-value">{entry.total}</span>
             <span>({entry.percent}%)</span>
+            <span className="stat-value stat-obtained">+{entry.obtained}</span>
           </div>
         ))}
         <div className="stat stat-option">
