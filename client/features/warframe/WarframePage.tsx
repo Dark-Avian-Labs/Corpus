@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 
 import { useLayoutSlots } from '../../components/Layout/useLayoutSlots';
 import { apiFetch } from '../../utils/api';
@@ -33,6 +40,9 @@ const WORKSHEET_LABELS: Record<string, string> = {
   'Archwing Weapons': 'Archwing',
   Accessories: 'Accessories',
 };
+const tableScrollStyle = {
+  '--header-offset': '320px',
+} as CSSProperties;
 
 function nextStatus(current: string, columnName: string): string {
   const cycle = columnName === 'Helminth' ? HELMINTH_CYCLE : STATUS_CYCLE;
@@ -380,7 +390,7 @@ export function WarframePage() {
         ))}
       </div>
       <div className="table-container">
-        <div className="table-scroll">
+        <div className="table-scroll" style={tableScrollStyle}>
           <table style={{ tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: 'auto' }} />

@@ -277,7 +277,7 @@ function resolveVariantColumns(
   return { baseColumnIds, primeColumnIds };
 }
 
-function markMissingVariantsUnavailable(params: {
+function reconcileVariantAvailability(params: {
   corpusDb: Database.Database;
   userId: number;
   rowId: number;
@@ -287,22 +287,47 @@ function markMissingVariantsUnavailable(params: {
 }): boolean {
   const { corpusDb, userId, rowId, desiredEntry, variantColumns, execute } =
     params;
-  const columnsToMark = new Set<number>();
+  const targetValuesByColumn = new Map<number, '' | 'Unavailable'>();
   if (!desiredEntry.hasBaseVariant) {
     for (const columnId of variantColumns.baseColumnIds) {
-      columnsToMark.add(columnId);
+      targetValuesByColumn.set(columnId, 'Unavailable');
+    }
+  } else {
+    for (const columnId of variantColumns.baseColumnIds) {
+      targetValuesByColumn.set(columnId, '');
     }
   }
   if (!desiredEntry.hasPrimeVariant) {
     for (const columnId of variantColumns.primeColumnIds) {
-      columnsToMark.add(columnId);
+      targetValuesByColumn.set(columnId, 'Unavailable');
+    }
+  } else {
+    for (const columnId of variantColumns.primeColumnIds) {
+      targetValuesByColumn.set(columnId, '');
     }
   }
-  if (columnsToMark.size === 0) return false;
-  if (execute) {
-    for (const columnId of columnsToMark) {
-      q.adminUpdateCell(corpusDb, rowId, columnId, 'Unavailable', userId);
+  if (targetValuesByColumn.size === 0) return false;
+
+  let hasChange = false;
+  for (const [columnId, targetValue] of targetValuesByColumn.entries()) {
+    const currentValue = q.getCellValue(corpusDb, rowId, columnId, userId) ?? '';
+    const nextValue =
+      targetValue === 'Unavailable'
+        ? 'Unavailable'
+        : currentValue === 'Unavailable'
+          ? ''
+          : currentValue;
+    if (currentValue === nextValue) {
+      continue;
     }
+    hasChange = true;
+    if (execute) {
+      q.adminUpdateCell(corpusDb, rowId, columnId, nextValue, userId);
+    }
+  }
+
+  if (!hasChange) {
+    return false;
   }
   return true;
 }
@@ -518,7 +543,7 @@ export function runWarframeSync(
             mismatched.push(row.id);
             continue;
           }
-          const didMarkUnavailable = markMissingVariantsUnavailable({
+          const didMarkUnavailable = reconcileVariantAvailability({
             corpusDb,
             userId,
             rowId: row.id,
