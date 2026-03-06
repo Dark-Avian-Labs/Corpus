@@ -470,7 +470,11 @@ export function WarframePage() {
           </div>
         ))}
         <div className="stat stat-option">
-          <label className="form-group-inline">
+          <label
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-glass-border px-2.5 py-1.5 text-sm text-muted transition-all hover:border-glass-border-hover hover:bg-glass-hover hover:text-foreground"
+            title='Toggle "Hide completed"'
+          >
+            <span>Hide completed</span>
             <input
               type="checkbox"
               checked={hideCompleted}
@@ -478,7 +482,6 @@ export function WarframePage() {
                 void handleHideCompletedChange(event.target.checked);
               }}
             />
-            <span>Hide completed</span>
           </label>
         </div>
       </div>
