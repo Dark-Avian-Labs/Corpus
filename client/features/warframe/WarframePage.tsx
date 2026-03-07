@@ -22,6 +22,7 @@ type WorksheetData = { columns: Column[]; rows: Row[] };
 type WarframeSettings = {
   hide_completed: boolean;
 };
+type ExitRowPhase = 'fill' | 'push';
 
 const STATUS_CYCLE = ['', 'Obtained', 'Complete'];
 const HELMINTH_CYCLE = ['', 'Yes'];
@@ -99,13 +100,78 @@ export function WarframePage() {
   const [data, setData] = useState<WorksheetData>({ columns: [], rows: [] });
   const [search, setSearch] = useState('');
   const [hideCompleted, setHideCompleted] = useState(false);
+  const [exitingRows, setExitingRows] = useState<Record<number, ExitRowPhase>>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const worksheetIdRef = useRef<number | null>(worksheetId);
+  const exitTimersRef = useRef<Map<number, number[]>>(new Map());
+
+  const clearExitTimers = useCallback((rowId: number): void => {
+    const timers = exitTimersRef.current.get(rowId);
+    if (!timers) return;
+    for (const timer of timers) {
+      window.clearTimeout(timer);
+    }
+    exitTimersRef.current.delete(rowId);
+  }, []);
+
+  const clearAllExitTimers = useCallback((): void => {
+    for (const [rowId, timers] of exitTimersRef.current.entries()) {
+      for (const timer of timers) {
+        window.clearTimeout(timer);
+      }
+      exitTimersRef.current.delete(rowId);
+    }
+  }, []);
+
+  const cancelExitAnimation = useCallback(
+    (rowId: number): void => {
+      clearExitTimers(rowId);
+      setExitingRows((previous) => {
+        if (!(rowId in previous)) return previous;
+        const next = { ...previous };
+        delete next[rowId];
+        return next;
+      });
+    },
+    [clearExitTimers],
+  );
+
+  const startExitAnimation = useCallback(
+    (rowId: number): void => {
+      clearExitTimers(rowId);
+      setExitingRows((previous) => ({ ...previous, [rowId]: 'fill' }));
+      const fillTimer = window.setTimeout(() => {
+        setExitingRows((previous) => {
+          if (!(rowId in previous)) return previous;
+          return { ...previous, [rowId]: 'push' };
+        });
+      }, 250);
+      const cleanupTimer = window.setTimeout(() => {
+        setExitingRows((previous) => {
+          if (!(rowId in previous)) return previous;
+          const next = { ...previous };
+          delete next[rowId];
+          return next;
+        });
+        exitTimersRef.current.delete(rowId);
+      }, 500);
+      exitTimersRef.current.set(rowId, [fillTimer, cleanupTimer]);
+    },
+    [clearExitTimers],
+  );
 
   useEffect(() => {
     worksheetIdRef.current = worksheetId;
   }, [worksheetId]);
+
+  useEffect(() => {
+    return () => {
+      clearAllExitTimers();
+    };
+  }, [clearAllExitTimers]);
 
   const fetchWorksheets = useCallback(async (): Promise<Worksheet[]> => {
     const response = await apiFetch('/api/warframe/worksheets');
@@ -225,6 +291,8 @@ export function WarframePage() {
 
   useEffect(() => {
     let controller: AbortController | null = null;
+    clearAllExitTimers();
+    setExitingRows({});
     if (worksheetId === null) {
       setData({ columns: [], rows: [] });
     } else {
@@ -235,11 +303,21 @@ export function WarframePage() {
     return () => {
       controller?.abort();
     };
-  }, [worksheetId, loadWorksheetData]);
+  }, [worksheetId, loadWorksheetData, clearAllExitTimers]);
+
+  useEffect(() => {
+    if (!hideCompleted || search.trim().length > 0) {
+      clearAllExitTimers();
+      setExitingRows({});
+    }
+  }, [hideCompleted, search, clearAllExitTimers]);
 
   const rows = useMemo(() => {
     const query = search.trim().toLowerCase();
     const hasSearch = query.length > 0;
+    const exitingRowIds = new Set(
+      Object.keys(exitingRows).map((rowId) => Number(rowId)),
+    );
     return data.rows.filter((row) => {
       const matchesSearch = (row.name || row.item_name || '')
         .toLowerCase()
@@ -250,9 +328,12 @@ export function WarframePage() {
       if (!hideCompleted || hasSearch) {
         return true;
       }
-      return !isRowCompleted(row, data.columns);
+      if (!isRowCompleted(row, data.columns)) {
+        return true;
+      }
+      return exitingRowIds.has(row.id);
     });
-  }, [data.columns, data.rows, hideCompleted, search]);
+  }, [data.columns, data.rows, hideCompleted, search, exitingRows]);
 
   const stats = useMemo(() => {
     const byColumn: Record<
@@ -304,6 +385,26 @@ export function WarframePage() {
     }
     const value = nextStatus(oldValue, column.name);
     const rowId = row.id;
+    const wasCompleted = isRowCompleted(row, data.columns);
+    const updatedRowForCompletionCheck: Row = {
+      ...row,
+      values: {
+        ...(row.values || {}),
+        [String(column.id)]: value,
+      },
+    };
+    const nowCompleted = isRowCompleted(
+      updatedRowForCompletionCheck,
+      data.columns,
+    );
+    const shouldAnimateExit =
+      hideCompleted &&
+      search.trim().length === 0 &&
+      !wasCompleted &&
+      nowCompleted;
+    if (!shouldAnimateExit) {
+      cancelExitAnimation(rowId);
+    }
     setData((previous) => ({
       ...previous,
       rows: previous.rows.map((candidate) =>
@@ -318,6 +419,9 @@ export function WarframePage() {
           : candidate,
       ),
     }));
+    if (shouldAnimateExit) {
+      startExitAnimation(rowId);
+    }
     try {
       const response = await apiFetch('/api/warframe/cells', {
         method: 'PATCH',
@@ -335,6 +439,7 @@ export function WarframePage() {
         throw new Error(body?.error || 'Update failed');
       }
     } catch {
+      cancelExitAnimation(rowId);
       setData((previous) => ({
         ...previous,
         rows: previous.rows.map((candidate) =>
@@ -529,45 +634,48 @@ export function WarframePage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className={
-                    isRowCompleted(row, data.columns)
-                      ? 'warframe-completed-row'
+              {rows.map((row) => {
+                const isCompletedRow = isRowCompleted(row, data.columns);
+                const rowClassName =
+                  `${isCompletedRow ? 'warframe-completed-row ' : ''}${
+                    exitingRows[row.id] === 'fill'
+                      ? 'warframe-row-exit-fill '
                       : ''
-                  }
-                >
-                  <td className="item-name">
-                    {row.name || row.item_name || 'Unnamed'}
-                  </td>
-                  {data.columns.map((column) => {
-                    const value = row.values?.[String(column.id)] ?? '';
-                    return (
-                      <td
-                        key={`${row.id}-${column.id}`}
-                        className="status-cell"
-                      >
-                        <button
-                          type="button"
-                          className={statusClass(value, column.name)}
-                          onClick={() => {
-                            void handleToggle(row, column);
-                          }}
-                          aria-label={`${column.name} status for ${row.name || row.item_name || 'item'}`}
-                          disabled={value === 'Unavailable'}
+                  }${exitingRows[row.id] === 'push' ? 'warframe-row-exit-push' : ''}`.trim();
+
+                return (
+                  <tr key={row.id} className={rowClassName}>
+                    <td className="item-name">
+                      {row.name || row.item_name || 'Unnamed'}
+                    </td>
+                    {data.columns.map((column) => {
+                      const value = row.values?.[String(column.id)] ?? '';
+                      return (
+                        <td
+                          key={`${row.id}-${column.id}`}
+                          className="status-cell"
                         >
-                          {column.name === 'Helminth'
-                            ? value === 'Yes'
-                              ? '✓'
-                              : '—'
-                            : value || '—'}
-                        </button>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+                          <button
+                            type="button"
+                            className={statusClass(value, column.name)}
+                            onClick={() => {
+                              void handleToggle(row, column);
+                            }}
+                            aria-label={`${column.name} status for ${row.name || row.item_name || 'item'}`}
+                            disabled={value === 'Unavailable'}
+                          >
+                            {column.name === 'Helminth'
+                              ? value === 'Yes'
+                                ? '✓'
+                                : '—'
+                              : value || '—'}
+                          </button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
