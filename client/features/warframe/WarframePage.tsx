@@ -393,7 +393,10 @@ export function WarframePage() {
         [String(column.id)]: value,
       },
     };
-    const nowCompleted = isRowCompleted(updatedRowForCompletionCheck, data.columns);
+    const nowCompleted = isRowCompleted(
+      updatedRowForCompletionCheck,
+      data.columns,
+    );
     const shouldAnimateExit =
       hideCompleted &&
       search.trim().length === 0 &&
@@ -631,47 +634,48 @@ export function WarframePage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className={[
-                    isRowCompleted(row, data.columns) ? 'warframe-completed-row' : '',
-                    exitingRows[row.id] === 'fill' ? 'warframe-row-exit-fill' : '',
-                    exitingRows[row.id] === 'push' ? 'warframe-row-exit-push' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                >
-                  <td className="item-name">
-                    {row.name || row.item_name || 'Unnamed'}
-                  </td>
-                  {data.columns.map((column) => {
-                    const value = row.values?.[String(column.id)] ?? '';
-                    return (
-                      <td
-                        key={`${row.id}-${column.id}`}
-                        className="status-cell"
-                      >
-                        <button
-                          type="button"
-                          className={statusClass(value, column.name)}
-                          onClick={() => {
-                            void handleToggle(row, column);
-                          }}
-                          aria-label={`${column.name} status for ${row.name || row.item_name || 'item'}`}
-                          disabled={value === 'Unavailable'}
+              {rows.map((row) => {
+                const isCompletedRow = isRowCompleted(row, data.columns);
+                const rowClassName =
+                  `${isCompletedRow ? 'warframe-completed-row ' : ''}${
+                    exitingRows[row.id] === 'fill'
+                      ? 'warframe-row-exit-fill '
+                      : ''
+                  }${exitingRows[row.id] === 'push' ? 'warframe-row-exit-push' : ''}`.trim();
+
+                return (
+                  <tr key={row.id} className={rowClassName}>
+                    <td className="item-name">
+                      {row.name || row.item_name || 'Unnamed'}
+                    </td>
+                    {data.columns.map((column) => {
+                      const value = row.values?.[String(column.id)] ?? '';
+                      return (
+                        <td
+                          key={`${row.id}-${column.id}`}
+                          className="status-cell"
                         >
-                          {column.name === 'Helminth'
-                            ? value === 'Yes'
-                              ? '✓'
-                              : '—'
-                            : value || '—'}
-                        </button>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+                          <button
+                            type="button"
+                            className={statusClass(value, column.name)}
+                            onClick={() => {
+                              void handleToggle(row, column);
+                            }}
+                            aria-label={`${column.name} status for ${row.name || row.item_name || 'item'}`}
+                            disabled={value === 'Unavailable'}
+                          >
+                            {column.name === 'Helminth'
+                              ? value === 'Yes'
+                                ? '✓'
+                                : '—'
+                              : value || '—'}
+                          </button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
