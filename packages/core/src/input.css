@@ -526,6 +526,46 @@ html.theme-light .invert-on-light {
     background: color-mix(in srgb, var(--color-success) 18%, transparent);
   }
 
+  @keyframes warframe-completed-fill {
+    from {
+      background-size: 0% 100%;
+    }
+    to {
+      background-size: 100% 100%;
+    }
+  }
+
+  @keyframes warframe-completed-push-out {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(56px);
+      opacity: 0;
+    }
+  }
+
+  .warframe-row-exit-fill > td {
+    background-image: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-success) 24%, transparent),
+      color-mix(in srgb, var(--color-success) 24%, transparent)
+    );
+    background-repeat: no-repeat;
+    background-size: 0% 100%;
+    animation: warframe-completed-fill 250ms ease-out forwards;
+  }
+
+  .warframe-row-exit-push {
+    animation: warframe-completed-push-out 250ms ease-in forwards;
+    will-change: transform, opacity;
+  }
+
+  .warframe-row-exit-push > td {
+    background: color-mix(in srgb, var(--color-success) 24%, transparent);
+  }
+
   .item-name {
     font-weight: 500;
   }
