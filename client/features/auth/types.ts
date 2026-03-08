@@ -21,5 +21,12 @@ export type AuthErrorDetail =
 export type AuthState =
   | { status: 'loading'; user: null; apps: AppSummary[] }
   | { status: 'unauthenticated'; user: null; apps: AppSummary[] }
+  | { status: 'forbidden'; user: null; apps: AppSummary[] }
+  | {
+      status: 'rate_limited';
+      user: null;
+      apps: AppSummary[];
+      rateLimitedUntilMs: number;
+    }
   | { status: 'ok'; user: UserSummary; apps: AppSummary[] }
   | { status: 'error'; user: null; apps: AppSummary[]; error: AuthErrorDetail };

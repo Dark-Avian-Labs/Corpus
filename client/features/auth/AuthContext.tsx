@@ -65,6 +65,36 @@ function toAuthErrorDetail(error: unknown): AuthErrorDetail {
   return { message: 'Unable to refresh authentication state.' };
 }
 
+async function getRetryAfterMs(response: Response): Promise<number | null> {
+  const header = response.headers.get('Retry-After');
+  if (header) {
+    const asSeconds = Number.parseInt(header, 10);
+    if (Number.isFinite(asSeconds) && asSeconds > 0) {
+      return asSeconds * 1000;
+    }
+    const asDate = Date.parse(header);
+    if (Number.isFinite(asDate)) {
+      const delta = asDate - Date.now();
+      if (delta > 0) return delta;
+    }
+  }
+
+  try {
+    const body = (await response.clone().json()) as {
+      auth_retry_after_sec?: number;
+      retry_after_sec?: number;
+    };
+    const sec = body.auth_retry_after_sec ?? body.retry_after_sec;
+    if (typeof sec === 'number' && Number.isFinite(sec) && sec > 0) {
+      return sec * 1000;
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [auth, setAuth] = useState<AuthState>(DEFAULT_AUTH_STATE);
 
@@ -72,11 +102,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await apiFetch('/api/auth/me');
       if (!response.ok) {
+        if (response.status === 429) {
+          const retryAfterMs = (await getRetryAfterMs(response)) ?? 30000;
+          setAuth({
+            status: 'rate_limited',
+            user: null,
+            apps: [],
+            rateLimitedUntilMs: Date.now() + retryAfterMs,
+          });
+          return;
+        }
         setAuth({ status: 'unauthenticated', user: null, apps: [] });
         return;
       }
       const body = (await response.json()) as {
         authenticated?: boolean;
+        has_game_access?: boolean;
         user?: {
           id: number;
           username: string;
@@ -93,6 +134,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       if (!body.authenticated || !body.user) {
         setAuth({ status: 'unauthenticated', user: null, apps: [] });
+        return;
+      }
+      if (body.has_game_access === false) {
+        setAuth({
+          status: 'forbidden',
+          user: null,
+          apps: Array.isArray(body.apps) ? body.apps : [],
+        });
         return;
       }
       const user: UserSummary = {
