@@ -29,6 +29,7 @@ jobs:
       SERVER_PATH: ${{ secrets.SERVER_PATH_DEV }}
       SERVER_USER: ${{ secrets.SERVER_USER_DEV }}
       SERVER_HOST: ${{ secrets.SERVER_HOST_DEV }}
+      VITE_ENV: ${{ secrets.VITE_ENV }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -41,6 +42,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Create build-time .env for Vite
+        run: |
+          if [ -z "$VITE_ENV" ]; then
+            echo "ERROR: VITE_ENV secret is missing or empty."
+            exit 1
+          fi
+          printf '%s\n' "$VITE_ENV" > .env
 
       - name: Build project
         run: npm run build
