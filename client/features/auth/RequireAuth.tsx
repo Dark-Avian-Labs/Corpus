@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { useAuth } from './AuthContext';
@@ -21,6 +28,20 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     `${location.pathname}${location.search}${location.hash}`,
   );
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const refreshingRef = useRef(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const guardedRefresh = useCallback(async () => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
+    setIsRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      refreshingRef.current = false;
+      setIsRefreshing(false);
+    }
+  }, [refresh]);
 
   useEffect(() => {
     const timer =
@@ -42,13 +63,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   }, [auth, nowMs]);
 
   useEffect(() => {
-    if (
-      auth.status !== 'loading' &&
-      auth.status !== 'ok' &&
-      auth.status !== 'rate_limited' &&
-      auth.status !== 'error' &&
-      auth.status !== 'forbidden'
-    ) {
+    if (auth.status === 'unauthenticated') {
       window.location.href = `/auth/login?next=${encodeURIComponent(next)}`;
     }
   }, [auth.status, next]);
@@ -56,8 +71,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (auth.status !== 'rate_limited') return;
     if (secondsRemaining > 0) return;
-    void refresh();
-  }, [auth.status, secondsRemaining, refresh]);
+    if (isRefreshing) return;
+    void guardedRefresh();
+  }, [auth.status, secondsRemaining, isRefreshing, guardedRefresh]);
 
   if (auth.status === 'loading') {
     return (
@@ -86,7 +102,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
             className="btn btn-accent"
             type="button"
             onClick={() => {
-              void refresh();
+              void guardedRefresh();
             }}
           >
             Retry
@@ -139,11 +155,12 @@ export function RequireAuth({ children }: { children: ReactNode }) {
             className="btn btn-accent"
             type="button"
             onClick={() => {
-              void refresh();
+              if (isRefreshing) return;
+              void guardedRefresh();
             }}
-            disabled={secondsRemaining > 0}
+            disabled={secondsRemaining > 0 || isRefreshing}
           >
-            Retry
+            {isRefreshing ? 'Retrying...' : 'Retry'}
           </button>
         </div>
       </div>

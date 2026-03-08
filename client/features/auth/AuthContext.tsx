@@ -137,7 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (body.has_game_access === false) {
-        setAuth({ status: 'forbidden', user: null, apps: [] });
+        setAuth({
+          status: 'forbidden',
+          user: null,
+          apps: Array.isArray(body.apps) ? body.apps : [],
+        });
         return;
       }
       const user: UserSummary = {
