@@ -1,6 +1,6 @@
 {
   "name": "@corpus/game-epic7",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Corpus Epic7 game module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,14 +11,12 @@
     "check-format": "prettier --check ."
   },
   "dependencies": {
-    "@corpus/core": "3.0.0",
+    "@corpus/core": "3.1.0",
     "better-sqlite3": "^12.6.2",
-    "ejs": "^4.0.1",
     "express": "^5.2.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
-    "@types/ejs": "^3.1.5",
     "@types/express": "^5.0.6",
     "@types/node": "^25.3.3",
     "typescript": "^5.9.3"

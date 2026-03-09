@@ -1,13 +1,12 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
 
-@source "../../../src/**/*.{ejs,html,js,ts,jsx,tsx}";
+@source "../../../src/**/*.{js,ts,jsx,tsx}";
 @source "../../../client/**/*.{js,ts,jsx,tsx}";
-@source "../../games/warframe/src/**/*.{ejs,html,js,ts,jsx,tsx}";
+@source "../../games/warframe/src/**/*.{js,ts,jsx,tsx}";
 @source "../../games/warframe/assets/**/*.{js,ts,jsx,tsx}";
-@source "../../games/epic7/src/**/*.{ejs,html,js,ts,jsx,tsx}";
+@source "../../games/epic7/src/**/*.{js,ts,jsx,tsx}";
 @source "../../games/epic7/assets/**/*.{js,ts,jsx,tsx}";
-@source "../views/**/*.{ejs,html}";
 
 @theme {
   --color-foreground: #f8fafc;
@@ -44,7 +43,6 @@
 :root {
   --header-offset: 280px;
   --theme-mode: dark;
-  /* Explicit root declarations keep editor diagnostics happy for custom vars. */
   --color-foreground: #f8fafc;
   --color-glass: rgba(255, 255, 255, 0.024);
   --color-surface-modal: rgba(255, 255, 255, 0.024);
@@ -98,15 +96,10 @@ html.theme-light .invert-on-light {
   }
 
   body {
-    font-family:
-      'Inter Variable',
-      Inter,
-      system-ui,
-      -apple-system,
-      'Segoe UI',
-      Roboto,
-      Arial,
-      sans-serif;
+    --font-sans:
+      'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto,
+      Arial, sans-serif;
+    font-family: var(--font-sans);
     margin: 0;
     color: var(--color-foreground);
     background:
@@ -126,7 +119,6 @@ html.theme-light .invert-on-light {
 }
 
 @layer components {
-  /* Fallback blur for browsers/contexts where backdrop-filter is unreliable. */
   body.modal-open #root {
     filter: blur(4px);
     transition: filter 0.2s ease;
@@ -332,6 +324,7 @@ html.theme-light .invert-on-light {
   .brand-lockup__title {
     margin: 0;
     min-width: 0;
+    font-family: var(--font-sans);
     font-size: clamp(1.35rem, 2.4vw, 2.25rem);
     line-height: 1.2;
     font-weight: 700;

@@ -1,6 +1,6 @@
 {
   "name": "corpus",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Corpus - game collection tracker",
   "private": true,
   "scripts": {
@@ -22,9 +22,9 @@
     "packages/games/epic7"
   ],
   "dependencies": {
-    "@corpus/core": "3.0.0",
-    "@corpus/game-epic7": "3.0.0",
-    "@corpus/game-warframe": "3.0.0",
+    "@corpus/core": "3.1.0",
+    "@corpus/game-epic7": "3.1.0",
+    "@corpus/game-warframe": "3.1.0",
     "@fontsource-variable/inter": "^5.2.8",
     "better-sqlite3": "^12.6.2",
     "clsx": "^2.1.1",
@@ -55,8 +55,6 @@
     "eslint-plugin-import-x": "^4.16.1",
     "eslint-plugin-n": "^17.24.0",
     "eslint-plugin-promise": "^7.2.1",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^17.4.0",
     "prettier": "^3.8.1",
     "tailwindcss": "^4.1.18",
