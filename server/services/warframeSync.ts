@@ -105,6 +105,10 @@ function resolveCanonicalKey(value: string): string {
   return resolveCanonicalKeyWithAliases(value, MATCH_NAME_ALIASES);
 }
 
+function stripKitgunPrimarySuffix(value: string): string {
+  return value.replace(/\s*\(primary\)\s*$/i, '').trim();
+}
+
 function loadNames(
   db: Database.Database,
   sql: string,
@@ -114,6 +118,66 @@ function loadNames(
   return rows
     .map((row) => row.name?.trim() ?? '')
     .filter((name) => name.length > 0);
+}
+
+type WeaponSourceRow = {
+  name: string | null;
+  unique_name: string | null;
+};
+
+function isModularMainComponent(row: WeaponSourceRow): boolean {
+  const name = row.name?.trim() ?? '';
+  if (!name) return false;
+  if (/\bprism\b/i.test(name)) return true;
+  if (/\bscaffold\b/i.test(name)) return false;
+
+  const uniqueName = row.unique_name?.toLowerCase() ?? '';
+  if (!uniqueName) return false;
+  if (uniqueName.includes('/prism/')) return true;
+  if (uniqueName.includes('/scaffold/')) return false;
+  if (uniqueName.includes('/barrel/')) return true;
+  if (
+    uniqueName.includes('/tip/') ||
+    uniqueName.includes('/tips/') ||
+    uniqueName.includes('/strike/')
+  ) {
+    return true;
+  }
+
+  const removablePartMarkers = [
+    '/handle/',
+    '/handles/',
+    '/grip/',
+    '/brace/',
+    '/link/',
+    '/balance/',
+    '/loader/',
+    '/clip/',
+    '/core/',
+  ];
+  for (const marker of removablePartMarkers) {
+    if (uniqueName.includes(marker)) {
+      return false;
+    }
+  }
+  return false;
+}
+
+function loadModularWeaponNames(parametricDb: Database.Database): Set<string> {
+  const modularRows = parametricDb
+    .prepare(
+      "SELECT name, unique_name FROM weapons WHERE product_category IN ('ModularPrimary', 'ModularSecondary', 'Amps') AND name IS NOT NULL AND slot IS NOT NULL AND TRIM(slot) <> ''",
+    )
+    .all() as WeaponSourceRow[];
+  const names = new Set<string>();
+  for (const row of modularRows) {
+    if (!isModularMainComponent(row)) continue;
+    const name = row.name?.trim() ?? '';
+    if (name) {
+      names.add(name);
+    }
+  }
+  return names;
 }
 
 function loadWorksheetSource(
@@ -155,12 +219,7 @@ function loadWorksheetSource(
       "SELECT name FROM weapons WHERE product_category IN ('SpaceGuns', 'SpaceMelee') AND slot IS NOT NULL AND TRIM(slot) <> ''",
     ),
   );
-  const modular = new Set(
-    loadNames(
-      parametricDb,
-      "SELECT name FROM weapons WHERE product_category IN ('ModularPrimary', 'ModularSecondary', 'Amps') AND name IS NOT NULL AND slot IS NOT NULL AND TRIM(slot) <> ''",
-    ),
-  );
+  const modular = loadModularWeaponNames(parametricDb);
 
   return {
     Warframes: warframes,
@@ -531,14 +590,29 @@ export function runWarframeSync(
         const mismatched: number[] = [];
 
         for (const row of rows) {
-          if (DISCARDED_ROWS.has(row.item_name)) {
+          const normalizedItemName =
+            worksheet === 'Modular Weapons'
+              ? stripKitgunPrimarySuffix(row.item_name)
+              : row.item_name;
+          const didNormalizeKitgunName =
+            normalizedItemName !== row.item_name &&
+            resolveCanonicalKey(normalizedItemName) ===
+              resolveCanonicalKey(row.item_name);
+          if (didNormalizeKitgunName && options.execute) {
+            q.editRow(corpusDb, row.id, userId, normalizedItemName, {});
+          }
+          const effectiveItemName = didNormalizeKitgunName
+            ? normalizedItemName
+            : row.item_name;
+
+          if (DISCARDED_ROWS.has(effectiveItemName)) {
             if (options.execute) {
               q.deleteRow(corpusDb, row.id, userId);
             }
-            deleted.push(row.item_name);
+            deleted.push(effectiveItemName);
             continue;
           }
-          const key = resolveCanonicalKey(row.item_name);
+          const key = resolveCanonicalKey(effectiveItemName);
           const desiredEntry = desired.get(key);
           if (!desiredEntry) {
             mismatched.push(row.id);
@@ -553,7 +627,7 @@ export function runWarframeSync(
             execute: options.execute,
           });
           if (didMarkUnavailable) {
-            markedUnavailable.push(row.item_name);
+            markedUnavailable.push(effectiveItemName);
           }
         }
 
