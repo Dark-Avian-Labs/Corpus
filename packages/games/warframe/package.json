@@ -13,7 +13,7 @@
   "dependencies": {
     "@corpus/core": "3.0.0",
     "better-sqlite3": "^12.6.2",
-    "ejs": "^4.0.1",
+    "ejs": "^5.0.1",
     "express": "^5.2.1"
   },
   "devDependencies": {
