@@ -1,13 +1,12 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
 
-@source "../../../src/**/*.{ejs,html,js,ts,jsx,tsx}";
+@source "../../../src/**/*.{js,ts,jsx,tsx}";
 @source "../../../client/**/*.{js,ts,jsx,tsx}";
-@source "../../games/warframe/src/**/*.{ejs,html,js,ts,jsx,tsx}";
+@source "../../games/warframe/src/**/*.{js,ts,jsx,tsx}";
 @source "../../games/warframe/assets/**/*.{js,ts,jsx,tsx}";
-@source "../../games/epic7/src/**/*.{ejs,html,js,ts,jsx,tsx}";
+@source "../../games/epic7/src/**/*.{js,ts,jsx,tsx}";
 @source "../../games/epic7/assets/**/*.{js,ts,jsx,tsx}";
-@source "../views/**/*.{ejs,html}";
 
 @theme {
   --color-foreground: #f8fafc;
@@ -332,6 +331,15 @@ html.theme-light .invert-on-light {
   .brand-lockup__title {
     margin: 0;
     min-width: 0;
+    font-family:
+      'Inter Variable',
+      Inter,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      Arial,
+      sans-serif;
     font-size: clamp(1.35rem, 2.4vw, 2.25rem);
     line-height: 1.2;
     font-weight: 700;
