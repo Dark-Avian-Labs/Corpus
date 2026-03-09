@@ -256,6 +256,9 @@ function ensureWorksheetExistsForSync(
   );
   q.addColumn(corpusDb, worksheetId, userId, 'Normal', 0);
   q.addColumn(corpusDb, worksheetId, userId, 'Prime', 1);
+  if (worksheet === 'Warframes') {
+    q.addColumn(corpusDb, worksheetId, userId, 'Helminth', 2);
+  }
   return q.getWorksheetByName(corpusDb, userId, worksheet);
 }
 
