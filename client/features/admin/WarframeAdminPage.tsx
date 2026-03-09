@@ -61,6 +61,7 @@ const WORKSHEET_LABELS: Record<string, string> = {
   'Secondary Weapons': 'Secondary',
   'Melee Weapons': 'Melee',
   'Modular Weapons': 'Modular',
+  Companions: 'Companions',
   'Archwing Weapons': 'Archwing',
   Accessories: 'Accessories',
 };
@@ -70,6 +71,7 @@ const WORKSHEET_ORDER = [
   'Secondary Weapons',
   'Melee Weapons',
   'Modular Weapons',
+  'Companions',
   'Archwing Weapons',
   'Accessories',
 ] as const;

@@ -15,6 +15,7 @@ const WORKSHEET_NAMES = [
   'Secondary Weapons',
   'Melee Weapons',
   'Modular Weapons',
+  'Companions',
   'Archwing Weapons',
   'Accessories',
 ] as const;
@@ -39,13 +40,25 @@ const PRIME_ONLY_UNAVAILABLE = new Map<string, WorksheetName>([
   ['Reaper', 'Melee Weapons'],
 ]);
 
-const KEPT_SPECIAL_ROWS = new Map<string, WorksheetName>([
-  ['Lizzie', 'Primary Weapons'],
-  ['Pangolin', 'Melee Weapons'],
-  ['Vinquibus (Melee)', 'Melee Weapons'],
-  ['Mote Amp', 'Modular Weapons'],
-  ['Arquebex', 'Archwing Weapons'],
-  ['Ironbride', 'Archwing Weapons'],
+const KEPT_SPECIAL_ROWS = new Map<
+  string,
+  {
+    worksheet: WorksheetName;
+    hasPrimeVariant: boolean;
+  }
+>([
+  ['Lizzie', { worksheet: 'Primary Weapons', hasPrimeVariant: false }],
+  ['Pangolin', { worksheet: 'Melee Weapons', hasPrimeVariant: true }],
+  ['Vinquibus (Melee)', { worksheet: 'Melee Weapons', hasPrimeVariant: false }],
+  ['Mote Amp', { worksheet: 'Modular Weapons', hasPrimeVariant: false }],
+  ['Crescent Vulpaphyla', { worksheet: 'Companions', hasPrimeVariant: false }],
+  ['Panzer Vulpaphyla', { worksheet: 'Companions', hasPrimeVariant: false }],
+  ['Sly Vulpaphyla', { worksheet: 'Companions', hasPrimeVariant: false }],
+  ['Vizier Predasite', { worksheet: 'Companions', hasPrimeVariant: false }],
+  ['Medjay Predasite', { worksheet: 'Companions', hasPrimeVariant: false }],
+  ['Pharaoh Predasite', { worksheet: 'Companions', hasPrimeVariant: false }],
+  ['Arquebex', { worksheet: 'Archwing Weapons', hasPrimeVariant: false }],
+  ['Ironbride', { worksheet: 'Archwing Weapons', hasPrimeVariant: false }],
 ]);
 
 const MATCH_NAME_ALIASES = new Map<string, string>([
@@ -180,6 +193,75 @@ function loadModularWeaponNames(parametricDb: Database.Database): Set<string> {
   return names;
 }
 
+function isCompanionModularMainComponent(row: WeaponSourceRow): boolean {
+  const uniqueName = row.unique_name?.toLowerCase() ?? '';
+  if (!uniqueName) return false;
+
+  const isMoaHead =
+    uniqueName.includes('/moapetparts/') && uniqueName.includes('/moapethead');
+  if (isMoaHead) return true;
+
+  const isHoundHead =
+    uniqueName.includes('/zanukapetparts/') &&
+    uniqueName.includes('/zanukapetparthead');
+  if (isHoundHead) return true;
+
+  return false;
+}
+
+function loadCompanionNames(parametricDb: Database.Database): Set<string> {
+  const companionNames = new Set(
+    loadNames(
+      parametricDb,
+      "SELECT name FROM companions WHERE name IS NOT NULL AND TRIM(name) <> ''",
+    ),
+  );
+  const modularCompanionRows = parametricDb
+    .prepare(
+      "SELECT name, unique_name FROM weapons WHERE product_category = 'Pistols' AND slot IS NULL AND name IS NOT NULL AND unique_name IS NOT NULL AND (LOWER(unique_name) LIKE '%/moapetparts/%' OR LOWER(unique_name) LIKE '%/zanukapetparts/%')",
+    )
+    .all() as WeaponSourceRow[];
+  for (const row of modularCompanionRows) {
+    if (!isCompanionModularMainComponent(row)) continue;
+    const name = row.name?.trim() ?? '';
+    if (name) {
+      companionNames.add(name);
+    }
+  }
+  return companionNames;
+}
+
+function ensureWorksheetExistsForSync(
+  corpusDb: Database.Database,
+  userId: number,
+  worksheet: WorksheetName,
+  execute: boolean,
+): { id: number; name: string; display_order: number } | undefined {
+  const existing = q.getWorksheetByName(corpusDb, userId, worksheet);
+  if (existing) return existing;
+  if (!execute) return undefined;
+
+  const existingWorksheets = q.getWorksheets(corpusDb, userId);
+  const displayOrder =
+    existingWorksheets.reduce(
+      (maxOrder, sheet) =>
+        Math.max(maxOrder, sheet.display_order ?? Number.MIN_SAFE_INTEGER),
+      -1,
+    ) + 1;
+  const worksheetId = q.createWorksheet(
+    corpusDb,
+    userId,
+    worksheet,
+    displayOrder,
+  );
+  q.addColumn(corpusDb, worksheetId, userId, 'Normal', 0);
+  q.addColumn(corpusDb, worksheetId, userId, 'Prime', 1);
+  if (worksheet === 'Warframes') {
+    q.addColumn(corpusDb, worksheetId, userId, 'Helminth', 2);
+  }
+  return q.getWorksheetByName(corpusDb, userId, worksheet);
+}
+
 function loadWorksheetSource(
   parametricDb: Database.Database,
 ): Record<WorksheetName, Set<string>> {
@@ -220,6 +302,7 @@ function loadWorksheetSource(
     ),
   );
   const modular = loadModularWeaponNames(parametricDb);
+  const companions = loadCompanionNames(parametricDb);
 
   return {
     Warframes: warframes,
@@ -227,6 +310,7 @@ function loadWorksheetSource(
     'Primary Weapons': primary,
     'Secondary Weapons': secondary,
     'Melee Weapons': melee,
+    Companions: companions,
     'Archwing Weapons': archwing,
     'Modular Weapons': modular,
   };
@@ -297,13 +381,13 @@ function createDesiredEntries(
     });
   }
 
-  for (const [itemName, itemWorksheet] of KEPT_SPECIAL_ROWS.entries()) {
-    if (itemWorksheet !== worksheet) continue;
+  for (const [itemName, itemRule] of KEPT_SPECIAL_ROWS.entries()) {
+    if (itemRule.worksheet !== worksheet) continue;
     const displayName = normalizeDisplayName(itemName);
     desired.set(resolveCanonicalKey(displayName), {
       displayName,
       hasBaseVariant: true,
-      hasPrimeVariant: true,
+      hasPrimeVariant: itemRule.hasPrimeVariant,
     });
   }
 
@@ -535,7 +619,12 @@ export function runWarframeSync(
       const sourceByWorksheetForUser = cloneWorksheetSource(sourceByWorksheet);
       const currentRowsByWorksheet = new Map<WorksheetName, string[]>();
       for (const worksheet of WORKSHEET_NAMES) {
-        const sheet = q.getWorksheetByName(corpusDb, userId, worksheet);
+        const sheet = ensureWorksheetExistsForSync(
+          corpusDb,
+          userId,
+          worksheet,
+          options.execute,
+        );
         if (!sheet) continue;
         const rows = q.getWorksheetRows(corpusDb, sheet.id, userId);
         currentRowsByWorksheet.set(
@@ -551,7 +640,12 @@ export function runWarframeSync(
 
       const worksheetResults: WorksheetSyncResult[] = [];
       for (const worksheet of WORKSHEET_NAMES) {
-        const sheet = q.getWorksheetByName(corpusDb, userId, worksheet);
+        const sheet = ensureWorksheetExistsForSync(
+          corpusDb,
+          userId,
+          worksheet,
+          options.execute,
+        );
         if (!sheet) continue;
         const desired = createDesiredEntries(
           worksheet,
