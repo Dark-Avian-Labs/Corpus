@@ -43,7 +43,6 @@
 :root {
   --header-offset: 280px;
   --theme-mode: dark;
-  /* Explicit root declarations keep editor diagnostics happy for custom vars. */
   --color-foreground: #f8fafc;
   --color-glass: rgba(255, 255, 255, 0.024);
   --color-surface-modal: rgba(255, 255, 255, 0.024);
