@@ -33,6 +33,7 @@ const TAB_ORDER = [
   'Melee Weapons',
   'Modular Weapons',
   'Companions',
+  'Companion Weapons',
   'Archwing Weapons',
   'Accessories',
 ] as const;
@@ -43,6 +44,7 @@ const WORKSHEET_LABELS: Record<string, string> = {
   'Melee Weapons': 'Melee',
   'Modular Weapons': 'Modular',
   Companions: 'Companions',
+  'Companion Weapons': 'Companion Weapons',
   'Archwing Weapons': 'Archwing',
   Accessories: 'Accessories',
 };

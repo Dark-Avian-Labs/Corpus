@@ -16,6 +16,7 @@ const WORKSHEET_NAMES = [
   'Melee Weapons',
   'Modular Weapons',
   'Companions',
+  'Companion Weapons',
   'Archwing Weapons',
   'Accessories',
 ] as const;
@@ -301,6 +302,12 @@ function loadWorksheetSource(
       "SELECT name FROM weapons WHERE product_category IN ('SpaceGuns', 'SpaceMelee') AND slot IS NOT NULL AND TRIM(slot) <> ''",
     ),
   );
+  const companionWeapons = new Set(
+    loadNames(
+      parametricDb,
+      "SELECT name FROM weapons WHERE product_category = 'SentinelWeapons' AND slot IS NOT NULL AND TRIM(slot) <> ''",
+    ),
+  );
   const modular = loadModularWeaponNames(parametricDb);
   const companions = loadCompanionNames(parametricDb);
 
@@ -311,6 +318,7 @@ function loadWorksheetSource(
     'Secondary Weapons': secondary,
     'Melee Weapons': melee,
     Companions: companions,
+    'Companion Weapons': companionWeapons,
     'Archwing Weapons': archwing,
     'Modular Weapons': modular,
   };
