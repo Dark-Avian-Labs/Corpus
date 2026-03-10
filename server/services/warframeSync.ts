@@ -5,6 +5,7 @@ import { PARAMETRIC_DB_PATH } from '../config.js';
 import {
   isPrimeVariantName,
   normalizeDisplayName,
+  normalizeNameForKey,
   resolveCanonicalKey as resolveCanonicalKeyWithAliases,
   stripPrimeSuffix,
 } from './warframeSyncNaming.js';
@@ -64,6 +65,15 @@ const KEPT_SPECIAL_ROWS = new Map<
 
 const MATCH_NAME_ALIASES = new Map<string, string>([
   ['pangolin', 'pangolin sword'],
+  ['prime laser rifle', 'laser rifle'],
+  ['venari prime claws', 'venari claws'],
+  ['venani prime claws', 'venari claws'],
+]);
+
+const SPECIAL_PRIME_VARIANT_BASE_NAME = new Map<string, string>([
+  ['prime laser rifle', 'Laser Rifle'],
+  ['venari prime claws', 'Venari Claws'],
+  ['venani prime claws', 'Venari Claws'],
 ]);
 
 type DesiredEntry = {
@@ -117,6 +127,10 @@ type VariantColumns = {
 
 function resolveCanonicalKey(value: string): string {
   return resolveCanonicalKeyWithAliases(value, MATCH_NAME_ALIASES);
+}
+
+function getSpecialPrimeVariantBaseName(value: string): string | undefined {
+  return SPECIAL_PRIME_VARIANT_BASE_NAME.get(normalizeNameForKey(value));
 }
 
 function stripKitgunPrimarySuffix(value: string): string {
@@ -368,11 +382,16 @@ function createDesiredEntries(
     if (!displayName) continue;
     const key = resolveCanonicalKey(displayName);
     if (!key) continue;
-    const isPrime = isPrimeVariantName(displayName);
+    const specialPrimeBaseName = getSpecialPrimeVariantBaseName(displayName);
+    const isPrime =
+      isPrimeVariantName(displayName) || specialPrimeBaseName !== undefined;
+    const canonicalDisplayName = isPrime
+      ? (specialPrimeBaseName ?? stripPrimeSuffix(displayName))
+      : displayName;
     const existing = desired.get(key);
     if (!existing) {
       desired.set(key, {
-        displayName: isPrime ? stripPrimeSuffix(displayName) : displayName,
+        displayName: canonicalDisplayName,
         hasBaseVariant: !isPrime,
         hasPrimeVariant: isPrime,
       });
