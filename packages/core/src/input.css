@@ -331,6 +331,10 @@ html.theme-light .invert-on-light {
     letter-spacing: 0.01em;
   }
 
+  .brand-lockup__title.brand-lockup__title_small {
+    font-weight: 200;
+  }
+
   .brand-lockup--fx {
     text-shadow:
       -0.05em 0 0.015em rgba(248, 250, 252, 0.45),

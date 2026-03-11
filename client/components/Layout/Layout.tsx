@@ -63,11 +63,9 @@ export function Layout() {
     : isEpic7Route
       ? APP_PATHS.epic7Admin
       : APP_PATHS.admin;
-  const brandTitle = isWarframeRoute
-    ? 'Corpus - Warframe'
-    : isEpic7Route
-      ? 'Corpus - Epic7'
-      : APP_DISPLAY_NAME;
+  const brandTitle = isWarframeRoute ? 'Warframe' : isEpic7Route ? 'Epic7' : '';
+  const baseTitle =
+    brandTitle.length > 0 ? `${APP_DISPLAY_NAME} - ` : APP_DISPLAY_NAME;
 
   const setMenuItemRef = (id: string) => (node: HTMLElement | null) => {
     menuItemNodeMap.current[id] = node;
@@ -224,8 +222,13 @@ export function Layout() {
               className="brand-lockup__icon"
             />
             <span className="brand-lockup__title brand-lockup--fx">
-              {brandTitle}
+              {baseTitle}
             </span>
+            {brandTitle.length > 0 ? (
+              <span className="brand-lockup__title brand-lockup__title_small">
+                {brandTitle}
+              </span>
+            ) : null}
           </Link>
 
           <div className="justify-self-center">{headerCenter}</div>
