@@ -64,8 +64,7 @@ export function Layout() {
       ? APP_PATHS.epic7Admin
       : APP_PATHS.admin;
   const brandTitle = isWarframeRoute ? 'Warframe' : isEpic7Route ? 'Epic7' : '';
-  const baseTitle =
-    brandTitle.length > 0 ? `${APP_DISPLAY_NAME} - ` : APP_DISPLAY_NAME;
+  const baseTitle = APP_DISPLAY_NAME;
 
   const setMenuItemRef = (id: string) => (node: HTMLElement | null) => {
     menuItemNodeMap.current[id] = node;
