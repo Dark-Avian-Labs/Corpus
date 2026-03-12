@@ -29,6 +29,7 @@ jobs:
       SERVER_PATH: ${{ secrets.SERVER_PATH }}
       SERVER_USER: ${{ secrets.SERVER_USER }}
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SERVER_SSH_PORT: ${{ secrets.SERVER_SSH_PORT }}
       VITE_ENV: ${{ secrets.VITE_ENV }}
     steps:
       - name: Checkout code
@@ -75,6 +76,7 @@ jobs:
           require_non_empty "SERVER_HOST" "$SERVER_HOST"
           require_non_empty "SERVER_USER" "$SERVER_USER"
           require_non_empty "SERVER_PATH" "$SERVER_PATH"
+          require_non_empty "SERVER_SSH_PORT" "$SERVER_SSH_PORT"
 
           if [ -n "${RSYNC_DEST:-}" ]; then
             require_non_empty "RSYNC_DEST" "$RSYNC_DEST"
@@ -115,13 +117,13 @@ jobs:
           --exclude='/logs/' \
           --exclude='/data/' \
           --exclude='/import/' \
-          -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts" \
+          -e "ssh -p $SERVER_SSH_PORT -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts" \
           /tmp/deploy/ \
           $SERVER_USER@$SERVER_HOST:$SERVER_PATH/
 
       - name: Restart PM2
         run: |
-          ssh -i ~/.ssh/deploy_key \
+          ssh -p "$SERVER_SSH_PORT" -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile=~/.ssh/known_hosts \
             $SERVER_USER@$SERVER_HOST \
