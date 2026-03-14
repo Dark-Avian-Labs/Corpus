@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: blacksmith-2vcpu-ubuntu-2404
+    env:
+      DOTENV_PRIVATE_KEY_DEVELOPMENT: ${{ secrets.DOTENV_PRIVATE_KEY_DEVELOPMENT }}
 
     steps:
       - name: Checkout code
@@ -23,8 +25,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate dotenv private key
+        run: |
+          if [ -z "$DOTENV_PRIVATE_KEY_DEVELOPMENT" ]; then
+            echo "ERROR: DOTENV_PRIVATE_KEY_DEVELOPMENT secret is missing or empty."
+            exit 1
+          fi
+
       - name: Build project
-        run: npm run build
+        run: npx dotenvx run --strict -f .env.development -- npm run build
 
       - name: Run tests
-        run: npm run test
+        run: npx dotenvx run --strict -f .env.development -- npm run test
