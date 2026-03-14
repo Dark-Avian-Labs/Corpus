@@ -1,6 +1,20 @@
+import { config as loadEnv } from '@dotenvx/dotenvx';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+const envPath = path.join(process.cwd(), '.env');
+if (fs.existsSync(envPath)) {
+  try {
+    loadEnv({ path: envPath });
+  } catch (error) {
+    console.error(
+      `[Config] Failed to load environment via loadEnv from "${envPath}".`,
+      error,
+    );
+    throw error;
+  }
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const PROJECT_ROOT = path.resolve(__dirname, '..', '..');

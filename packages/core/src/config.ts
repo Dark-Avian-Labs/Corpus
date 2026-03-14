@@ -1,8 +1,20 @@
 import { config as loadEnv } from '@dotenvx/dotenvx';
+import fs from 'fs';
 import path from 'path';
 
 const projectRoot = process.cwd();
-loadEnv({ path: path.join(projectRoot, '.env') });
+const envPath = path.join(projectRoot, '.env');
+if (fs.existsSync(envPath)) {
+  try {
+    loadEnv({ path: envPath });
+  } catch (error) {
+    console.error(
+      `[Core Config] Failed to load environment via loadEnv from "${envPath}".`,
+      error,
+    );
+    throw error;
+  }
+}
 
 export const APP_NAME = 'Corpus';
 export const AUTH_LOCKOUT_FILE = path.resolve(

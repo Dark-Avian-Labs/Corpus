@@ -1,11 +1,13 @@
 # Config
 .env
+.env.keys
 .env.local
 .env.*.local
 
 # Data & import (user content)
 data/
 import/
+_resources/
 
 # Node
 node_modules/

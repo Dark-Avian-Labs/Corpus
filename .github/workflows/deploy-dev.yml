@@ -17,6 +17,7 @@ on:
       - 'tsconfig*.json'
       - 'vite.config.ts'
       - 'favicon.ico'
+      - '.env.development'
       - '.github/workflows/deploy-dev.yml'
   workflow_dispatch:
 
@@ -30,7 +31,7 @@ jobs:
       SERVER_USER: ${{ secrets.SERVER_USER_DEV }}
       SERVER_HOST: ${{ secrets.SERVER_HOST_DEV }}
       SERVER_SSH_PORT: ${{ secrets.SERVER_SSH_PORT_DEV }}
-      VITE_ENV: ${{ secrets.VITE_ENV }}
+      DOTENV_PRIVATE_KEY_DEVELOPMENT: ${{ secrets.DOTENV_PRIVATE_KEY_DEVELOPMENT }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -44,16 +45,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create build-time .env for Vite
+      - name: Build project
         run: |
-          if [ -z "$VITE_ENV" ]; then
-            echo "ERROR: VITE_ENV secret is missing or empty."
+          if [ -z "$DOTENV_PRIVATE_KEY_DEVELOPMENT" ]; then
+            echo "ERROR: DOTENV_PRIVATE_KEY_DEVELOPMENT secret is missing or empty."
             exit 1
           fi
-          printf '%s\n' "$VITE_ENV" > .env
-
-      - name: Build project
-        run: npm run build
+          npx dotenvx run --strict -f .env.development -- npm run build
 
       - name: List built files (debug)
         run: |

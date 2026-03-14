@@ -32,6 +32,55 @@ Corpus is a game collection tracker with pluggable modules. It currently ships w
    npm start
    ```
 
+## dotenvx and encrypted env files
+
+This project supports `dotenvx` for local `.env` loading now, and can optionally use encrypted env artifacts later.
+
+- Keep local plaintext env in `.env` (gitignored).
+- Never commit `.env.keys` (gitignored).
+- You may commit `.env.vault` when you choose to adopt encrypted env files.
+- Keep deployment SSH secrets in GitHub Secrets as-is (`SSH_PRIVATE_KEY`, `SERVER_*`).
+
+Suggested secret naming when vault is enabled:
+
+- `DOTENV_PRIVATE_KEY_DEVELOPMENT`
+- `DOTENV_PRIVATE_KEY_PRODUCTION`
+
+Use one key per environment to reduce blast radius.
+
+### First-time dotenvx setup
+
+If you have never used dotenvx before, use this flow:
+
+1. Create a local env file from the example:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   PowerShell equivalent:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+2. Encrypt your local `.env` into `.env.vault`:
+
+   ```bash
+   npx dotenvx encrypt -f .env
+   ```
+
+   This creates/updates:
+   - `.env.vault` (safe to commit)
+   - `.env.keys` (secret, never commit)
+
+3. Add dotenv keys to GitHub Secrets (when you enable vault in CI/deploy):
+   - `DOTENV_KEY_DEV`
+   - `DOTENV_KEY_PROD`
+
+4. Keep using normal app scripts locally (`npm start`, `npm run validate`).
+   The server already loads local `.env` automatically via dotenvx.
+
 ## Environment
 
 | Variable                            | Description                                                     |
