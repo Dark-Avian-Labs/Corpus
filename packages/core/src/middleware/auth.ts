@@ -64,7 +64,6 @@ type RemoteAuthState = {
     id: number;
     username: string;
     is_admin: boolean;
-    avatar: number;
   } | null;
   permissions: string[];
   auth_service_error?: boolean;
@@ -145,11 +144,12 @@ async function fetchRemoteAuthState(req: Request, gameId?: string): Promise<Remo
           user &&
           typeof user.id === 'number' &&
           typeof user.username === 'string' &&
-          typeof user.is_admin === 'boolean' &&
-          Number.isInteger((user as { avatar?: unknown }).avatar) &&
-          (user as { avatar: number }).avatar >= 1 &&
-          (user as { avatar: number }).avatar <= 16
-            ? user
+          typeof user.is_admin === 'boolean'
+            ? {
+                id: user.id,
+                username: user.username,
+                is_admin: user.is_admin,
+              }
             : null,
         permissions: Array.isArray(body.permissions)
           ? body.permissions.filter((p): p is string => typeof p === 'string')
@@ -185,14 +185,12 @@ async function syncSessionFromAuth(req: Request, gameId?: string): Promise<Remot
     delete session.user_id;
     delete session.username;
     delete session.is_admin;
-    delete session.avatar;
     delete session.login_time;
     return state;
   }
   session.user_id = state.user.id;
   session.username = state.user.username;
   session.is_admin = state.user.is_admin;
-  session.avatar = state.user.avatar;
   if (
     typeof session.login_time !== 'number' ||
     Date.now() - session.login_time > SESSION_TOUCH_INTERVAL_MS

@@ -7,7 +7,6 @@ export interface CustomSessionData extends SessionData {
   user_id?: number;
   username?: string;
   is_admin?: boolean;
-  avatar?: number;
   login_time?: number;
 }
 

@@ -2,7 +2,6 @@ export interface UserSummary {
   id: number;
   username: string;
   isAdmin: boolean;
-  avatar: number;
   app: string;
 }
 

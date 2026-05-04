@@ -17,7 +17,6 @@ import { APP_DISPLAY_NAME, LEGAL_ENTITY_NAME, LEGAL_PAGE_URL } from '../../app/c
 import { APP_PATHS } from '../../app/paths';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../features/auth/AuthContext';
-import { getProfileIconSrc } from '../../utils/profileIcons';
 import { MaterialSymbol } from '../ui/MaterialSymbol';
 import { Menu } from '../ui/Menu';
 export type LayoutOutletContext = {
@@ -39,8 +38,6 @@ export function Layout() {
   const menuItemNodeMap = useRef<Record<string, HTMLElement | null>>({});
   const prevMenuOpenRef = useRef(menuOpen);
   const currentYear = new Date().getFullYear();
-  const avatarSrc = getProfileIconSrc(auth.user?.avatar ?? 1);
-  const hasAvatar = avatarSrc.length > 0;
   const [headerCenter, setHeaderCenter] = useState<ReactNode | null>(null);
   const [headerActions, setHeaderActions] = useState<ReactNode | null>(null);
   const menuItemIds = useMemo(() => {
@@ -228,25 +225,13 @@ export function Layout() {
               <button
                 ref={triggerRef}
                 type="button"
-                className="icon-toggle-btn profile-avatar-btn"
+                className="icon-toggle-btn"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
                 aria-label="Open user menu"
                 onClick={() => setMenuOpen((prev) => !prev)}
               >
-                {isLoggedIn ? (
-                  hasAvatar ? (
-                    <img src={avatarSrc} alt="" className="profile-avatar-image" />
-                  ) : (
-                    <span aria-hidden="true" className="text-xs font-semibold">
-                      #{auth.user?.avatar ?? 1}
-                    </span>
-                  )
-                ) : (
-                  <span aria-hidden="true" className="text-xs font-semibold">
-                    🔐
-                  </span>
-                )}
+                <MaterialSymbol name="person" filled />
               </button>
               {menuOpen ? (
                 <Menu baseClass="user-menu">

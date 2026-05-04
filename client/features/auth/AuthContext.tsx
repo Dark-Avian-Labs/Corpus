@@ -120,7 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: number;
           username: string;
           is_admin: boolean;
-          avatar: number;
           app: string;
         };
         apps?: {
@@ -146,7 +145,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: body.user.id,
         username: body.user.username,
         isAdmin: body.user.is_admin,
-        avatar: body.user.avatar,
         app: body.user.app,
       };
       setAuth({
