@@ -25,7 +25,7 @@ catalog:
   cookie-parser: ^1.4.7
   csrf-sync: ^4.2.1
   express: ^5.2.1
-  express-rate-limit: ^8.4.1
+  express-rate-limit: ^8.5.0
   express-session: ^1.19.0
   globals: ^17.6.0
   helmet: ^8.1.0
@@ -39,7 +39,7 @@ catalog:
   typescript: ^6.0.3
   vite: ^8.0.10
   vitest: ^4.1.5
-  zod: ^4.4.2
+  zod: ^4.4.3
 overrides:
   glob: ^13.0.6
   minimatch: ^10.2.4
