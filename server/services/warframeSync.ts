@@ -18,6 +18,7 @@ const WORKSHEET_NAMES = [
   'Secondary Weapons',
   'Melee Weapons',
   'Modular Weapons',
+  'K-Drives',
   'Companions',
   'Companion Weapons',
   'Archwing Weapons',
@@ -76,6 +77,14 @@ const SPECIAL_PRIME_VARIANT_BASE_NAME = new Map<string, string>([
   ['prime laser rifle', 'Laser Rifle'],
   ['venari prime claws', 'Venari Claws'],
   ['venani prime claws', 'Venari Claws'],
+]);
+
+const K_DRIVE_NAME_WHITELIST = new Set([
+  'bad baby',
+  'feverspine',
+  'flatbelly',
+  'needlenose',
+  'runway',
 ]);
 
 type DesiredEntry = {
@@ -295,6 +304,22 @@ function loadCompanionNames(armoryDb: Database.Database): Set<string> {
   return companionNames;
 }
 
+function loadKDriveNames(armoryDb: Database.Database): Set<string> {
+  const kDriveRows = armoryDb
+    .prepare(
+      "SELECT name, unique_name FROM weapons WHERE name IS NOT NULL AND TRIM(name) <> '' AND (LOWER(product_category) LIKE '%hoverboard%' OR LOWER(unique_name) LIKE '%/types/vehicles/hoverboard/%')",
+    )
+    .all() as WeaponSourceRow[];
+  const names = new Set<string>();
+  for (const row of kDriveRows) {
+    const displayName = normalizeDisplayName(row.name?.trim() ?? '');
+    if (!displayName) continue;
+    if (!K_DRIVE_NAME_WHITELIST.has(normalizeNameForKey(displayName))) continue;
+    names.add(displayName);
+  }
+  return names;
+}
+
 function ensureWorksheetExistsForSync(
   codexDb: Database.Database,
   userId: number,
@@ -361,6 +386,7 @@ function loadWorksheetSource(armoryDb: Database.Database): Record<WorksheetName,
     ),
   );
   const modular = loadModularWeaponNames(armoryDb);
+  const kDrives = loadKDriveNames(armoryDb);
   const companions = loadCompanionNames(armoryDb);
 
   return {
@@ -369,6 +395,7 @@ function loadWorksheetSource(armoryDb: Database.Database): Record<WorksheetName,
     'Primary Weapons': primary,
     'Secondary Weapons': secondary,
     'Melee Weapons': melee,
+    'K-Drives': kDrives,
     Companions: companions,
     'Companion Weapons': companionWeapons,
     'Archwing Weapons': archwing,
