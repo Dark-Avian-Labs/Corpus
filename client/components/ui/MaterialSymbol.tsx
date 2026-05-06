@@ -1,7 +1,6 @@
 import clsx from 'clsx';
 import type { HTMLAttributes } from 'react';
 
-/** Renders a Material Symbols Rounded ligature (e.g. `check`, `close`, `share`). */
 export function MaterialSymbol({
   name,
   className,
