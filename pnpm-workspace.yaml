@@ -25,21 +25,21 @@ catalog:
   cookie-parser: ^1.4.7
   csrf-sync: ^4.2.1
   express: ^5.2.1
-  express-rate-limit: ^8.4.1
+  express-rate-limit: ^8.5.0
   express-session: ^1.19.0
   globals: ^17.6.0
   helmet: ^8.1.0
-  oxfmt: ^0.47.0
-  oxlint: ^1.62.0
+  oxfmt: ^0.48.0
+  oxlint: ^1.63.0
   react: ^19.2.5
   react-dom: ^19.2.5
-  react-router-dom: ^7.14.2
+  react-router-dom: ^7.15.0
   tailwind-merge: ^3.5.0
   tailwindcss: ^4.2.4
   typescript: ^6.0.3
   vite: ^8.0.10
   vitest: ^4.1.5
-  zod: ^4.4.2
+  zod: ^4.4.3
 overrides:
   glob: ^13.0.6
   minimatch: ^10.2.4
