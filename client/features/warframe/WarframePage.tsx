@@ -168,6 +168,7 @@ export function WarframePage() {
   const [error, setError] = useState<string | null>(null);
   const worksheetIdRef = useRef<number | null>(worksheetId);
   const exitTimersRef = useRef<Map<number, number[]>>(new Map());
+  const advancedPatchTimersRef = useRef<Map<string, number>>(new Map());
 
   const clearExitTimers = useCallback((rowId: number): void => {
     const timers = exitTimersRef.current.get(rowId);
@@ -185,6 +186,21 @@ export function WarframePage() {
       }
       exitTimersRef.current.delete(rowId);
     }
+  }, []);
+
+  const clearAdvancedPatchTimer = useCallback((key: string): void => {
+    const timer = advancedPatchTimersRef.current.get(key);
+    if (timer !== undefined) {
+      window.clearTimeout(timer);
+      advancedPatchTimersRef.current.delete(key);
+    }
+  }, []);
+
+  const clearAllAdvancedPatchTimers = useCallback((): void => {
+    for (const timer of advancedPatchTimersRef.current.values()) {
+      window.clearTimeout(timer);
+    }
+    advancedPatchTimersRef.current.clear();
   }, []);
 
   const cancelExitAnimation = useCallback(
@@ -231,8 +247,9 @@ export function WarframePage() {
   useEffect(() => {
     return () => {
       clearAllExitTimers();
+      clearAllAdvancedPatchTimers();
     };
-  }, [clearAllExitTimers]);
+  }, [clearAllExitTimers, clearAllAdvancedPatchTimers]);
 
   const fetchWorksheets = useCallback(async (): Promise<Worksheet[]> => {
     const response = await apiFetch('/api/warframe/worksheets');
@@ -577,6 +594,26 @@ export function WarframePage() {
       setError('Failed to save advanced Warframe update.');
     }
   }
+
+  const queueDebouncedAdvancedPatch = useCallback(
+    (row: Row, patch: Partial<NonNullable<Row['advanced_progress']>>, key: string): void => {
+      clearAdvancedPatchTimer(key);
+      const timer = window.setTimeout(() => {
+        advancedPatchTimersRef.current.delete(key);
+        void handleAdvancedPatch(row, patch);
+      }, 300);
+      advancedPatchTimersRef.current.set(key, timer);
+    },
+    [clearAdvancedPatchTimer, handleAdvancedPatch],
+  );
+
+  const flushAdvancedPatch = useCallback(
+    (row: Row, patch: Partial<NonNullable<Row['advanced_progress']>>, key: string): void => {
+      clearAdvancedPatchTimer(key);
+      void handleAdvancedPatch(row, patch);
+    },
+    [clearAdvancedPatchTimer, handleAdvancedPatch],
+  );
 
   const handleHideCompletedChange = useCallback(
     async (nextValue: boolean): Promise<void> => {
@@ -924,7 +961,12 @@ export function WarframePage() {
                             onChange={(event) => {
                               const next = Number(event.target.value);
                               if (!Number.isFinite(next)) return;
-                              void handleAdvancedPatch(row, { level: next });
+                              queueDebouncedAdvancedPatch(row, { level: next }, `level:${row.id}`);
+                            }}
+                            onBlur={(event) => {
+                              const next = Number(event.target.value);
+                              if (!Number.isFinite(next)) return;
+                              flushAdvancedPatch(row, { level: next }, `level:${row.id}`);
                             }}
                             aria-label={`Level for ${row.name || row.item_name || 'item'}`}
                           />
@@ -940,7 +982,20 @@ export function WarframePage() {
                               onChange={(event) => {
                                 const next = Number(event.target.value);
                                 if (!Number.isFinite(next)) return;
-                                void handleAdvancedPatch(row, { valence_percent: next });
+                                queueDebouncedAdvancedPatch(
+                                  row,
+                                  { valence_percent: next },
+                                  `valence:${row.id}`,
+                                );
+                              }}
+                              onBlur={(event) => {
+                                const next = Number(event.target.value);
+                                if (!Number.isFinite(next)) return;
+                                flushAdvancedPatch(
+                                  row,
+                                  { valence_percent: next },
+                                  `valence:${row.id}`,
+                                );
                               }}
                               aria-label={`Valence for ${row.name || row.item_name || 'item'}`}
                             />
@@ -954,7 +1009,20 @@ export function WarframePage() {
                               onChange={(event) => {
                                 const next = Number(event.target.value);
                                 if (!Number.isFinite(next)) return;
-                                void handleAdvancedPatch(row, { valence_percent: next });
+                                queueDebouncedAdvancedPatch(
+                                  row,
+                                  { valence_percent: next },
+                                  `valence:${row.id}`,
+                                );
+                              }}
+                              onBlur={(event) => {
+                                const next = Number(event.target.value);
+                                if (!Number.isFinite(next)) return;
+                                flushAdvancedPatch(
+                                  row,
+                                  { valence_percent: next },
+                                  `valence:${row.id}`,
+                                );
                               }}
                               aria-label={`Valence percent for ${row.name || row.item_name || 'item'}`}
                             />
