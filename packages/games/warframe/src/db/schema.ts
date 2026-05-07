@@ -81,6 +81,20 @@ export function ensureWarframeAdvancedProgressTable(db: Database.Database): void
       FOREIGN KEY (row_id) REFERENCES rows(id) ON DELETE CASCADE
     );
   `);
+  const cols = db.prepare(`PRAGMA table_info(row_advanced_progress)`).all() as { name: string }[];
+  const has = (name: string) => cols.some((c) => c.name === name);
+  if (!has('level_prime'))
+    db.exec('ALTER TABLE row_advanced_progress ADD COLUMN level_prime INTEGER');
+  if (!has('valence_percent_prime'))
+    db.exec('ALTER TABLE row_advanced_progress ADD COLUMN valence_percent_prime INTEGER');
+  if (!has('has_element_prime'))
+    db.exec('ALTER TABLE row_advanced_progress ADD COLUMN has_element_prime INTEGER');
+  if (!has('has_orokin_prime'))
+    db.exec('ALTER TABLE row_advanced_progress ADD COLUMN has_orokin_prime INTEGER');
+  if (!has('has_arcane_prime'))
+    db.exec('ALTER TABLE row_advanced_progress ADD COLUMN has_arcane_prime INTEGER');
+  if (!has('has_exilus_prime'))
+    db.exec('ALTER TABLE row_advanced_progress ADD COLUMN has_exilus_prime INTEGER');
 }
 
 const { getDb, closeDb } = createDbSingleton(WARFRAME_DB_PATH, {

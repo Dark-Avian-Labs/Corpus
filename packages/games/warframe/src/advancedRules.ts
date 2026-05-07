@@ -62,6 +62,10 @@ export type AdvancedRowRelevance = {
   primeAutoElementOrokin: boolean;
 };
 
+export function isElementRelevant(itemName: string): boolean {
+  return isValenceRelevant(itemName);
+}
+
 export function resolveAdvancedRowRelevance(
   worksheetName: string,
   itemName: string,
@@ -70,7 +74,7 @@ export function resolveAdvancedRowRelevance(
   return {
     maxLevel: maxLevelForRow(worksheetName, itemName),
     valence: isValenceRelevant(itemName),
-    element: true,
+    element: isElementRelevant(itemName),
     orokin: true,
     arcane: isArcaneRelevant(worksheetName, itemName),
     exilus: isExilusRelevant(worksheetName),

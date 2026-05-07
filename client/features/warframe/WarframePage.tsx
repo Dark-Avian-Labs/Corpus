@@ -16,21 +16,41 @@ type Row = {
   market_href_normal?: string | null;
   market_href_prime?: string | null;
   advanced_progress?: {
-    level: number;
-    valence_percent: number | null;
-    has_element: boolean;
-    has_orokin: boolean;
-    has_arcane: boolean;
-    has_exilus: boolean;
+    normal: {
+      level: number;
+      valence_percent: number | null;
+      has_element: boolean;
+      has_orokin: boolean;
+      has_arcane: boolean;
+      has_exilus: boolean;
+    };
+    prime: {
+      level: number;
+      valence_percent: number | null;
+      has_element: boolean;
+      has_orokin: boolean;
+      has_arcane: boolean;
+      has_exilus: boolean;
+    };
   };
   advanced_relevance?: {
-    max_level: number;
-    valence: boolean;
-    element: boolean;
-    orokin: boolean;
-    arcane: boolean;
-    exilus: boolean;
-    prime_auto_element_orokin: boolean;
+    normal: {
+      max_level: number;
+      valence: boolean;
+      element: boolean;
+      orokin: boolean;
+      arcane: boolean;
+      exilus: boolean;
+    };
+    prime: {
+      max_level: number;
+      valence: boolean;
+      element: boolean;
+      orokin: boolean;
+      arcane: boolean;
+      exilus: boolean;
+    };
+    has_prime_variant: boolean;
   };
 };
 type WorksheetData = { columns: Column[]; rows: Row[] };
@@ -157,12 +177,19 @@ function isRowAdvancedCompleted(row: Row): boolean {
   const progress = row.advanced_progress;
   const relevance = row.advanced_relevance;
   if (!progress || !relevance) return false;
-  if (progress.level < relevance.max_level) return false;
-  if (relevance.valence && (progress.valence_percent ?? 0) < 60) return false;
-  if (relevance.element && !progress.has_element) return false;
-  if (relevance.orokin && !progress.has_orokin) return false;
-  if (relevance.arcane && !progress.has_arcane) return false;
-  if (relevance.exilus && !progress.has_exilus) return false;
+  const variants: Array<'normal' | 'prime'> = relevance.has_prime_variant
+    ? ['normal', 'prime']
+    : ['normal'];
+  for (const variant of variants) {
+    const p = progress[variant];
+    const r = relevance[variant];
+    if (p.level < r.max_level) return false;
+    if (r.valence && (p.valence_percent ?? 0) < 60) return false;
+    if (r.element && !p.has_element) return false;
+    if (r.orokin && !p.has_orokin) return false;
+    if (r.arcane && !p.has_arcane) return false;
+    if (r.exilus && !p.has_exilus) return false;
+  }
   return true;
 }
 
@@ -184,6 +211,11 @@ export function WarframePage() {
   const [error, setError] = useState<string | null>(null);
   const worksheetIdRef = useRef<number | null>(worksheetId);
   const exitTimersRef = useRef<Map<number, number[]>>(new Map());
+  const holdIntervalRef = useRef<number | null>(null);
+  const holdSessionRef = useRef<{
+    latest: number;
+    commit: (value: number) => void;
+  } | null>(null);
 
   const clearExitTimers = useCallback((rowId: number): void => {
     const timers = exitTimersRef.current.get(rowId);
@@ -200,6 +232,18 @@ export function WarframePage() {
         window.clearTimeout(timer);
       }
       exitTimersRef.current.delete(rowId);
+    }
+  }, []);
+
+  const stopHoldStep = useCallback((commitFinal = true): void => {
+    if (holdIntervalRef.current !== null) {
+      window.clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+    const session = holdSessionRef.current;
+    holdSessionRef.current = null;
+    if (commitFinal && session) {
+      session.commit(session.latest);
     }
   }, []);
 
@@ -247,8 +291,9 @@ export function WarframePage() {
   useEffect(() => {
     return () => {
       clearAllExitTimers();
+      stopHoldStep();
     };
-  }, [clearAllExitTimers]);
+  }, [clearAllExitTimers, stopHoldStep]);
 
   const fetchWorksheets = useCallback(async (): Promise<Worksheet[]> => {
     const response = await apiFetch('/api/warframe/worksheets');
@@ -524,17 +569,59 @@ export function WarframePage() {
 
   async function handleAdvancedPatch(
     row: Row,
-    patch: Partial<NonNullable<Row['advanced_progress']>>,
+    patch: Partial<{
+      level: number;
+      level_prime: number;
+      valence_percent: number | null;
+      valence_percent_prime: number | null;
+      has_element: boolean;
+      has_element_prime: boolean;
+      has_orokin: boolean;
+      has_orokin_prime: boolean;
+      has_arcane: boolean;
+      has_arcane_prime: boolean;
+      has_exilus: boolean;
+      has_exilus_prime: boolean;
+    }>,
   ): Promise<void> {
     const oldProgress = row.advanced_progress ?? {
-      level: 0,
-      valence_percent: null,
-      has_element: false,
-      has_orokin: false,
-      has_arcane: false,
-      has_exilus: false,
+      normal: {
+        level: 0,
+        valence_percent: null,
+        has_element: false,
+        has_orokin: false,
+        has_arcane: false,
+        has_exilus: false,
+      },
+      prime: {
+        level: 0,
+        valence_percent: null,
+        has_element: false,
+        has_orokin: false,
+        has_arcane: false,
+        has_exilus: false,
+      },
     };
-    const nextProgress = { ...oldProgress, ...patch };
+    const nextProgress = {
+      normal: {
+        ...oldProgress.normal,
+        level: patch.level ?? oldProgress.normal.level,
+        valence_percent: patch.valence_percent ?? oldProgress.normal.valence_percent,
+        has_element: patch.has_element ?? oldProgress.normal.has_element,
+        has_orokin: patch.has_orokin ?? oldProgress.normal.has_orokin,
+        has_arcane: patch.has_arcane ?? oldProgress.normal.has_arcane,
+        has_exilus: patch.has_exilus ?? oldProgress.normal.has_exilus,
+      },
+      prime: {
+        ...oldProgress.prime,
+        level: patch.level_prime ?? oldProgress.prime.level,
+        valence_percent: patch.valence_percent_prime ?? oldProgress.prime.valence_percent,
+        has_element: patch.has_element_prime ?? oldProgress.prime.has_element,
+        has_orokin: patch.has_orokin_prime ?? oldProgress.prime.has_orokin,
+        has_arcane: patch.has_arcane_prime ?? oldProgress.prime.has_arcane,
+        has_exilus: patch.has_exilus_prime ?? oldProgress.prime.has_exilus,
+      },
+    };
     const rowId = row.id;
     const wasCompleted = isRowCompleted(row, data.columns, true);
     const nowCompleted = isRowCompleted(
@@ -593,6 +680,70 @@ export function WarframePage() {
       setError('Failed to save advanced Warframe update.');
     }
   }
+
+  const updateAdvancedProgressLocal = useCallback(
+    (
+      rowId: number,
+      patch: Partial<{
+        level: number;
+        level_prime: number;
+        valence_percent: number | null;
+        valence_percent_prime: number | null;
+      }>,
+    ): void => {
+      setData((previous) => ({
+        ...previous,
+        rows: previous.rows.map((candidate) => {
+          if (candidate.id !== rowId) return candidate;
+          const current = candidate.advanced_progress;
+          if (!current) return candidate;
+          return {
+            ...candidate,
+            advanced_progress: {
+              normal: {
+                ...current.normal,
+                level: patch.level ?? current.normal.level,
+                valence_percent: patch.valence_percent ?? current.normal.valence_percent,
+              },
+              prime: {
+                ...current.prime,
+                level: patch.level_prime ?? current.prime.level,
+                valence_percent: patch.valence_percent_prime ?? current.prime.valence_percent,
+              },
+            },
+          };
+        }),
+      }));
+    },
+    [],
+  );
+
+  const startHoldStep = useCallback(
+    (
+      initialValue: number,
+      direction: 1 | -1,
+      min: number,
+      max: number,
+      applyLocal: (next: number) => void,
+      commitRemote: (next: number) => void,
+    ): void => {
+      stopHoldStep(false);
+      let current = clamp(initialValue + direction, min, max);
+      applyLocal(current);
+      holdSessionRef.current = {
+        latest: current,
+        commit: commitRemote,
+      };
+      holdIntervalRef.current = window.setInterval(() => {
+        current = clamp(current + direction, min, max);
+        applyLocal(current);
+        if (holdSessionRef.current) {
+          holdSessionRef.current.latest = current;
+        }
+      }, 150);
+    },
+    [stopHoldStep],
+  );
 
   const handleHideCompletedChange = useCallback(
     async (nextValue: boolean): Promise<void> => {
@@ -901,7 +1052,7 @@ export function WarframePage() {
                   <>
                     <th className="text-center">Level</th>
                     <th className="text-center">Valence</th>
-                    <th className="text-center">Element</th>
+                    <th className="text-center">Ele Vice</th>
                     <th className="text-center">Orokin</th>
                     <th className="text-center">Arcane</th>
                     <th className="text-center">Exilus</th>
@@ -932,56 +1083,130 @@ export function WarframePage() {
                       <>
                         <td className="status-cell">
                           <div className="status-cell-inner justify-center">
-                            <button
-                              type="button"
-                              className="status-btn helminth-btn empty min-w-[110px]"
-                              onClick={(event) => {
-                                const current = row.advanced_progress?.level ?? 0;
-                                const max = row.advanced_relevance?.max_level ?? 30;
-                                const rect = event.currentTarget.getBoundingClientRect();
-                                const direction =
-                                  event.clientY < rect.top + rect.height / 2 ? 1 : -1;
-                                const next = clamp(current + direction, 0, max);
-                                void handleAdvancedPatch(row, { level: next });
-                              }}
-                              aria-label={`Level for ${row.name || row.item_name || 'item'} (click top to increase, bottom to decrease)`}
-                              title="Click top half to increase, bottom half to decrease"
-                            >
-                              <span className="inline-flex items-center gap-2">
-                                <span>{row.advanced_progress?.level ?? 0}</span>
-                                <span className="text-xs leading-none opacity-80">▲▼</span>
-                              </span>
-                            </button>
+                            <div className="flex flex-col gap-1">
+                              {(['normal', 'prime'] as const).map((variant) => {
+                                const isPrime = variant === 'prime';
+                                const relevance = row.advanced_relevance?.[variant];
+                                const progress = row.advanced_progress?.[variant];
+                                const enabled = isPrime
+                                  ? Boolean(row.advanced_relevance?.has_prime_variant)
+                                  : true;
+                                const max = relevance?.max_level ?? 30;
+                                const current = progress?.level ?? 0;
+                                const key = isPrime ? 'level_prime' : 'level';
+                                return (
+                                  <button
+                                    key={`level-${variant}`}
+                                    type="button"
+                                    className={`status-btn helminth-btn ${
+                                      enabled ? 'empty' : 'unavailable'
+                                    } min-w-[82px] px-2 py-1 text-xs`}
+                                    disabled={!enabled}
+                                    onMouseDown={(event) => {
+                                      const rect = event.currentTarget.getBoundingClientRect();
+                                      const direction: 1 | -1 =
+                                        event.clientY < rect.top + rect.height / 2 ? 1 : -1;
+                                      startHoldStep(
+                                        current,
+                                        direction,
+                                        0,
+                                        max,
+                                        (next) => {
+                                          updateAdvancedProgressLocal(row.id, {
+                                            [key]: next,
+                                          } as { level?: number; level_prime?: number });
+                                        },
+                                        (next) => {
+                                          void handleAdvancedPatch(row, { [key]: next } as {
+                                            level?: number;
+                                            level_prime?: number;
+                                          });
+                                        },
+                                      );
+                                    }}
+                                    onMouseUp={() => stopHoldStep(true)}
+                                    onMouseLeave={() => stopHoldStep(true)}
+                                    onTouchEnd={() => stopHoldStep(true)}
+                                    aria-label={`${isPrime ? 'Prime' : 'Normal'} level for ${row.name || row.item_name || 'item'}`}
+                                  >
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <span className="text-[10px] opacity-70">
+                                        {isPrime ? 'P' : 'N'}
+                                      </span>
+                                      <span>{current}</span>
+                                      <span className="inline-flex flex-col text-[9px] leading-[0.7] opacity-80">
+                                        <span>▲</span>
+                                        <span>▼</span>
+                                      </span>
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         </td>
                         <td className="status-cell">
                           <div className="status-cell-inner justify-center">
-                            <button
-                              type="button"
-                              className={`status-btn helminth-btn ${
-                                row.advanced_relevance?.valence ? 'empty' : 'unavailable'
-                              } min-w-[110px]`}
-                              disabled={!row.advanced_relevance?.valence}
-                              onClick={(event) => {
-                                const current = row.advanced_progress?.valence_percent ?? 30;
-                                const rect = event.currentTarget.getBoundingClientRect();
-                                const direction =
-                                  event.clientY < rect.top + rect.height / 2 ? 1 : -1;
-                                const next = clamp(current + direction, 30, 60);
-                                void handleAdvancedPatch(row, { valence_percent: next });
-                              }}
-                              aria-label={`Valence percent for ${row.name || row.item_name || 'item'} (click top to increase, bottom to decrease)`}
-                              title={
-                                row.advanced_relevance?.valence
-                                  ? 'Click top half to increase, bottom half to decrease'
-                                  : 'Valence not relevant for this item'
-                              }
-                            >
-                              <span className="inline-flex items-center gap-2">
-                                <span>{row.advanced_progress?.valence_percent ?? 30}</span>
-                                <span className="text-xs leading-none opacity-80">▲▼</span>
-                              </span>
-                            </button>
+                            <div className="flex flex-col gap-1">
+                              {(['normal', 'prime'] as const).map((variant) => {
+                                const isPrime = variant === 'prime';
+                                const relevance = row.advanced_relevance?.[variant];
+                                const progress = row.advanced_progress?.[variant];
+                                const enabled = Boolean(relevance?.valence);
+                                const current = progress?.valence_percent ?? 30;
+                                const key = isPrime ? 'valence_percent_prime' : 'valence_percent';
+                                return (
+                                  <button
+                                    key={`valence-${variant}`}
+                                    type="button"
+                                    className={`status-btn helminth-btn ${
+                                      enabled ? 'empty' : 'unavailable'
+                                    } min-w-[82px] px-2 py-1 text-xs`}
+                                    disabled={!enabled}
+                                    onMouseDown={(event) => {
+                                      const rect = event.currentTarget.getBoundingClientRect();
+                                      const direction: 1 | -1 =
+                                        event.clientY < rect.top + rect.height / 2 ? 1 : -1;
+                                      startHoldStep(
+                                        current,
+                                        direction,
+                                        30,
+                                        60,
+                                        (next) => {
+                                          updateAdvancedProgressLocal(row.id, {
+                                            [key]: next,
+                                          } as {
+                                            valence_percent?: number;
+                                            valence_percent_prime?: number;
+                                          });
+                                        },
+                                        (next) => {
+                                          void handleAdvancedPatch(row, { [key]: next } as {
+                                            valence_percent?: number;
+                                            valence_percent_prime?: number;
+                                          });
+                                        },
+                                      );
+                                    }}
+                                    onMouseUp={() => stopHoldStep(true)}
+                                    onMouseLeave={() => stopHoldStep(true)}
+                                    onTouchEnd={() => stopHoldStep(true)}
+                                    aria-label={`${isPrime ? 'Prime' : 'Normal'} valence for ${row.name || row.item_name || 'item'}`}
+                                  >
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <span className="text-[10px] opacity-70">
+                                        {isPrime ? 'P' : 'N'}
+                                      </span>
+                                      <span>{current}</span>
+                                      <span className="inline-flex flex-col text-[9px] leading-[0.7] opacity-80">
+                                        <span>▲</span>
+                                        <span>▼</span>
+                                      </span>
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         </td>
                         {(
@@ -994,25 +1219,62 @@ export function WarframePage() {
                         ).map(([field, relevanceField]) => (
                           <td key={`${row.id}-${field}`} className="status-cell">
                             <div className="status-cell-inner justify-center">
-                              <button
-                                type="button"
-                                className={advancedToggleClass(
-                                  Boolean(row.advanced_progress?.[field]),
-                                  Boolean(row.advanced_relevance?.[relevanceField]),
-                                )}
-                                disabled={!row.advanced_relevance?.[relevanceField]}
-                                onClick={() => {
-                                  void handleAdvancedPatch(row, {
-                                    [field]: !row.advanced_progress?.[field],
-                                  });
-                                }}
-                                aria-label={`${field.replace('has_', '')} for ${row.name || row.item_name || 'item'}`}
-                              >
-                                {advancedToggleGlyph(
-                                  Boolean(row.advanced_progress?.[field]),
-                                  Boolean(row.advanced_relevance?.[relevanceField]),
-                                )}
-                              </button>
+                              <div className="flex flex-col gap-1">
+                                {(['normal', 'prime'] as const).map((variant) => {
+                                  const isPrime = variant === 'prime';
+                                  const checked = Boolean(
+                                    isPrime
+                                      ? row.advanced_progress?.prime[
+                                          field as keyof NonNullable<
+                                            Row['advanced_progress']
+                                          >['prime']
+                                        ]
+                                      : row.advanced_progress?.normal[
+                                          field as keyof NonNullable<
+                                            Row['advanced_progress']
+                                          >['normal']
+                                        ],
+                                  );
+                                  const relevant = Boolean(
+                                    row.advanced_relevance?.[variant][
+                                      relevanceField as keyof NonNullable<
+                                        Row['advanced_relevance']
+                                      >['normal']
+                                    ],
+                                  );
+                                  const key = isPrime ? `${field}_prime` : field;
+                                  return (
+                                    <button
+                                      key={`${row.id}-${key}`}
+                                      type="button"
+                                      className={`${advancedToggleClass(checked, relevant)} min-w-[82px] px-2 py-1 text-xs`}
+                                      disabled={!relevant}
+                                      onClick={() => {
+                                        void handleAdvancedPatch(row, {
+                                          [key]: !checked,
+                                        } as Partial<{
+                                          has_element: boolean;
+                                          has_element_prime: boolean;
+                                          has_orokin: boolean;
+                                          has_orokin_prime: boolean;
+                                          has_arcane: boolean;
+                                          has_arcane_prime: boolean;
+                                          has_exilus: boolean;
+                                          has_exilus_prime: boolean;
+                                        }>);
+                                      }}
+                                      aria-label={`${isPrime ? 'Prime' : 'Normal'} ${field.replace('has_', '')} for ${row.name || row.item_name || 'item'}`}
+                                    >
+                                      <span className="inline-flex items-center gap-1.5">
+                                        <span className="text-[10px] opacity-70">
+                                          {isPrime ? 'P' : 'N'}
+                                        </span>
+                                        <span>{advancedToggleGlyph(checked, relevant)}</span>
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </td>
                         ))}

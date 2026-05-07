@@ -29,21 +29,13 @@ export interface DataRow {
   market_href_prime?: string | null;
   market_href_normal?: string | null;
   advanced_progress?: {
-    level: number;
-    valence_percent: number | null;
-    has_element: boolean;
-    has_orokin: boolean;
-    has_arcane: boolean;
-    has_exilus: boolean;
+    normal: AdvancedVariantProgressState;
+    prime: AdvancedVariantProgressState;
   };
   advanced_relevance?: {
-    max_level: number;
-    valence: boolean;
-    element: boolean;
-    orokin: boolean;
-    arcane: boolean;
-    exilus: boolean;
-    prime_auto_element_orokin: boolean;
+    normal: AdvancedVariantRelevanceState;
+    prime: AdvancedVariantRelevanceState;
+    has_prime_variant: boolean;
   };
 }
 
@@ -68,14 +60,20 @@ const VALENCE_COMPLETE_THRESHOLD = 58;
 type AdvancedProgressRow = {
   row_id: number;
   level: number;
+  level_prime: number | null;
   valence_percent: number | null;
+  valence_percent_prime: number | null;
   has_element: number;
+  has_element_prime: number | null;
   has_orokin: number;
+  has_orokin_prime: number | null;
   has_arcane: number;
+  has_arcane_prime: number | null;
   has_exilus: number;
+  has_exilus_prime: number | null;
 };
 
-export type AdvancedProgressState = {
+export type AdvancedVariantProgressState = {
   level: number;
   valence_percent: number | null;
   has_element: boolean;
@@ -84,7 +82,39 @@ export type AdvancedProgressState = {
   has_exilus: boolean;
 };
 
-export type AdvancedProgressPatch = Partial<AdvancedProgressState>;
+export type AdvancedVariantRelevanceState = {
+  max_level: number;
+  valence: boolean;
+  element: boolean;
+  orokin: boolean;
+  arcane: boolean;
+  exilus: boolean;
+};
+
+export type AdvancedProgressState = {
+  normal: AdvancedVariantProgressState;
+  prime: AdvancedVariantProgressState;
+  relevance: {
+    normal: AdvancedVariantRelevanceState;
+    prime: AdvancedVariantRelevanceState;
+    has_prime_variant: boolean;
+  };
+};
+
+export type AdvancedProgressPatch = Partial<{
+  level: number;
+  level_prime: number;
+  valence_percent: number | null;
+  valence_percent_prime: number | null;
+  has_element: boolean;
+  has_element_prime: boolean;
+  has_orokin: boolean;
+  has_orokin_prime: boolean;
+  has_arcane: boolean;
+  has_arcane_prime: boolean;
+  has_exilus: boolean;
+  has_exilus_prime: boolean;
+}>;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -95,66 +125,150 @@ function normalizeValence(value: number): number {
   return clamped >= VALENCE_COMPLETE_THRESHOLD ? 60 : clamped;
 }
 
+function rowHasVariant(
+  rowValues: Record<number, string>,
+  columns: { id: number; name: string }[],
+  prime: boolean,
+): boolean {
+  const candidateColumns = columns.filter((column) => {
+    if (column.name === HELMINTH_COLUMN_NAME) return false;
+    return prime ? /prime/i.test(column.name) : !/prime/i.test(column.name);
+  });
+  if (candidateColumns.length === 0) return !prime;
+  return candidateColumns.some((column) => (rowValues[column.id] ?? '') !== 'Unavailable');
+}
+
 function resolveAdvancedProgressState(
   worksheetName: string,
   itemName: string,
+  hasPrimeVariant: boolean,
   current?: AdvancedProgressRow | null,
   patch?: AdvancedProgressPatch,
-): AdvancedProgressState & {
-  relevance: ReturnType<typeof resolveAdvancedRowRelevance>;
-} {
-  const relevance = resolveAdvancedRowRelevance(worksheetName, itemName);
-  let level = clamp(current?.level ?? 0, 0, relevance.maxLevel);
-  let valencePercent = relevance.valence ? normalizeValence(current?.valence_percent ?? 30) : null;
-  let hasElement = current ? current.has_element === 1 : relevance.primeAutoElementOrokin;
-  let hasOrokin = current ? current.has_orokin === 1 : relevance.primeAutoElementOrokin;
-  let hasArcane = current ? current.has_arcane === 1 : false;
-  let hasExilus = current ? current.has_exilus === 1 : false;
+): AdvancedProgressState {
+  const normalRelevanceRaw = resolveAdvancedRowRelevance(worksheetName, itemName);
+  const primeRelevanceRaw = resolveAdvancedRowRelevance(worksheetName, `${itemName} Prime`);
+  const normalizeRelevance = (
+    raw: ReturnType<typeof resolveAdvancedRowRelevance>,
+    available: boolean,
+  ): AdvancedVariantRelevanceState => ({
+    max_level: raw.maxLevel,
+    valence: available && raw.valence,
+    element: available && raw.element,
+    orokin: available && raw.orokin,
+    arcane: available && raw.arcane,
+    exilus: available && raw.exilus,
+  });
+  const normalRelevance = normalizeRelevance(normalRelevanceRaw, true);
+  const primeRelevance = normalizeRelevance(primeRelevanceRaw, hasPrimeVariant);
 
-  if (patch) {
-    if (typeof patch.level === 'number' && Number.isFinite(patch.level)) {
-      level = clamp(Math.trunc(patch.level), 0, relevance.maxLevel);
+  const normalizeVariantState = (
+    relevance: AdvancedVariantRelevanceState,
+    source: {
+      level: number | null | undefined;
+      valence_percent: number | null | undefined;
+      has_element: number | null | undefined;
+      has_orokin: number | null | undefined;
+      has_arcane: number | null | undefined;
+      has_exilus: number | null | undefined;
+    },
+    variantPatch: Partial<AdvancedProgressPatch>,
+    autoPrimeFlags = false,
+  ): AdvancedVariantProgressState => {
+    let level = clamp(source.level ?? 0, 0, relevance.max_level);
+    let valencePercent =
+      relevance.valence && source.valence_percent !== null && source.valence_percent !== undefined
+        ? normalizeValence(source.valence_percent)
+        : relevance.valence
+          ? 30
+          : null;
+    let hasElement = source.has_element === 1;
+    let hasOrokin = source.has_orokin === 1;
+    let hasArcane = source.has_arcane === 1;
+    let hasExilus = source.has_exilus === 1;
+
+    if (typeof variantPatch.level === 'number' && Number.isFinite(variantPatch.level)) {
+      level = clamp(Math.trunc(variantPatch.level), 0, relevance.max_level);
     }
-    if (patch.valence_percent !== undefined) {
-      if (patch.valence_percent === null || !relevance.valence) {
+    if (variantPatch.valence_percent !== undefined) {
+      if (variantPatch.valence_percent === null || !relevance.valence) {
         valencePercent = null;
-      } else if (
-        typeof patch.valence_percent === 'number' &&
-        Number.isFinite(patch.valence_percent)
-      ) {
-        valencePercent = normalizeValence(patch.valence_percent);
+      } else if (typeof variantPatch.valence_percent === 'number') {
+        valencePercent = normalizeValence(variantPatch.valence_percent);
       }
     }
-    if (typeof patch.has_element === 'boolean') {
-      hasElement = patch.has_element;
-    }
-    if (typeof patch.has_orokin === 'boolean') {
-      hasOrokin = patch.has_orokin;
-    }
-    if (typeof patch.has_arcane === 'boolean') {
-      hasArcane = patch.has_arcane;
-    }
-    if (typeof patch.has_exilus === 'boolean') {
-      hasExilus = patch.has_exilus;
-    }
-  }
+    if (typeof variantPatch.has_element === 'boolean') hasElement = variantPatch.has_element;
+    if (typeof variantPatch.has_orokin === 'boolean') hasOrokin = variantPatch.has_orokin;
+    if (typeof variantPatch.has_arcane === 'boolean') hasArcane = variantPatch.has_arcane;
+    if (typeof variantPatch.has_exilus === 'boolean') hasExilus = variantPatch.has_exilus;
 
-  if (relevance.primeAutoElementOrokin) {
-    hasElement = true;
-    hasOrokin = true;
-  }
-  if (!relevance.arcane) hasArcane = false;
-  if (!relevance.exilus) hasExilus = false;
-  if (!relevance.valence) valencePercent = null;
+    if (!relevance.element) hasElement = false;
+    if (!relevance.orokin) hasOrokin = false;
+    if (!relevance.arcane) hasArcane = false;
+    if (!relevance.exilus) hasExilus = false;
+    if (!relevance.valence) valencePercent = null;
+    if (autoPrimeFlags) {
+      hasOrokin = true;
+    }
+
+    return {
+      level,
+      valence_percent: valencePercent,
+      has_element: hasElement,
+      has_orokin: hasOrokin,
+      has_arcane: hasArcane,
+      has_exilus: hasExilus,
+    };
+  };
+
+  const normal = normalizeVariantState(
+    normalRelevance,
+    {
+      level: current?.level,
+      valence_percent: current?.valence_percent,
+      has_element: current?.has_element,
+      has_orokin: current?.has_orokin,
+      has_arcane: current?.has_arcane,
+      has_exilus: current?.has_exilus,
+    },
+    {
+      level: patch?.level,
+      valence_percent: patch?.valence_percent,
+      has_element: patch?.has_element,
+      has_orokin: patch?.has_orokin,
+      has_arcane: patch?.has_arcane,
+      has_exilus: patch?.has_exilus,
+    },
+    normalRelevanceRaw.primeAutoElementOrokin,
+  );
+  const prime = normalizeVariantState(
+    primeRelevance,
+    {
+      level: current?.level_prime,
+      valence_percent: current?.valence_percent_prime,
+      has_element: current?.has_element_prime,
+      has_orokin: current?.has_orokin_prime,
+      has_arcane: current?.has_arcane_prime,
+      has_exilus: current?.has_exilus_prime,
+    },
+    {
+      level: patch?.level_prime,
+      valence_percent: patch?.valence_percent_prime,
+      has_element: patch?.has_element_prime,
+      has_orokin: patch?.has_orokin_prime,
+      has_arcane: patch?.has_arcane_prime,
+      has_exilus: patch?.has_exilus_prime,
+    },
+    primeRelevanceRaw.primeAutoElementOrokin,
+  );
 
   return {
-    level,
-    valence_percent: valencePercent,
-    has_element: hasElement,
-    has_orokin: hasOrokin,
-    has_arcane: hasArcane,
-    has_exilus: hasExilus,
-    relevance,
+    normal,
+    prime,
+    relevance: {
+      normal: normalRelevance,
+      prime: primeRelevance,
+      has_prime_variant: hasPrimeVariant,
+    },
   };
 }
 
@@ -383,7 +497,7 @@ export function getWorksheetData(
     const placeholders = rowIds.map(() => '?').join(',');
     const advancedRows = db
       .prepare(
-        `SELECT row_id, level, valence_percent, has_element, has_orokin, has_arcane, has_exilus
+        `SELECT row_id, level, level_prime, valence_percent, valence_percent_prime, has_element, has_element_prime, has_orokin, has_orokin_prime, has_arcane, has_arcane_prime, has_exilus, has_exilus_prime
          FROM row_advanced_progress
          WHERE row_id IN (${placeholders})`,
       )
@@ -394,28 +508,18 @@ export function getWorksheetData(
   }
 
   for (const row of dataRows) {
+    const hasPrimeVariant = rowHasVariant(row.values, columns, true);
     const state = resolveAdvancedProgressState(
       worksheet.name,
       row.name,
+      hasPrimeVariant,
       advancedRowsByRowId.get(row.id),
     );
     row.advanced_progress = {
-      level: state.level,
-      valence_percent: state.valence_percent,
-      has_element: state.has_element,
-      has_orokin: state.has_orokin,
-      has_arcane: state.has_arcane,
-      has_exilus: state.has_exilus,
+      normal: state.normal,
+      prime: state.prime,
     };
-    row.advanced_relevance = {
-      max_level: state.relevance.maxLevel,
-      valence: state.relevance.valence,
-      element: state.relevance.element,
-      orokin: state.relevance.orokin,
-      arcane: state.relevance.arcane,
-      exilus: state.relevance.exilus,
-      prime_auto_element_orokin: state.relevance.primeAutoElementOrokin,
-    };
+    row.advanced_relevance = state.relevance;
   }
 
   dataRows.sort((a, b) =>
@@ -435,11 +539,7 @@ export function getRowAdvancedProgress(
   db: Database.Database,
   rowId: number,
   userId: number,
-):
-  | (AdvancedProgressState & {
-      relevance: ReturnType<typeof resolveAdvancedRowRelevance>;
-    })
-  | null {
+): AdvancedProgressState | null {
   const row = db
     .prepare(
       `SELECT r.id, r.item_name, w.name as worksheet_name
@@ -451,12 +551,18 @@ export function getRowAdvancedProgress(
   if (!row) return null;
   const current = db
     .prepare(
-      `SELECT row_id, level, valence_percent, has_element, has_orokin, has_arcane, has_exilus
+      `SELECT row_id, level, level_prime, valence_percent, valence_percent_prime, has_element, has_element_prime, has_orokin, has_orokin_prime, has_arcane, has_arcane_prime, has_exilus, has_exilus_prime
        FROM row_advanced_progress
        WHERE row_id = ?`,
     )
     .get(rowId) as AdvancedProgressRow | undefined;
-  return resolveAdvancedProgressState(row.worksheet_name, row.item_name, current);
+  const columns = getWorksheetColumns(db, getRowWorksheetId(db, rowId, userId) ?? 0, userId);
+  const rowValues = columns.reduce<Record<number, string>>((acc, column) => {
+    acc[column.id] = getCellValue(db, rowId, column.id, userId) ?? '';
+    return acc;
+  }, {});
+  const hasPrimeVariant = rowHasVariant(rowValues, columns, true);
+  return resolveAdvancedProgressState(row.worksheet_name, row.item_name, hasPrimeVariant, current);
 }
 
 export function updateRowAdvancedProgress(
@@ -478,41 +584,59 @@ export function updateRowAdvancedProgress(
   }
   const current = db
     .prepare(
-      `SELECT row_id, level, valence_percent, has_element, has_orokin, has_arcane, has_exilus
+      `SELECT row_id, level, level_prime, valence_percent, valence_percent_prime, has_element, has_element_prime, has_orokin, has_orokin_prime, has_arcane, has_arcane_prime, has_exilus, has_exilus_prime
        FROM row_advanced_progress
        WHERE row_id = ?`,
     )
     .get(rowId) as AdvancedProgressRow | undefined;
-  const next = resolveAdvancedProgressState(row.worksheet_name, row.item_name, current, patch);
+  const worksheetId = getRowWorksheetId(db, rowId, userId);
+  const columns = worksheetId === null ? [] : getWorksheetColumns(db, worksheetId, userId);
+  const rowValues = columns.reduce<Record<number, string>>((acc, column) => {
+    acc[column.id] = getCellValue(db, rowId, column.id, userId) ?? '';
+    return acc;
+  }, {});
+  const hasPrimeVariant = rowHasVariant(rowValues, columns, true);
+  const next = resolveAdvancedProgressState(
+    row.worksheet_name,
+    row.item_name,
+    hasPrimeVariant,
+    current,
+    patch,
+  );
   db.prepare(
     `INSERT INTO row_advanced_progress (
-      row_id, level, valence_percent, has_element, has_orokin, has_arcane, has_exilus, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      row_id, level, level_prime, valence_percent, valence_percent_prime, has_element, has_element_prime, has_orokin, has_orokin_prime, has_arcane, has_arcane_prime, has_exilus, has_exilus_prime, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(row_id) DO UPDATE SET
       level = excluded.level,
+      level_prime = excluded.level_prime,
       valence_percent = excluded.valence_percent,
+      valence_percent_prime = excluded.valence_percent_prime,
       has_element = excluded.has_element,
+      has_element_prime = excluded.has_element_prime,
       has_orokin = excluded.has_orokin,
+      has_orokin_prime = excluded.has_orokin_prime,
       has_arcane = excluded.has_arcane,
+      has_arcane_prime = excluded.has_arcane_prime,
       has_exilus = excluded.has_exilus,
+      has_exilus_prime = excluded.has_exilus_prime,
       updated_at = datetime('now')`,
   ).run(
     rowId,
-    next.level,
-    next.valence_percent,
-    next.has_element ? 1 : 0,
-    next.has_orokin ? 1 : 0,
-    next.has_arcane ? 1 : 0,
-    next.has_exilus ? 1 : 0,
+    next.normal.level,
+    next.prime.level,
+    next.normal.valence_percent,
+    next.prime.valence_percent,
+    next.normal.has_element ? 1 : 0,
+    next.prime.has_element ? 1 : 0,
+    next.normal.has_orokin ? 1 : 0,
+    next.prime.has_orokin ? 1 : 0,
+    next.normal.has_arcane ? 1 : 0,
+    next.prime.has_arcane ? 1 : 0,
+    next.normal.has_exilus ? 1 : 0,
+    next.prime.has_exilus ? 1 : 0,
   );
-  return {
-    level: next.level,
-    valence_percent: next.valence_percent,
-    has_element: next.has_element,
-    has_orokin: next.has_orokin,
-    has_arcane: next.has_arcane,
-    has_exilus: next.has_exilus,
-  };
+  return next;
 }
 
 export function updateCell(

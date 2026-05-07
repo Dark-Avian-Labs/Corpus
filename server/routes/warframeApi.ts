@@ -374,11 +374,17 @@ warframeApiRouter.patch('/advanced-progress', (req, res) => {
     try {
       const next = q.updateRowAdvancedProgress(db, data.row_id, userId, {
         level: data.level,
+        level_prime: data.level_prime,
         valence_percent: data.valence_percent,
+        valence_percent_prime: data.valence_percent_prime,
         has_element: data.has_element,
+        has_element_prime: data.has_element_prime,
         has_orokin: data.has_orokin,
+        has_orokin_prime: data.has_orokin_prime,
         has_arcane: data.has_arcane,
+        has_arcane_prime: data.has_arcane_prime,
         has_exilus: data.has_exilus,
+        has_exilus_prime: data.has_exilus_prime,
       });
       res.status(200).json({ success: true, advanced_progress: next });
     } catch (error) {
