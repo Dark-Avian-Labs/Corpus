@@ -1010,68 +1010,6 @@ export function WarframePage() {
               )}
             </span>
           </button>
-          {!advancedMode ? (
-            <button
-              type="button"
-              onClick={() => {
-                void handleMarketLinksChange(!marketLinks);
-              }}
-              aria-pressed={marketLinks}
-              className="border-glass-border text-muted hover:border-glass-border-hover hover:bg-glass-hover hover:text-foreground inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-[color,background-color,border-color,box-shadow] duration-200"
-              title='Toggle "Market links"'
-            >
-              <span>Market links</span>
-              <span
-                className={`inline-flex h-5 w-5 items-center justify-center rounded text-xs font-bold transition-colors ${
-                  marketLinks
-                    ? 'bg-success/20 text-success hover:bg-success/30'
-                    : 'bg-muted/10 text-muted/40 hover:bg-muted/20'
-                }`}
-                aria-hidden="true"
-              >
-                {marketLinks ? (
-                  <MaterialSymbol
-                    name="check"
-                    filled
-                    className="leading-none"
-                    style={{ fontSize: 15 }}
-                  />
-                ) : (
-                  <MaterialSymbol name="close" className="leading-none" style={{ fontSize: 15 }} />
-                )}
-              </span>
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              void handleAdvancedModeChange(!advancedMode);
-            }}
-            aria-pressed={advancedMode}
-            className="border-glass-border text-muted hover:border-glass-border-hover hover:bg-glass-hover hover:text-foreground inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-[color,background-color,border-color,box-shadow] duration-200"
-            title='Toggle "Advanced"'
-          >
-            <span>Advanced</span>
-            <span
-              className={`inline-flex h-5 w-5 items-center justify-center rounded text-xs font-bold transition-colors ${
-                advancedMode
-                  ? 'bg-success/20 text-success hover:bg-success/30'
-                  : 'bg-muted/10 text-muted/40 hover:bg-muted/20'
-              }`}
-              aria-hidden="true"
-            >
-              {advancedMode ? (
-                <MaterialSymbol
-                  name="check"
-                  filled
-                  className="leading-none"
-                  style={{ fontSize: 15 }}
-                />
-              ) : (
-                <MaterialSymbol name="close" className="leading-none" style={{ fontSize: 15 }} />
-              )}
-            </span>
-          </button>
           {advancedMode ? (
             <button
               type="button"
@@ -1107,7 +1045,68 @@ export function WarframePage() {
                 )}
               </span>
             </button>
-          ) : null}
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                void handleMarketLinksChange(!marketLinks);
+              }}
+              aria-pressed={marketLinks}
+              className="border-glass-border text-muted hover:border-glass-border-hover hover:bg-glass-hover hover:text-foreground inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-[color,background-color,border-color,box-shadow] duration-200"
+              title='Toggle "Market links"'
+            >
+              <span>Market links</span>
+              <span
+                className={`inline-flex h-5 w-5 items-center justify-center rounded text-xs font-bold transition-colors ${
+                  marketLinks
+                    ? 'bg-success/20 text-success hover:bg-success/30'
+                    : 'bg-muted/10 text-muted/40 hover:bg-muted/20'
+                }`}
+                aria-hidden="true"
+              >
+                {marketLinks ? (
+                  <MaterialSymbol
+                    name="check"
+                    filled
+                    className="leading-none"
+                    style={{ fontSize: 15 }}
+                  />
+                ) : (
+                  <MaterialSymbol name="close" className="leading-none" style={{ fontSize: 15 }} />
+                )}
+              </span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              void handleAdvancedModeChange(!advancedMode);
+            }}
+            aria-pressed={advancedMode}
+            className="border-glass-border text-muted hover:border-glass-border-hover hover:bg-glass-hover hover:text-foreground inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-[color,background-color,border-color,box-shadow] duration-200"
+            title='Toggle "Advanced"'
+          >
+            <span>Advanced</span>
+            <span
+              className={`inline-flex h-5 w-5 items-center justify-center rounded text-xs font-bold transition-colors ${
+                advancedMode
+                  ? 'bg-success/20 text-success hover:bg-success/30'
+                  : 'bg-muted/10 text-muted/40 hover:bg-muted/20'
+              }`}
+              aria-hidden="true"
+            >
+              {advancedMode ? (
+                <MaterialSymbol
+                  name="check"
+                  filled
+                  className="leading-none"
+                  style={{ fontSize: 15 }}
+                />
+              ) : (
+                <MaterialSymbol name="close" className="leading-none" style={{ fontSize: 15 }} />
+              )}
+            </span>
+          </button>
         </div>
       </div>
       <div className="table-container">

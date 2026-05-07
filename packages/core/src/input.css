@@ -978,13 +978,13 @@ html:not(.dark) .invert-on-light {
   }
 
   .helminth-btn.yes {
-    color: oklch(78% 0.17 155);
-    background: oklch(78% 0.17 155 / 0.1);
-    border-color: oklch(78% 0.17 155 / 0.3);
+    color: var(--color-success);
+    background: color-mix(in oklab, var(--color-success) 10%, transparent);
+    border-color: color-mix(in oklab, var(--color-success) 30%, transparent);
   }
 
   .helminth-btn.yes:hover {
-    background: oklch(78% 0.17 155 / 0.15);
+    background: color-mix(in oklab, var(--color-success) 15%, transparent);
   }
 
   .status-select {
@@ -1047,12 +1047,12 @@ html:not(.dark) .invert-on-light {
 
   .stat-complete,
   .stat-maxed {
-    color: oklch(78% 0.17 155);
+    color: var(--color-success);
   }
 
   .stat-obtained,
   .stat-owned {
-    color: oklch(83% 0.16 85);
+    color: var(--color-warning);
   }
 
   .row-actions {
