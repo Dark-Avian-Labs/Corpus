@@ -67,7 +67,26 @@ export function ensureWarframeRowMarketHrefColumns(db: Database.Database): void 
   }
 }
 
+export function ensureWarframeAdvancedProgressTable(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS row_advanced_progress (
+      row_id INTEGER PRIMARY KEY,
+      level INTEGER NOT NULL DEFAULT 0,
+      valence_percent INTEGER,
+      has_element INTEGER NOT NULL DEFAULT 0,
+      has_orokin INTEGER NOT NULL DEFAULT 0,
+      has_arcane INTEGER NOT NULL DEFAULT 0,
+      has_exilus INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (row_id) REFERENCES rows(id) ON DELETE CASCADE
+    );
+  `);
+}
+
 const { getDb, closeDb } = createDbSingleton(WARFRAME_DB_PATH, {
-  onOpen: ensureWarframeRowMarketHrefColumns,
+  onOpen: (db) => {
+    ensureWarframeRowMarketHrefColumns(db);
+    ensureWarframeAdvancedProgressTable(db);
+  },
 });
 export { getDb, closeDb };

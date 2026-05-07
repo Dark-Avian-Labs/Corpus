@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 
+import { resolveAdvancedRowRelevance } from '../advancedRules.js';
 import { isHelminthValue, isValidStatus } from '../config.js';
 import { normalizeDisplayName } from '../displayName.js';
 import {
@@ -27,6 +28,23 @@ export interface DataRow {
   market_href?: string | null;
   market_href_prime?: string | null;
   market_href_normal?: string | null;
+  advanced_progress?: {
+    level: number;
+    valence_percent: number | null;
+    has_element: boolean;
+    has_orokin: boolean;
+    has_arcane: boolean;
+    has_exilus: boolean;
+  };
+  advanced_relevance?: {
+    max_level: number;
+    valence: boolean;
+    element: boolean;
+    orokin: boolean;
+    arcane: boolean;
+    exilus: boolean;
+    prime_auto_element_orokin: boolean;
+  };
 }
 
 export interface WorksheetData {
@@ -45,6 +63,100 @@ export interface WorksheetRowRecord {
 
 const HELMINTH_COLUMN_NAME = 'Helminth';
 const WARFRAMES_WORKSHEET_NAME = 'Warframes';
+const VALENCE_COMPLETE_THRESHOLD = 58;
+
+type AdvancedProgressRow = {
+  row_id: number;
+  level: number;
+  valence_percent: number | null;
+  has_element: number;
+  has_orokin: number;
+  has_arcane: number;
+  has_exilus: number;
+};
+
+export type AdvancedProgressState = {
+  level: number;
+  valence_percent: number | null;
+  has_element: boolean;
+  has_orokin: boolean;
+  has_arcane: boolean;
+  has_exilus: boolean;
+};
+
+export type AdvancedProgressPatch = Partial<AdvancedProgressState>;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function normalizeValence(value: number): number {
+  const clamped = clamp(Math.trunc(value), 30, 60);
+  return clamped >= VALENCE_COMPLETE_THRESHOLD ? 60 : clamped;
+}
+
+function resolveAdvancedProgressState(
+  worksheetName: string,
+  itemName: string,
+  current?: AdvancedProgressRow | null,
+  patch?: AdvancedProgressPatch,
+): AdvancedProgressState & {
+  relevance: ReturnType<typeof resolveAdvancedRowRelevance>;
+} {
+  const relevance = resolveAdvancedRowRelevance(worksheetName, itemName);
+  let level = clamp(current?.level ?? 0, 0, relevance.maxLevel);
+  let valencePercent = relevance.valence ? normalizeValence(current?.valence_percent ?? 30) : null;
+  let hasElement = current ? current.has_element === 1 : relevance.primeAutoElementOrokin;
+  let hasOrokin = current ? current.has_orokin === 1 : relevance.primeAutoElementOrokin;
+  let hasArcane = current ? current.has_arcane === 1 : false;
+  let hasExilus = current ? current.has_exilus === 1 : false;
+
+  if (patch) {
+    if (typeof patch.level === 'number' && Number.isFinite(patch.level)) {
+      level = clamp(Math.trunc(patch.level), 0, relevance.maxLevel);
+    }
+    if (patch.valence_percent !== undefined) {
+      if (patch.valence_percent === null || !relevance.valence) {
+        valencePercent = null;
+      } else if (
+        typeof patch.valence_percent === 'number' &&
+        Number.isFinite(patch.valence_percent)
+      ) {
+        valencePercent = normalizeValence(patch.valence_percent);
+      }
+    }
+    if (typeof patch.has_element === 'boolean') {
+      hasElement = patch.has_element;
+    }
+    if (typeof patch.has_orokin === 'boolean') {
+      hasOrokin = patch.has_orokin;
+    }
+    if (typeof patch.has_arcane === 'boolean') {
+      hasArcane = patch.has_arcane;
+    }
+    if (typeof patch.has_exilus === 'boolean') {
+      hasExilus = patch.has_exilus;
+    }
+  }
+
+  if (relevance.primeAutoElementOrokin) {
+    hasElement = true;
+    hasOrokin = true;
+  }
+  if (!relevance.arcane) hasArcane = false;
+  if (!relevance.exilus) hasExilus = false;
+  if (!relevance.valence) valencePercent = null;
+
+  return {
+    level,
+    valence_percent: valencePercent,
+    has_element: hasElement,
+    has_orokin: hasOrokin,
+    has_arcane: hasArcane,
+    has_exilus: hasExilus,
+    relevance,
+  };
+}
 
 export function getWorksheets(db: Database.Database, userId: number): Worksheet[] {
   return db
@@ -265,6 +377,47 @@ export function getWorksheetData(
     }, {}),
   }));
 
+  const rowIds = dataRows.map((row) => row.id);
+  const advancedRowsByRowId = new Map<number, AdvancedProgressRow>();
+  if (rowIds.length > 0) {
+    const placeholders = rowIds.map(() => '?').join(',');
+    const advancedRows = db
+      .prepare(
+        `SELECT row_id, level, valence_percent, has_element, has_orokin, has_arcane, has_exilus
+         FROM row_advanced_progress
+         WHERE row_id IN (${placeholders})`,
+      )
+      .all(...rowIds) as AdvancedProgressRow[];
+    for (const row of advancedRows) {
+      advancedRowsByRowId.set(row.row_id, row);
+    }
+  }
+
+  for (const row of dataRows) {
+    const state = resolveAdvancedProgressState(
+      worksheet.name,
+      row.name,
+      advancedRowsByRowId.get(row.id),
+    );
+    row.advanced_progress = {
+      level: state.level,
+      valence_percent: state.valence_percent,
+      has_element: state.has_element,
+      has_orokin: state.has_orokin,
+      has_arcane: state.has_arcane,
+      has_exilus: state.has_exilus,
+    };
+    row.advanced_relevance = {
+      max_level: state.relevance.maxLevel,
+      valence: state.relevance.valence,
+      element: state.relevance.element,
+      orokin: state.relevance.orokin,
+      arcane: state.relevance.arcane,
+      exilus: state.relevance.exilus,
+      prime_auto_element_orokin: state.relevance.primeAutoElementOrokin,
+    };
+  }
+
   dataRows.sort((a, b) =>
     normalizeDisplayName(a.name).localeCompare(normalizeDisplayName(b.name), undefined, {
       sensitivity: 'base',
@@ -275,6 +428,90 @@ export function getWorksheetData(
     worksheet,
     columns,
     rows: dataRows,
+  };
+}
+
+export function getRowAdvancedProgress(
+  db: Database.Database,
+  rowId: number,
+  userId: number,
+):
+  | (AdvancedProgressState & {
+      relevance: ReturnType<typeof resolveAdvancedRowRelevance>;
+    })
+  | null {
+  const row = db
+    .prepare(
+      `SELECT r.id, r.item_name, w.name as worksheet_name
+       FROM rows r
+       JOIN worksheets w ON r.worksheet_id = w.id
+       WHERE r.id = ? AND w.user_id = ?`,
+    )
+    .get(rowId, userId) as { id: number; item_name: string; worksheet_name: string } | undefined;
+  if (!row) return null;
+  const current = db
+    .prepare(
+      `SELECT row_id, level, valence_percent, has_element, has_orokin, has_arcane, has_exilus
+       FROM row_advanced_progress
+       WHERE row_id = ?`,
+    )
+    .get(rowId) as AdvancedProgressRow | undefined;
+  return resolveAdvancedProgressState(row.worksheet_name, row.item_name, current);
+}
+
+export function updateRowAdvancedProgress(
+  db: Database.Database,
+  rowId: number,
+  userId: number,
+  patch: AdvancedProgressPatch,
+): AdvancedProgressState {
+  const row = db
+    .prepare(
+      `SELECT r.id, r.item_name, w.name as worksheet_name
+       FROM rows r
+       JOIN worksheets w ON r.worksheet_id = w.id
+       WHERE r.id = ? AND w.user_id = ?`,
+    )
+    .get(rowId, userId) as { id: number; item_name: string; worksheet_name: string } | undefined;
+  if (!row) {
+    throw new Error('Row not found');
+  }
+  const current = db
+    .prepare(
+      `SELECT row_id, level, valence_percent, has_element, has_orokin, has_arcane, has_exilus
+       FROM row_advanced_progress
+       WHERE row_id = ?`,
+    )
+    .get(rowId) as AdvancedProgressRow | undefined;
+  const next = resolveAdvancedProgressState(row.worksheet_name, row.item_name, current, patch);
+  db.prepare(
+    `INSERT INTO row_advanced_progress (
+      row_id, level, valence_percent, has_element, has_orokin, has_arcane, has_exilus, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(row_id) DO UPDATE SET
+      level = excluded.level,
+      valence_percent = excluded.valence_percent,
+      has_element = excluded.has_element,
+      has_orokin = excluded.has_orokin,
+      has_arcane = excluded.has_arcane,
+      has_exilus = excluded.has_exilus,
+      updated_at = datetime('now')`,
+  ).run(
+    rowId,
+    next.level,
+    next.valence_percent,
+    next.has_element ? 1 : 0,
+    next.has_orokin ? 1 : 0,
+    next.has_arcane ? 1 : 0,
+    next.has_exilus ? 1 : 0,
+  );
+  return {
+    level: next.level,
+    valence_percent: next.valence_percent,
+    has_element: next.has_element,
+    has_orokin: next.has_orokin,
+    has_arcane: next.has_arcane,
+    has_exilus: next.has_exilus,
   };
 }
 

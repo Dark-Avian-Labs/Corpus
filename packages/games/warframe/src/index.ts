@@ -78,6 +78,7 @@ export {
   adminUpdateSchema as warframeAdminUpdateSchema,
   deleteRowSchema as warframeDeleteRowSchema,
   editRowSchema as warframeEditRowSchema,
+  updateAdvancedProgressSchema as warframeUpdateAdvancedProgressSchema,
   updateSchema as warframeUpdateSchema,
 } from './routes/validation.js';
 export {
@@ -93,3 +94,13 @@ export {
   resolveVariantColumns,
   worksheetHasNormalAndPrimeColumns,
 } from './variantColumns.js';
+export {
+  type AdvancedRowRelevance,
+  isArcaneRelevant,
+  isExilusRelevant,
+  isPrimeItem,
+  isPrimeWarframeOrWeapon,
+  isValenceRelevant,
+  maxLevelForRow,
+  resolveAdvancedRowRelevance,
+} from './advancedRules.js';

@@ -14,6 +14,7 @@ import {
   warframeAdminUpdateSchema,
   warframeDeleteRowSchema,
   warframeEditRowSchema,
+  warframeUpdateAdvancedProgressSchema,
   warframeQueries as q,
   warframeUpdateSchema,
 } from '@codex/game-warframe';
@@ -93,6 +94,7 @@ async function getDbOrFail(res: Response): Promise<ReturnType<typeof getWarframe
 const ALLOWED_UPDATE_VALUES = ['', 'Obtained', 'Complete'];
 const SETTING_HIDE_COMPLETED = 'hide_completed';
 const SETTING_MARKET_LINKS = 'market_links';
+const SETTING_ADVANCED_MODE = 'advanced_mode';
 
 type ValidateColumnValuesInvalidEntry = {
   column_id: string;
@@ -196,9 +198,13 @@ warframeApiRouter.get('/settings', (req, res) => {
       const marketRow = sel.get(userId, SETTING_MARKET_LINKS) as
         | { setting_value: string }
         | undefined;
+      const advancedRow = sel.get(userId, SETTING_ADVANCED_MODE) as
+        | { setting_value: string }
+        | undefined;
       res.status(200).json({
         hide_completed: hideRow?.setting_value === '1',
         market_links: marketRow?.setting_value === '1',
+        advanced_mode: advancedRow?.setting_value === '1',
       });
     } catch (error) {
       console.error('Failed to load Warframe settings:', error);
@@ -218,9 +224,10 @@ warframeApiRouter.patch('/settings', (req, res) => {
     }
     const hideProvided = typeof req.body?.hide_completed === 'boolean';
     const marketProvided = typeof req.body?.market_links === 'boolean';
-    if (!hideProvided && !marketProvided) {
+    const advancedProvided = typeof req.body?.advanced_mode === 'boolean';
+    if (!hideProvided && !marketProvided && !advancedProvided) {
       res.status(400).json({
-        error: 'Provide at least one of hide_completed, market_links as a boolean.',
+        error: 'Provide at least one of hide_completed, market_links, advanced_mode as a boolean.',
       });
       return;
     }
@@ -236,8 +243,10 @@ warframeApiRouter.patch('/settings', (req, res) => {
       };
       let hideCompleted = readSetting(SETTING_HIDE_COMPLETED);
       let marketLinks = readSetting(SETTING_MARKET_LINKS);
+      let advancedMode = readSetting(SETTING_ADVANCED_MODE);
       if (hideProvided) hideCompleted = req.body.hide_completed as boolean;
       if (marketProvided) marketLinks = req.body.market_links as boolean;
+      if (advancedProvided) advancedMode = req.body.advanced_mode as boolean;
       const upsert = db.prepare(
         `INSERT INTO user_settings (user_id, setting_key, setting_value, updated_at)
          VALUES (?, ?, ?, datetime('now'))
@@ -247,6 +256,7 @@ warframeApiRouter.patch('/settings', (req, res) => {
       );
       upsert.run(userId, SETTING_HIDE_COMPLETED, hideCompleted ? '1' : '0');
       upsert.run(userId, SETTING_MARKET_LINKS, marketLinks ? '1' : '0');
+      upsert.run(userId, SETTING_ADVANCED_MODE, advancedMode ? '1' : '0');
       res.status(200).json({ success: true });
     } catch (error) {
       console.error('Failed to save Warframe settings:', error);
@@ -343,6 +353,37 @@ warframeApiRouter.patch('/cells', (req, res) => {
     } catch (error) {
       res.status(400).json({
         error: error instanceof Error ? error.message : 'Failed to update cell.',
+      });
+    } finally {
+      db.close();
+    }
+  })();
+});
+
+warframeApiRouter.patch('/advanced-progress', (req, res) => {
+  void (async () => {
+    const userId = extractUserIdFromRequest(req);
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const data = validateBody(warframeUpdateAdvancedProgressSchema, req.body, res);
+    if (!data) return;
+    const db = await getDbOrFail(res);
+    if (!db) return;
+    try {
+      const next = q.updateRowAdvancedProgress(db, data.row_id, userId, {
+        level: data.level,
+        valence_percent: data.valence_percent,
+        has_element: data.has_element,
+        has_orokin: data.has_orokin,
+        has_arcane: data.has_arcane,
+        has_exilus: data.has_exilus,
+      });
+      res.status(200).json({ success: true, advanced_progress: next });
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'Failed to update advanced progress.',
       });
     } finally {
       db.close();
