@@ -95,6 +95,7 @@ const ALLOWED_UPDATE_VALUES = ['', 'Obtained', 'Complete'];
 const SETTING_HIDE_COMPLETED = 'hide_completed';
 const SETTING_MARKET_LINKS = 'market_links';
 const SETTING_ADVANCED_MODE = 'advanced_mode';
+const SETTING_SHOW_ALL_VARIANTS = 'show_all_variants';
 
 type ValidateColumnValuesInvalidEntry = {
   column_id: string;
@@ -201,10 +202,14 @@ warframeApiRouter.get('/settings', (req, res) => {
       const advancedRow = sel.get(userId, SETTING_ADVANCED_MODE) as
         | { setting_value: string }
         | undefined;
+      const showAllVariantsRow = sel.get(userId, SETTING_SHOW_ALL_VARIANTS) as
+        | { setting_value: string }
+        | undefined;
       res.status(200).json({
         hide_completed: hideRow?.setting_value === '1',
         market_links: marketRow?.setting_value === '1',
         advanced_mode: advancedRow?.setting_value === '1',
+        show_all_variants: showAllVariantsRow?.setting_value === '1',
       });
     } catch (error) {
       console.error('Failed to load Warframe settings:', error);
@@ -225,9 +230,11 @@ warframeApiRouter.patch('/settings', (req, res) => {
     const hideProvided = typeof req.body?.hide_completed === 'boolean';
     const marketProvided = typeof req.body?.market_links === 'boolean';
     const advancedProvided = typeof req.body?.advanced_mode === 'boolean';
-    if (!hideProvided && !marketProvided && !advancedProvided) {
+    const showAllVariantsProvided = typeof req.body?.show_all_variants === 'boolean';
+    if (!hideProvided && !marketProvided && !advancedProvided && !showAllVariantsProvided) {
       res.status(400).json({
-        error: 'Provide at least one of hide_completed, market_links, advanced_mode as a boolean.',
+        error:
+          'Provide at least one of hide_completed, market_links, advanced_mode, show_all_variants as a boolean.',
       });
       return;
     }
@@ -244,9 +251,11 @@ warframeApiRouter.patch('/settings', (req, res) => {
       let hideCompleted = readSetting(SETTING_HIDE_COMPLETED);
       let marketLinks = readSetting(SETTING_MARKET_LINKS);
       let advancedMode = readSetting(SETTING_ADVANCED_MODE);
+      let showAllVariants = readSetting(SETTING_SHOW_ALL_VARIANTS);
       if (hideProvided) hideCompleted = req.body.hide_completed as boolean;
       if (marketProvided) marketLinks = req.body.market_links as boolean;
       if (advancedProvided) advancedMode = req.body.advanced_mode as boolean;
+      if (showAllVariantsProvided) showAllVariants = req.body.show_all_variants as boolean;
       const upsert = db.prepare(
         `INSERT INTO user_settings (user_id, setting_key, setting_value, updated_at)
          VALUES (?, ?, ?, datetime('now'))
@@ -257,6 +266,7 @@ warframeApiRouter.patch('/settings', (req, res) => {
       upsert.run(userId, SETTING_HIDE_COMPLETED, hideCompleted ? '1' : '0');
       upsert.run(userId, SETTING_MARKET_LINKS, marketLinks ? '1' : '0');
       upsert.run(userId, SETTING_ADVANCED_MODE, advancedMode ? '1' : '0');
+      upsert.run(userId, SETTING_SHOW_ALL_VARIANTS, showAllVariants ? '1' : '0');
       res.status(200).json({ success: true });
     } catch (error) {
       console.error('Failed to save Warframe settings:', error);

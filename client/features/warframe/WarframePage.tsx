@@ -58,6 +58,7 @@ type WarframeSettings = {
   hide_completed: boolean;
   market_links: boolean;
   advanced_mode: boolean;
+  show_all_variants: boolean;
 };
 type ExitRowPhase = 'fill' | 'push';
 
@@ -185,13 +186,19 @@ function isRowClassicCompleted(row: Row, columns: Column[]): boolean {
   return helminthValue === 'Yes';
 }
 
-function isRowAdvancedCompleted(row: Row): boolean {
+function advancedVariantsVisible(row: Row, showAllVariants: boolean): Array<'normal' | 'prime'> {
+  const hasPrime = Boolean(row.advanced_relevance?.has_prime_variant);
+  if (showAllVariants) {
+    return hasPrime ? ['normal', 'prime'] : ['normal'];
+  }
+  return hasPrime ? ['prime'] : ['normal'];
+}
+
+function isRowAdvancedCompleted(row: Row, showAllVariants: boolean): boolean {
   const progress = row.advanced_progress;
   const relevance = row.advanced_relevance;
   if (!progress || !relevance) return false;
-  const variants: Array<'normal' | 'prime'> = relevance.has_prime_variant
-    ? ['normal', 'prime']
-    : ['normal'];
+  const variants = advancedVariantsVisible(row, showAllVariants);
   for (const variant of variants) {
     const p = progress[variant];
     const r = relevance[variant];
@@ -205,8 +212,15 @@ function isRowAdvancedCompleted(row: Row): boolean {
   return true;
 }
 
-function isRowCompleted(row: Row, columns: Column[], advancedMode: boolean): boolean {
-  return advancedMode ? isRowAdvancedCompleted(row) : isRowClassicCompleted(row, columns);
+function isRowCompleted(
+  row: Row,
+  columns: Column[],
+  advancedMode: boolean,
+  showAllVariants: boolean,
+): boolean {
+  return advancedMode
+    ? isRowAdvancedCompleted(row, showAllVariants)
+    : isRowClassicCompleted(row, columns);
 }
 
 export function WarframePage() {
@@ -218,6 +232,7 @@ export function WarframePage() {
   const [hideCompleted, setHideCompleted] = useState(false);
   const [marketLinks, setMarketLinks] = useState(false);
   const [advancedMode, setAdvancedMode] = useState(false);
+  const [showAllVariants, setShowAllVariants] = useState(false);
   const [exitingRows, setExitingRows] = useState<Record<number, ExitRowPhase>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -326,6 +341,7 @@ export function WarframePage() {
       hide_completed: Boolean(body?.hide_completed),
       market_links: Boolean(body?.market_links),
       advanced_mode: Boolean(body?.advanced_mode),
+      show_all_variants: Boolean(body?.show_all_variants),
     };
   }, []);
 
@@ -367,6 +383,7 @@ export function WarframePage() {
       setHideCompleted(settings.hide_completed);
       setMarketLinks(settings.market_links);
       setAdvancedMode(settings.advanced_mode);
+      setShowAllVariants(settings.show_all_variants);
       setWorksheets(items);
       setWorksheetId(items[0]?.id ?? null);
     } catch {
@@ -444,12 +461,12 @@ export function WarframePage() {
       if (!hideCompleted || hasSearch) {
         return true;
       }
-      if (!isRowCompleted(row, data.columns, advancedMode)) {
+      if (!isRowCompleted(row, data.columns, advancedMode, showAllVariants)) {
         return true;
       }
       return exitingRowIds.has(row.id);
     });
-  }, [advancedMode, data.columns, data.rows, hideCompleted, search, exitingRows]);
+  }, [advancedMode, showAllVariants, data.columns, data.rows, hideCompleted, search, exitingRows]);
 
   const hasDualVariantColumns = useMemo(() => {
     const nonHelminth = data.columns.filter((column) => column.name !== 'Helminth');
@@ -462,7 +479,9 @@ export function WarframePage() {
   const stats = useMemo(() => {
     if (advancedMode) {
       const total = data.rows.length;
-      const complete = data.rows.filter((row) => isRowAdvancedCompleted(row)).length;
+      const complete = data.rows.filter((row) =>
+        isRowAdvancedCompleted(row, showAllVariants),
+      ).length;
       const percent = total > 0 ? Math.round((complete / total) * 100) : 0;
       return [{ name: 'Completed', complete, total, percent, obtained: 0 }];
     }
@@ -500,7 +519,7 @@ export function WarframePage() {
           obtained: entry.obtained,
         };
       });
-  }, [advancedMode, data.columns, data.rows]);
+  }, [advancedMode, showAllVariants, data.columns, data.rows]);
 
   async function handleToggle(row: Row, column: Column): Promise<void> {
     const oldValue = row.values?.[String(column.id)] ?? '';
@@ -512,7 +531,7 @@ export function WarframePage() {
     }
     const value = nextStatus(oldValue, column.name);
     const rowId = row.id;
-    const wasCompleted = isRowCompleted(row, data.columns, advancedMode);
+    const wasCompleted = isRowCompleted(row, data.columns, advancedMode, showAllVariants);
     const updatedRowForCompletionCheck: Row = {
       ...row,
       values: {
@@ -520,7 +539,12 @@ export function WarframePage() {
         [String(column.id)]: value,
       },
     };
-    const nowCompleted = isRowCompleted(updatedRowForCompletionCheck, data.columns, advancedMode);
+    const nowCompleted = isRowCompleted(
+      updatedRowForCompletionCheck,
+      data.columns,
+      advancedMode,
+      showAllVariants,
+    );
     const shouldAnimateExit =
       hideCompleted && search.trim().length === 0 && !wasCompleted && nowCompleted;
     if (!shouldAnimateExit) {
@@ -635,11 +659,12 @@ export function WarframePage() {
       },
     };
     const rowId = row.id;
-    const wasCompleted = isRowCompleted(row, data.columns, true);
+    const wasCompleted = isRowCompleted(row, data.columns, true, showAllVariants);
     const nowCompleted = isRowCompleted(
       { ...row, advanced_progress: nextProgress },
       data.columns,
       true,
+      showAllVariants,
     );
     const shouldAnimateExit =
       hideCompleted && search.trim().length === 0 && !wasCompleted && nowCompleted;
@@ -833,6 +858,30 @@ export function WarframePage() {
     [advancedMode],
   );
 
+  const handleShowAllVariantsChange = useCallback(
+    async (nextValue: boolean): Promise<void> => {
+      const previousValue = showAllVariants;
+      setShowAllVariants(nextValue);
+      try {
+        const response = await apiFetch('/api/warframe/settings', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ show_all_variants: nextValue }),
+        });
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        if (!response.ok || body?.error) {
+          throw new Error(body?.error || 'Failed to save Warframe settings');
+        }
+      } catch {
+        setShowAllVariants(previousValue);
+        setError('Failed to save "Show all variants" setting.');
+      }
+    },
+    [showAllVariants],
+  );
+
   useEffect(() => {
     setHeaderActions(null);
   }, [setHeaderActions]);
@@ -961,37 +1010,38 @@ export function WarframePage() {
               )}
             </span>
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              void handleMarketLinksChange(!marketLinks);
-            }}
-            aria-pressed={marketLinks}
-            disabled={advancedMode}
-            className="border-glass-border text-muted hover:border-glass-border-hover hover:bg-glass-hover hover:text-foreground inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-[color,background-color,border-color,box-shadow] duration-200"
-            title={advancedMode ? 'Disabled in Advanced view' : 'Toggle "Market links"'}
-          >
-            <span>Market links</span>
-            <span
-              className={`inline-flex h-5 w-5 items-center justify-center rounded text-xs font-bold transition-colors ${
-                marketLinks
-                  ? 'bg-success/20 text-success hover:bg-success/30'
-                  : 'bg-muted/10 text-muted/40 hover:bg-muted/20'
-              }`}
-              aria-hidden="true"
+          {!advancedMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                void handleMarketLinksChange(!marketLinks);
+              }}
+              aria-pressed={marketLinks}
+              className="border-glass-border text-muted hover:border-glass-border-hover hover:bg-glass-hover hover:text-foreground inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-[color,background-color,border-color,box-shadow] duration-200"
+              title='Toggle "Market links"'
             >
-              {marketLinks ? (
-                <MaterialSymbol
-                  name="check"
-                  filled
-                  className="leading-none"
-                  style={{ fontSize: 15 }}
-                />
-              ) : (
-                <MaterialSymbol name="close" className="leading-none" style={{ fontSize: 15 }} />
-              )}
-            </span>
-          </button>
+              <span>Market links</span>
+              <span
+                className={`inline-flex h-5 w-5 items-center justify-center rounded text-xs font-bold transition-colors ${
+                  marketLinks
+                    ? 'bg-success/20 text-success hover:bg-success/30'
+                    : 'bg-muted/10 text-muted/40 hover:bg-muted/20'
+                }`}
+                aria-hidden="true"
+              >
+                {marketLinks ? (
+                  <MaterialSymbol
+                    name="check"
+                    filled
+                    className="leading-none"
+                    style={{ fontSize: 15 }}
+                  />
+                ) : (
+                  <MaterialSymbol name="close" className="leading-none" style={{ fontSize: 15 }} />
+                )}
+              </span>
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => {
@@ -1022,6 +1072,42 @@ export function WarframePage() {
               )}
             </span>
           </button>
+          {advancedMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                void handleShowAllVariantsChange(!showAllVariants);
+              }}
+              aria-pressed={showAllVariants}
+              className="border-glass-border text-muted hover:border-glass-border-hover hover:bg-glass-hover hover:text-foreground inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-[color,background-color,border-color,box-shadow] duration-200"
+              title={
+                showAllVariants
+                  ? 'Showing Normal and Prime for items that have both'
+                  : 'Hiding duplicate variant: Normal when Prime exists, Prime when it does not'
+              }
+            >
+              <span>Show all</span>
+              <span
+                className={`inline-flex h-5 w-5 items-center justify-center rounded text-xs font-bold transition-colors ${
+                  showAllVariants
+                    ? 'bg-success/20 text-success hover:bg-success/30'
+                    : 'bg-muted/10 text-muted/40 hover:bg-muted/20'
+                }`}
+                aria-hidden="true"
+              >
+                {showAllVariants ? (
+                  <MaterialSymbol
+                    name="check"
+                    filled
+                    className="leading-none"
+                    style={{ fontSize: 15 }}
+                  />
+                ) : (
+                  <MaterialSymbol name="close" className="leading-none" style={{ fontSize: 15 }} />
+                )}
+              </span>
+            </button>
+          ) : null}
         </div>
       </div>
       <div className="table-container">
@@ -1087,10 +1173,16 @@ export function WarframePage() {
             </thead>
             <tbody>
               {rows.map((row) => {
-                const isCompletedRow = isRowCompleted(row, data.columns, advancedMode);
+                const isCompletedRow = isRowCompleted(
+                  row,
+                  data.columns,
+                  advancedMode,
+                  showAllVariants,
+                );
                 const rowClassName = `${isCompletedRow ? 'warframe-completed-row ' : ''}${
                   exitingRows[row.id] === 'fill' ? 'warframe-row-exit-fill ' : ''
                 }${exitingRows[row.id] === 'push' ? 'warframe-row-exit-push' : ''}`.trim();
+                const visibleVariants = advancedVariantsVisible(row, showAllVariants);
 
                 return (
                   <tr key={row.id} className={rowClassName}>
@@ -1100,19 +1192,21 @@ export function WarframePage() {
                         <td className="status-cell align-middle">
                           <div className="status-cell-inner justify-end pr-1">
                             <div className="text-muted flex flex-col gap-1 text-end text-[10px] leading-tight">
-                              <span className="flex min-h-[29px] items-center justify-end">
-                                Normal
-                              </span>
-                              <span className="flex min-h-[29px] items-center justify-end">
-                                Prime
-                              </span>
+                              {visibleVariants.map((variant) => (
+                                <span
+                                  key={`${row.id}-vl-${variant}`}
+                                  className="flex min-h-[29px] items-center justify-end"
+                                >
+                                  {variant === 'prime' ? 'Prime' : 'Normal'}
+                                </span>
+                              ))}
                             </div>
                           </div>
                         </td>
                         <td className="status-cell">
                           <div className="status-cell-inner justify-center">
                             <div className="flex flex-col gap-1">
-                              {(['normal', 'prime'] as const).map((variant) => {
+                              {visibleVariants.map((variant) => {
                                 const isPrime = variant === 'prime';
                                 const relevance = row.advanced_relevance?.[variant];
                                 const progress = row.advanced_progress?.[variant];
@@ -1121,13 +1215,14 @@ export function WarframePage() {
                                   : true;
                                 const max = relevance?.max_level ?? 30;
                                 const current = progress?.level ?? 0;
+                                const levelMaxed = enabled && current >= max;
                                 const key = isPrime ? 'level_prime' : 'level';
                                 return (
                                   <button
                                     key={`level-${variant}`}
                                     type="button"
                                     className={`status-btn helminth-btn ${
-                                      enabled ? 'empty' : 'unavailable'
+                                      !enabled ? 'unavailable' : levelMaxed ? 'yes' : 'empty'
                                     } min-w-[82px] px-2 py-1 text-xs`}
                                     disabled={!enabled}
                                     onMouseDown={(event) => {
@@ -1157,9 +1252,13 @@ export function WarframePage() {
                                     onTouchEnd={() => stopHoldStep(true)}
                                     aria-label={`${isPrime ? 'Prime' : 'Normal'} level for ${row.name || row.item_name || 'item'}`}
                                   >
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <span>{current}</span>
-                                      <span className="inline-flex flex-col text-[9px] leading-[0.7] opacity-80">
+                                    <span className="flex w-full min-w-0 items-center justify-between gap-1">
+                                      <span className="tabular-nums">{current}</span>
+                                      <span
+                                        className={`inline-flex shrink-0 flex-col text-[9px] leading-[0.7] ${
+                                          levelMaxed ? 'opacity-90' : 'opacity-80'
+                                        }`}
+                                      >
                                         <span>▲</span>
                                         <span>▼</span>
                                       </span>
@@ -1173,19 +1272,21 @@ export function WarframePage() {
                         <td className="status-cell">
                           <div className="status-cell-inner justify-center">
                             <div className="flex flex-col gap-1">
-                              {(['normal', 'prime'] as const).map((variant) => {
+                              {visibleVariants.map((variant) => {
                                 const isPrime = variant === 'prime';
                                 const relevance = row.advanced_relevance?.[variant];
                                 const progress = row.advanced_progress?.[variant];
                                 const enabled = Boolean(relevance?.valence);
                                 const current = progress?.valence_percent ?? 30;
+                                const valenceMax = 60;
+                                const valenceMaxed = enabled && current >= valenceMax;
                                 const key = isPrime ? 'valence_percent_prime' : 'valence_percent';
                                 return (
                                   <button
                                     key={`valence-${variant}`}
                                     type="button"
                                     className={`status-btn helminth-btn ${
-                                      enabled ? 'empty' : 'unavailable'
+                                      !enabled ? 'unavailable' : valenceMaxed ? 'yes' : 'empty'
                                     } min-w-[82px] px-2 py-1 text-xs`}
                                     disabled={!enabled}
                                     onMouseDown={(event) => {
@@ -1196,7 +1297,7 @@ export function WarframePage() {
                                         current,
                                         direction,
                                         30,
-                                        60,
+                                        valenceMax,
                                         (next) => {
                                           updateAdvancedProgressLocal(row.id, {
                                             [key]: next,
@@ -1218,9 +1319,13 @@ export function WarframePage() {
                                     onTouchEnd={() => stopHoldStep(true)}
                                     aria-label={`${isPrime ? 'Prime' : 'Normal'} valence for ${row.name || row.item_name || 'item'}`}
                                   >
-                                    <span className="inline-flex items-center gap-1.5">
-                                      <span>{current}</span>
-                                      <span className="inline-flex flex-col text-[9px] leading-[0.7] opacity-80">
+                                    <span className="flex w-full min-w-0 items-center justify-between gap-1">
+                                      <span className="tabular-nums">{current}</span>
+                                      <span
+                                        className={`inline-flex shrink-0 flex-col text-[9px] leading-[0.7] ${
+                                          valenceMaxed ? 'opacity-90' : 'opacity-80'
+                                        }`}
+                                      >
                                         <span>▲</span>
                                         <span>▼</span>
                                       </span>
@@ -1242,7 +1347,7 @@ export function WarframePage() {
                           <td key={`${row.id}-${field}`} className="status-cell">
                             <div className="status-cell-inner justify-center">
                               <div className="flex flex-col gap-1">
-                                {(['normal', 'prime'] as const).map((variant) => {
+                                {visibleVariants.map((variant) => {
                                   const isPrime = variant === 'prime';
                                   const checked = Boolean(
                                     isPrime
