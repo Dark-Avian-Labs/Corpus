@@ -103,6 +103,22 @@ function statusClass(value: string, columnName: string, row?: Row): string {
   return `status-btn ${value.toLowerCase() || 'empty'}`;
 }
 
+function advancedToggleClass(checked: boolean, relevant: boolean): string {
+  if (!relevant) return 'status-btn helminth-btn unavailable';
+  if (checked) return 'status-btn helminth-btn yes';
+  return 'status-btn helminth-btn empty';
+}
+
+function advancedToggleGlyph(checked: boolean, relevant: boolean): string {
+  if (!relevant) return '\u2717';
+  if (checked) return '\u2713';
+  return '\u2014';
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
 function isRowClassicCompleted(row: Row, columns: Column[]): boolean {
   const coreColumns = columns.filter((column) => column.name !== 'Helminth');
   if (coreColumns.length === 0) {
@@ -168,7 +184,6 @@ export function WarframePage() {
   const [error, setError] = useState<string | null>(null);
   const worksheetIdRef = useRef<number | null>(worksheetId);
   const exitTimersRef = useRef<Map<number, number[]>>(new Map());
-  const advancedPatchTimersRef = useRef<Map<string, number>>(new Map());
 
   const clearExitTimers = useCallback((rowId: number): void => {
     const timers = exitTimersRef.current.get(rowId);
@@ -186,21 +201,6 @@ export function WarframePage() {
       }
       exitTimersRef.current.delete(rowId);
     }
-  }, []);
-
-  const clearAdvancedPatchTimer = useCallback((key: string): void => {
-    const timer = advancedPatchTimersRef.current.get(key);
-    if (timer !== undefined) {
-      window.clearTimeout(timer);
-      advancedPatchTimersRef.current.delete(key);
-    }
-  }, []);
-
-  const clearAllAdvancedPatchTimers = useCallback((): void => {
-    for (const timer of advancedPatchTimersRef.current.values()) {
-      window.clearTimeout(timer);
-    }
-    advancedPatchTimersRef.current.clear();
   }, []);
 
   const cancelExitAnimation = useCallback(
@@ -247,9 +247,8 @@ export function WarframePage() {
   useEffect(() => {
     return () => {
       clearAllExitTimers();
-      clearAllAdvancedPatchTimers();
     };
-  }, [clearAllExitTimers, clearAllAdvancedPatchTimers]);
+  }, [clearAllExitTimers]);
 
   const fetchWorksheets = useCallback(async (): Promise<Worksheet[]> => {
     const response = await apiFetch('/api/warframe/worksheets');
@@ -595,26 +594,6 @@ export function WarframePage() {
     }
   }
 
-  const queueDebouncedAdvancedPatch = useCallback(
-    (row: Row, patch: Partial<NonNullable<Row['advanced_progress']>>, key: string): void => {
-      clearAdvancedPatchTimer(key);
-      const timer = window.setTimeout(() => {
-        advancedPatchTimersRef.current.delete(key);
-        void handleAdvancedPatch(row, patch);
-      }, 300);
-      advancedPatchTimersRef.current.set(key, timer);
-    },
-    [clearAdvancedPatchTimer, handleAdvancedPatch],
-  );
-
-  const flushAdvancedPatch = useCallback(
-    (row: Row, patch: Partial<NonNullable<Row['advanced_progress']>>, key: string): void => {
-      clearAdvancedPatchTimer(key);
-      void handleAdvancedPatch(row, patch);
-    },
-    [clearAdvancedPatchTimer, handleAdvancedPatch],
-  );
-
   const handleHideCompletedChange = useCallback(
     async (nextValue: boolean): Promise<void> => {
       const previousValue = hideCompleted;
@@ -952,80 +931,63 @@ export function WarframePage() {
                     {advancedMode ? (
                       <>
                         <td className="status-cell">
-                          <input
-                            type="number"
-                            min={0}
-                            max={row.advanced_relevance?.max_level ?? 30}
-                            className="status-btn text-center"
-                            value={row.advanced_progress?.level ?? 0}
-                            onChange={(event) => {
-                              const next = Number(event.target.value);
-                              if (!Number.isFinite(next)) return;
-                              queueDebouncedAdvancedPatch(row, { level: next }, `level:${row.id}`);
-                            }}
-                            onBlur={(event) => {
-                              const next = Number(event.target.value);
-                              if (!Number.isFinite(next)) return;
-                              flushAdvancedPatch(row, { level: next }, `level:${row.id}`);
-                            }}
-                            aria-label={`Level for ${row.name || row.item_name || 'item'}`}
-                          />
+                          <div className="status-cell-inner justify-center">
+                            <button
+                              type="button"
+                              className="status-btn helminth-btn empty min-w-[110px]"
+                              onClick={(event) => {
+                                const current = row.advanced_progress?.level ?? 0;
+                                const max = row.advanced_relevance?.max_level ?? 30;
+                                const direction =
+                                  event.clientY <
+                                  event.currentTarget.getBoundingClientRect().top +
+                                    event.currentTarget.getBoundingClientRect().height / 2
+                                    ? 1
+                                    : -1;
+                                const next = clamp(current + direction, 0, max);
+                                void handleAdvancedPatch(row, { level: next });
+                              }}
+                              aria-label={`Level for ${row.name || row.item_name || 'item'} (click top to increase, bottom to decrease)`}
+                              title="Click top half to increase, bottom half to decrease"
+                            >
+                              <span className="inline-flex items-center gap-2">
+                                <span>{row.advanced_progress?.level ?? 0}</span>
+                                <span className="text-xs leading-none opacity-80">▲▼</span>
+                              </span>
+                            </button>
+                          </div>
                         </td>
                         <td className="status-cell">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="range"
-                              min={30}
-                              max={60}
+                          <div className="status-cell-inner justify-center">
+                            <button
+                              type="button"
+                              className={`status-btn helminth-btn ${
+                                row.advanced_relevance?.valence ? 'empty' : 'unavailable'
+                              } min-w-[110px]`}
                               disabled={!row.advanced_relevance?.valence}
-                              value={row.advanced_progress?.valence_percent ?? 30}
-                              onChange={(event) => {
-                                const next = Number(event.target.value);
-                                if (!Number.isFinite(next)) return;
-                                queueDebouncedAdvancedPatch(
-                                  row,
-                                  { valence_percent: next },
-                                  `valence:${row.id}`,
-                                );
+                              onClick={(event) => {
+                                const current = row.advanced_progress?.valence_percent ?? 30;
+                                const direction =
+                                  event.clientY <
+                                  event.currentTarget.getBoundingClientRect().top +
+                                    event.currentTarget.getBoundingClientRect().height / 2
+                                    ? 1
+                                    : -1;
+                                const next = clamp(current + direction, 30, 60);
+                                void handleAdvancedPatch(row, { valence_percent: next });
                               }}
-                              onBlur={(event) => {
-                                const next = Number(event.target.value);
-                                if (!Number.isFinite(next)) return;
-                                flushAdvancedPatch(
-                                  row,
-                                  { valence_percent: next },
-                                  `valence:${row.id}`,
-                                );
-                              }}
-                              aria-label={`Valence for ${row.name || row.item_name || 'item'}`}
-                            />
-                            <input
-                              type="number"
-                              min={30}
-                              max={60}
-                              disabled={!row.advanced_relevance?.valence}
-                              className="status-btn w-16 text-center"
-                              value={row.advanced_progress?.valence_percent ?? 30}
-                              onChange={(event) => {
-                                const next = Number(event.target.value);
-                                if (!Number.isFinite(next)) return;
-                                queueDebouncedAdvancedPatch(
-                                  row,
-                                  { valence_percent: next },
-                                  `valence:${row.id}`,
-                                );
-                              }}
-                              onBlur={(event) => {
-                                const next = Number(event.target.value);
-                                if (!Number.isFinite(next)) return;
-                                flushAdvancedPatch(
-                                  row,
-                                  { valence_percent: next },
-                                  `valence:${row.id}`,
-                                );
-                              }}
-                              aria-label={`Valence percent for ${row.name || row.item_name || 'item'}`}
-                            />
+                              aria-label={`Valence percent for ${row.name || row.item_name || 'item'} (click top to increase, bottom to decrease)`}
+                              title={
+                                row.advanced_relevance?.valence
+                                  ? 'Click top half to increase, bottom half to decrease'
+                                  : 'Valence not relevant for this item'
+                              }
+                            >
+                              <span className="inline-flex items-center gap-2">
+                                <span>{row.advanced_progress?.valence_percent ?? 30}</span>
+                                <span className="text-xs leading-none opacity-80">▲▼</span>
+                              </span>
+                            </button>
                           </div>
                         </td>
                         {(
@@ -1037,17 +999,27 @@ export function WarframePage() {
                           ] as const
                         ).map(([field, relevanceField]) => (
                           <td key={`${row.id}-${field}`} className="status-cell">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(row.advanced_progress?.[field])}
-                              disabled={!row.advanced_relevance?.[relevanceField]}
-                              onChange={(event) => {
-                                void handleAdvancedPatch(row, {
-                                  [field]: event.target.checked,
-                                });
-                              }}
-                              aria-label={`${field.replace('has_', '')} for ${row.name || row.item_name || 'item'}`}
-                            />
+                            <div className="status-cell-inner justify-center">
+                              <button
+                                type="button"
+                                className={advancedToggleClass(
+                                  Boolean(row.advanced_progress?.[field]),
+                                  Boolean(row.advanced_relevance?.[relevanceField]),
+                                )}
+                                disabled={!row.advanced_relevance?.[relevanceField]}
+                                onClick={() => {
+                                  void handleAdvancedPatch(row, {
+                                    [field]: !row.advanced_progress?.[field],
+                                  });
+                                }}
+                                aria-label={`${field.replace('has_', '')} for ${row.name || row.item_name || 'item'}`}
+                              >
+                                {advancedToggleGlyph(
+                                  Boolean(row.advanced_progress?.[field]),
+                                  Boolean(row.advanced_relevance?.[relevanceField]),
+                                )}
+                              </button>
+                            </div>
                           </td>
                         ))}
                       </>
