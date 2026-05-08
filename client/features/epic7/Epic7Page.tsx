@@ -811,8 +811,11 @@ export function Epic7Page() {
     setHeaderCenter(
       <div className="search-wrapper">
         <input
+          id="codex-epic7-header-search"
+          name="search"
+          type="search"
+          autoComplete="off"
           className="search-box"
-          type="text"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           aria-label="Search Epic Seven entries"
@@ -1217,6 +1220,7 @@ export function Epic7Page() {
                 <div key={account.id} className="account-manager-row">
                   {isEditing ? (
                     <input
+                      id={`codex-epic7-account-edit-${account.id}`}
                       value={modalState.accountEditDraft}
                       onChange={(event) =>
                         dispatchModal({

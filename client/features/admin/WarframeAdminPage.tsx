@@ -512,8 +512,11 @@ export function WarframeAdminPage() {
     setHeaderCenter(
       <div className="search-wrapper">
         <input
+          id="codex-warframe-admin-search"
+          name="search"
+          type="search"
+          autoComplete="off"
           className="search-box"
-          type="text"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           aria-label="Search Warframe admin rows"

@@ -290,8 +290,11 @@ export function AdminPage() {
       <div className="filter-bar">
         <div className="search-wrapper">
           <input
+            id="codex-admin-base-search"
+            name="search"
+            type="search"
+            autoComplete="off"
             className="search-box"
-            type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             aria-label="Search base table entries"
@@ -497,12 +500,15 @@ export function AdminPage() {
           {tab === 'heroes' ? (
             <>
               <input
+                id="codex-admin-new-hero-name"
+                name="heroName"
                 value={heroName}
                 onChange={(event) => setHeroName(event.target.value)}
                 placeholder="New hero name"
                 aria-label="New base hero name"
               />
               <select
+                id="codex-admin-new-hero-class"
                 value={heroClass}
                 onChange={(event) => setHeroClass(event.target.value)}
                 aria-label="New base hero class"
@@ -514,6 +520,7 @@ export function AdminPage() {
                 ))}
               </select>
               <select
+                id="codex-admin-new-hero-element"
                 value={heroElement}
                 onChange={(event) => setHeroElement(event.target.value)}
                 aria-label="New base hero element"
@@ -525,6 +532,7 @@ export function AdminPage() {
                 ))}
               </select>
               <select
+                id="codex-admin-new-hero-stars"
                 value={heroStars}
                 onChange={(event) => setHeroStars(Number(event.target.value))}
                 aria-label="New base hero stars"
@@ -542,12 +550,15 @@ export function AdminPage() {
           ) : (
             <>
               <input
+                id="codex-admin-new-artifact-name"
+                name="artifactName"
                 value={artifactName}
                 onChange={(event) => setArtifactName(event.target.value)}
                 placeholder="New artifact name"
                 aria-label="New base artifact name"
               />
               <select
+                id="codex-admin-new-artifact-class"
                 value={artifactClass}
                 onChange={(event) => setArtifactClass(event.target.value)}
                 aria-label="New base artifact class"
@@ -559,6 +570,7 @@ export function AdminPage() {
                 ))}
               </select>
               <select
+                id="codex-admin-new-artifact-stars"
                 value={artifactStars}
                 onChange={(event) => setArtifactStars(Number(event.target.value))}
                 aria-label="New base artifact stars"
