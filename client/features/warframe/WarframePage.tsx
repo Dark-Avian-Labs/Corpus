@@ -890,8 +890,11 @@ export function WarframePage() {
     setHeaderCenter(
       <div className="search-wrapper">
         <input
+          id="codex-warframe-header-search"
+          name="search"
+          type="search"
+          autoComplete="off"
           className="search-box"
-          type="text"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           aria-label="Search Warframe items"
