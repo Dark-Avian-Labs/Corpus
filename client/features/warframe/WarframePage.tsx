@@ -1276,7 +1276,7 @@ export function WarframePage() {
                                 const relevance = row.advanced_relevance?.[variant];
                                 const progress = row.advanced_progress?.[variant];
                                 const enabled = Boolean(relevance?.valence);
-                                const current = progress?.valence_percent ?? 30;
+                                const current = progress?.valence_percent ?? 25;
                                 const valenceMax = 60;
                                 const valenceMaxed = enabled && current >= valenceMax;
                                 const key = isPrime ? 'valence_percent_prime' : 'valence_percent';
@@ -1295,7 +1295,7 @@ export function WarframePage() {
                                       startHoldStep(
                                         current,
                                         direction,
-                                        30,
+                                        25,
                                         valenceMax,
                                         (next) => {
                                           updateAdvancedProgressLocal(row.id, {

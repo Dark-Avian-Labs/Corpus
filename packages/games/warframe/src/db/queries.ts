@@ -121,7 +121,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function normalizeValence(value: number): number {
-  const clamped = clamp(Math.trunc(value), 30, 60);
+  const clamped = clamp(Math.trunc(value), 25, 60);
   return clamped >= VALENCE_COMPLETE_THRESHOLD ? 60 : clamped;
 }
 
@@ -179,7 +179,7 @@ function resolveAdvancedProgressState(
       relevance.valence && source.valence_percent !== null && source.valence_percent !== undefined
         ? normalizeValence(source.valence_percent)
         : relevance.valence
-          ? 30
+          ? 25
           : null;
     let hasElement = source.has_element === 1;
     let hasOrokin = source.has_orokin === 1;
