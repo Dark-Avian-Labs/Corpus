@@ -138,7 +138,7 @@ function rowHasVariant(
   return candidateColumns.some((column) => (rowValues[column.id] ?? '') !== 'Unavailable');
 }
 
-function resolveAdvancedProgressState(
+export function resolveAdvancedProgressState(
   worksheetName: string,
   itemName: string,
   hasPrimeVariant: boolean,
@@ -173,6 +173,7 @@ function resolveAdvancedProgressState(
     },
     variantPatch: Partial<AdvancedProgressPatch>,
     autoPrimeFlags = false,
+    autoArcane = false,
   ): AdvancedVariantProgressState => {
     let level = clamp(source.level ?? 0, 0, relevance.max_level);
     let valencePercent =
@@ -209,6 +210,9 @@ function resolveAdvancedProgressState(
     if (autoPrimeFlags) {
       hasOrokin = true;
     }
+    if (autoArcane && relevance.arcane) {
+      hasArcane = true;
+    }
 
     return {
       level,
@@ -239,6 +243,7 @@ function resolveAdvancedProgressState(
       has_exilus: patch?.has_exilus,
     },
     normalRelevanceRaw.primeAutoElementOrokin,
+    normalRelevanceRaw.autoArcane,
   );
   const prime = normalizeVariantState(
     primeRelevance,
@@ -259,6 +264,7 @@ function resolveAdvancedProgressState(
       has_exilus: patch?.has_exilus_prime,
     },
     primeRelevanceRaw.primeAutoElementOrokin,
+    primeRelevanceRaw.autoArcane,
   );
 
   return {
