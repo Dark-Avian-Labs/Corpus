@@ -449,6 +449,9 @@ export function WarframePage() {
     }
   }, [hideCompleted, search, clearAllExitTimers]);
 
+  const currentWorksheetName =
+    worksheets.find((worksheet) => worksheet.id === worksheetId)?.name ?? '';
+
   const rows = useMemo(() => {
     const query = search.trim().toLowerCase();
     const hasSearch = query.length > 0;
@@ -1375,17 +1378,24 @@ export function WarframePage() {
                                     isPrime &&
                                     (field === 'has_element' || field === 'has_orokin') &&
                                     Boolean(row.advanced_relevance?.has_prime_variant);
-                                  const interactive = relevant && !lockedPrimeAuto;
+                                  const lockedWarframeArcaneAuto =
+                                    field === 'has_arcane' &&
+                                    relevant &&
+                                    currentWorksheetName === 'Warframes';
+                                  const interactive =
+                                    relevant && !lockedPrimeAuto && !lockedWarframeArcaneAuto;
                                   const lockedOrokinPrimeAuto =
                                     lockedPrimeAuto && field === 'has_orokin' && checked;
+                                  const lockedActive =
+                                    lockedOrokinPrimeAuto || (lockedWarframeArcaneAuto && checked);
                                   const key = isPrime ? `${field}_prime` : field;
                                   return (
                                     <button
                                       key={`${row.id}-${key}`}
                                       type="button"
-                                      className={`${advancedToggleClass(checked, interactive, lockedOrokinPrimeAuto)} min-w-[82px] px-2 py-1 text-xs`}
+                                      className={`${advancedToggleClass(checked, interactive, lockedActive)} min-w-[82px] px-2 py-1 text-xs`}
                                       disabled={!interactive}
-                                      tabIndex={lockedOrokinPrimeAuto ? -1 : undefined}
+                                      tabIndex={lockedActive ? -1 : undefined}
                                       onClick={() => {
                                         void handleAdvancedPatch(row, {
                                           [key]: !checked,
@@ -1404,11 +1414,7 @@ export function WarframePage() {
                                     >
                                       <span className="inline-flex items-center gap-1.5">
                                         <span>
-                                          {advancedToggleGlyph(
-                                            checked,
-                                            interactive,
-                                            lockedOrokinPrimeAuto,
-                                          )}
+                                          {advancedToggleGlyph(checked, interactive, lockedActive)}
                                         </span>
                                       </span>
                                     </button>

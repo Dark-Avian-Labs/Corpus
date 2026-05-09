@@ -60,6 +60,7 @@ export type AdvancedRowRelevance = {
   arcane: boolean;
   exilus: boolean;
   primeAutoElementOrokin: boolean;
+  autoArcane: boolean;
 };
 
 export function isElementRelevant(itemName: string): boolean {
@@ -71,6 +72,7 @@ export function resolveAdvancedRowRelevance(
   itemName: string,
 ): AdvancedRowRelevance {
   const primeAuto = isPrimeWarframeOrWeapon(worksheetName, itemName);
+  const autoArcane = worksheetName === 'Warframes';
   return {
     maxLevel: maxLevelForRow(worksheetName, itemName),
     valence: isValenceRelevant(itemName),
@@ -79,5 +81,6 @@ export function resolveAdvancedRowRelevance(
     arcane: isArcaneRelevant(worksheetName, itemName),
     exilus: isExilusRelevant(worksheetName),
     primeAutoElementOrokin: primeAuto,
+    autoArcane,
   };
 }
