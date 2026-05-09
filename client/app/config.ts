@@ -39,3 +39,8 @@ export const SEARCH_PLACEHOLDER = readTrimmedEnv(
   import.meta.env.VITE_SEARCH_PLACEHOLDER as string | undefined,
   'Search Codex...',
 );
+
+export const APP_VERSION = readTrimmedEnv(
+  import.meta.env.VITE_APP_VERSION as string | undefined,
+  'dev',
+);

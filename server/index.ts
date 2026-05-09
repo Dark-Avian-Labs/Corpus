@@ -14,6 +14,7 @@ import helmet from 'helmet';
 import { buildAuthLoginUrl, proxyAuthLogout } from './auth/remoteAuth.js';
 import {
   APP_NAME,
+  APP_VERSION,
   AUTH_SERVICE_URL,
   COOKIE_DOMAIN,
   HOST,
@@ -93,6 +94,7 @@ app.use(cookieParser());
 const RATE_LIMIT_SKIP_PATHS = new Set([
   '/healthz',
   '/readyz',
+  '/api/version',
   '/favicon.ico',
   '/login',
   '/legal',
@@ -220,6 +222,12 @@ app.use((req: Request, res: Response, next) => {
 });
 
 app.use('/api/auth', authRouter);
+
+app.get('/api/version', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ version: APP_VERSION });
+});
+
 app.use('/api', apiRouter);
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: 'Not found' });

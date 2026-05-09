@@ -13,10 +13,11 @@ import bgArt from '../../../packages/core/assets/background.txt?raw';
 import feathers from '../../../packages/core/assets/feathers.png';
 import epic7Favicon from '../../../packages/games/epic7/favicon.ico';
 import warframeFavicon from '../../../packages/games/warframe/favicon.ico';
-import { APP_DISPLAY_NAME, LEGAL_ENTITY_NAME, LEGAL_PAGE_URL } from '../../app/config';
+import { APP_DISPLAY_NAME, APP_VERSION, LEGAL_ENTITY_NAME, LEGAL_PAGE_URL } from '../../app/config';
 import { APP_PATHS } from '../../app/paths';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../features/auth/AuthContext';
+import { useStaleBundlePrompt } from '../../hooks/useStaleBundlePrompt';
 import { MaterialSymbol } from '../ui/MaterialSymbol';
 import { Menu } from '../ui/Menu';
 export type LayoutOutletContext = {
@@ -58,6 +59,7 @@ export function Layout() {
       : APP_PATHS.admin;
   const brandTitle = isWarframeRoute ? 'Warframe' : isEpic7Route ? 'Epic7' : '';
   const baseTitle = APP_DISPLAY_NAME;
+  const bundleStale = useStaleBundlePrompt(APP_VERSION);
 
   const setMenuItemRef = (id: string) => (node: HTMLElement | null) => {
     menuItemNodeMap.current[id] = node;
@@ -195,13 +197,38 @@ export function Layout() {
       </div>
       <header className="relative z-30 h-[100px] px-6">
         <div className="mx-auto grid h-full w-full max-w-[1900px] grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <Link to={APP_PATHS.home} className="brand-lockup w-fit">
-            <img src={feathers} alt="Dark Avian Labs feather mark" className="brand-lockup__icon" />
-            <span className="brand-lockup__title brand-lockup--fx">{baseTitle}</span>
-            {brandTitle.length > 0 ? (
-              <span className="brand-lockup__title brand-lockup__title_small">{brandTitle}</span>
-            ) : null}
-          </Link>
+          <div className="flex w-fit max-w-full min-w-0 flex-col gap-0.5 justify-self-start">
+            <Link to={APP_PATHS.home} className="brand-lockup w-fit">
+              <img
+                src={feathers}
+                alt="Dark Avian Labs feather mark"
+                className="brand-lockup__icon"
+              />
+              <span className="brand-lockup__title brand-lockup--fx">{baseTitle}</span>
+              {brandTitle.length > 0 ? (
+                <span className="brand-lockup__title brand-lockup__title_small">{brandTitle}</span>
+              ) : null}
+            </Link>
+            <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-0.5">
+              <span
+                className="text-muted font-mono text-[10px] leading-none tracking-wide opacity-70"
+                title={`Client ${APP_VERSION}`}
+              >
+                v{APP_VERSION}
+              </span>
+              {bundleStale ? (
+                <button
+                  type="button"
+                  className="text-muted hover:text-foreground rounded px-1.5 py-0.5 font-mono text-[10px] leading-none tracking-wide underline decoration-current/25 underline-offset-2 transition-colors hover:decoration-current/45"
+                  onClick={() => {
+                    window.location.reload();
+                  }}
+                >
+                  Reload
+                </button>
+              ) : null}
+            </div>
+          </div>
 
           <div className="justify-self-center">{headerCenter}</div>
 

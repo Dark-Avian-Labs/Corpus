@@ -5,6 +5,7 @@ declare module '@fontsource-variable/geist';
 declare module '@fontsource-variable/geist-mono';
 
 interface ImportMetaEnv {
+  readonly VITE_APP_VERSION?: string;
   readonly VITE_APP_NAME?: string;
   readonly VITE_LEGAL_ENTITY_NAME?: string;
   readonly VITE_LEGAL_PAGE_URL?: string;

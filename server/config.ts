@@ -19,6 +19,20 @@ if (shouldLoadEnv && envPath) {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 
+function readPackageVersion(projectRoot: string): string {
+  try {
+    const pkgPath = path.join(projectRoot, 'package.json');
+    const raw = fs.readFileSync(pkgPath, 'utf-8');
+    const pkg = JSON.parse(raw) as { version?: string };
+    const v = pkg.version?.trim();
+    return v && v.length > 0 ? v : '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
+export const APP_VERSION = readPackageVersion(PROJECT_ROOT);
+
 export const DATA_DIR = path.join(PROJECT_ROOT, 'data');
 function requireAbsolutePathEnv(name: 'CENTRAL_DB_PATH' | 'ARMORY_DB_PATH'): string {
   const value = process.env[name]?.trim();
