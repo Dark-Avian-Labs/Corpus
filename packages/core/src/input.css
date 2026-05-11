@@ -202,8 +202,9 @@ html:not(.dark) .invert-on-light {
   .bg-art--wave {
     display: grid;
     place-items: center;
-    --bg-art-wave-angle: 128deg;
-    --bg-art-wave-p: 0.5;
+    /* 180deg => gradient axis top→bottom; wave sweeps downward and loops. */
+    --bg-art-wave-angle: 180deg;
+    --bg-art-wave-p: 0.08;
     --bg-art-wave-half: 2.5%;
     --bg-art-wave-feather: 0.8%;
   }

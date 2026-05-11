@@ -20,12 +20,15 @@ export function AsciiWaveBackground() {
     }
 
     const periodMs = 22_000;
+    /** Keep the wave inside the art so mask stops never collapse at 0%/100%. */
+    const pMin = 0.08;
+    const pMax = 0.92;
     const t0 = performance.now();
     let frame = 0;
 
     const tick = (now: number) => {
-      const phase = (((now - t0) % periodMs) / periodMs) * Math.PI * 2;
-      const p = Math.sin(phase) * 0.42 + 0.5;
+      const t = ((now - t0) % periodMs) / periodMs;
+      const p = pMin + t * (pMax - pMin);
       el.style.setProperty('--bg-art-wave-p', p.toFixed(5));
       frame = requestAnimationFrame(tick);
     };
@@ -41,7 +44,7 @@ export function AsciiWaveBackground() {
       ref={rootRef}
       className="bg-art bg-art--wave"
       aria-hidden="true"
-      style={{ '--bg-art-wave-p': 0.5 } as CSSProperties}
+      style={{ '--bg-art-wave-p': 0.08 } as CSSProperties}
     >
       <pre className="bg-art__layer bg-art__layer--base">{bgArt}</pre>
       <pre className="bg-art__layer bg-art__layer--alt">{bgArt2}</pre>
