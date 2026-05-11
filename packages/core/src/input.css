@@ -202,50 +202,41 @@ html:not(.dark) .invert-on-light {
   .bg-art--wave {
     display: grid;
     place-items: center;
+    --bg-art-wave-angle: 128deg;
+    --bg-art-wave-p: 0.5;
+    --bg-art-wave-half: 2.5%;
+    --bg-art-wave-feather: 0.8%;
   }
 
   .bg-art--wave .bg-art__layer {
     grid-area: 1 / 1;
-  }
-
-  .bg-art--wave {
-    --bg-art-wave-angle: 128deg;
-    --bg-art-wave-band: 5%;
-    --bg-art-wave-feather: 2%;
-    --bg-art-wave-size: 230% 230%;
-    --bg-art-wave-duration: 22s;
-  }
-
-  .bg-art--wave .bg-art__layer {
-    -webkit-mask-size: var(--bg-art-wave-size);
+    -webkit-mask-size: 100% 100%;
     -webkit-mask-repeat: no-repeat;
-    mask-size: var(--bg-art-wave-size);
+    mask-size: 100% 100%;
     mask-repeat: no-repeat;
-    animation: bg-art-wave-sweep var(--bg-art-wave-duration) ease-in-out infinite;
-    will-change: mask-position;
   }
 
   .bg-art__layer--base {
     -webkit-mask-image: linear-gradient(
       var(--bg-art-wave-angle),
       #000 0%,
-      #000 calc(50% - var(--bg-art-wave-band) - var(--bg-art-wave-feather)),
-      rgba(0, 0, 0, 0.5) calc(50% - var(--bg-art-wave-band)),
-      transparent calc(50% - var(--bg-art-wave-band) / 2),
-      transparent calc(50% + var(--bg-art-wave-band) / 2),
-      rgba(0, 0, 0, 0.5) calc(50% + var(--bg-art-wave-band)),
-      #000 calc(50% + var(--bg-art-wave-band) + var(--bg-art-wave-feather)),
+      #000 calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half) - var(--bg-art-wave-feather)),
+      rgba(0, 0, 0, 0.45) calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half)),
+      transparent calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half) * 0.5),
+      transparent calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half) * 0.5),
+      rgba(0, 0, 0, 0.45) calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half)),
+      #000 calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half) + var(--bg-art-wave-feather)),
       #000 100%
     );
     mask-image: linear-gradient(
       var(--bg-art-wave-angle),
       #000 0%,
-      #000 calc(50% - var(--bg-art-wave-band) - var(--bg-art-wave-feather)),
-      rgba(0, 0, 0, 0.5) calc(50% - var(--bg-art-wave-band)),
-      transparent calc(50% - var(--bg-art-wave-band) / 2),
-      transparent calc(50% + var(--bg-art-wave-band) / 2),
-      rgba(0, 0, 0, 0.5) calc(50% + var(--bg-art-wave-band)),
-      #000 calc(50% + var(--bg-art-wave-band) + var(--bg-art-wave-feather)),
+      #000 calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half) - var(--bg-art-wave-feather)),
+      rgba(0, 0, 0, 0.45) calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half)),
+      transparent calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half) * 0.5),
+      transparent calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half) * 0.5),
+      rgba(0, 0, 0, 0.45) calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half)),
+      #000 calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half) + var(--bg-art-wave-feather)),
       #000 100%
     );
   }
@@ -254,43 +245,33 @@ html:not(.dark) .invert-on-light {
     -webkit-mask-image: linear-gradient(
       var(--bg-art-wave-angle),
       transparent 0%,
-      transparent calc(50% - var(--bg-art-wave-band) - var(--bg-art-wave-feather)),
-      rgba(0, 0, 0, 0.5) calc(50% - var(--bg-art-wave-band)),
-      #000 calc(50% - var(--bg-art-wave-band) / 2),
-      #000 calc(50% + var(--bg-art-wave-band) / 2),
-      rgba(0, 0, 0, 0.5) calc(50% + var(--bg-art-wave-band)),
-      transparent calc(50% + var(--bg-art-wave-band) + var(--bg-art-wave-feather)),
+      transparent
+        calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half) - var(--bg-art-wave-feather)),
+      rgba(0, 0, 0, 0.55) calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half)),
+      #000 calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half) * 0.5),
+      #000 calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half) * 0.5),
+      rgba(0, 0, 0, 0.55) calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half)),
+      transparent
+        calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half) + var(--bg-art-wave-feather)),
       transparent 100%
     );
     mask-image: linear-gradient(
       var(--bg-art-wave-angle),
       transparent 0%,
-      transparent calc(50% - var(--bg-art-wave-band) - var(--bg-art-wave-feather)),
-      rgba(0, 0, 0, 0.5) calc(50% - var(--bg-art-wave-band)),
-      #000 calc(50% - var(--bg-art-wave-band) / 2),
-      #000 calc(50% + var(--bg-art-wave-band) / 2),
-      rgba(0, 0, 0, 0.5) calc(50% + var(--bg-art-wave-band)),
-      transparent calc(50% + var(--bg-art-wave-band) + var(--bg-art-wave-feather)),
+      transparent
+        calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half) - var(--bg-art-wave-feather)),
+      rgba(0, 0, 0, 0.55) calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half)),
+      #000 calc(var(--bg-art-wave-p) * 100% - var(--bg-art-wave-half) * 0.5),
+      #000 calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half) * 0.5),
+      rgba(0, 0, 0, 0.55) calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half)),
+      transparent
+        calc(var(--bg-art-wave-p) * 100% + var(--bg-art-wave-half) + var(--bg-art-wave-feather)),
       transparent 100%
     );
   }
 
-  @keyframes bg-art-wave-sweep {
-    0%,
-    100% {
-      -webkit-mask-position: 115% -18%;
-      mask-position: 115% -18%;
-    }
-
-    50% {
-      -webkit-mask-position: -18% 115%;
-      mask-position: -18% 115%;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .bg-art--wave .bg-art__layer {
-      animation: none;
       -webkit-mask-image: none;
       mask-image: none;
     }
