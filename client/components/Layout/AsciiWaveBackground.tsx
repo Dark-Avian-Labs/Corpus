@@ -20,7 +20,6 @@ export function AsciiWaveBackground() {
     }
 
     const periodMs = 22_000;
-    /** Keep the wave inside the art so mask stops never collapse at 0%/100%. */
     const pMin = 0.08;
     const pMax = 0.92;
     const t0 = performance.now();
