@@ -202,10 +202,10 @@ html:not(.dark) .invert-on-light {
   .bg-art--wave {
     display: grid;
     place-items: center;
-    --bg-art-wave-angle: 180deg;
-    --bg-art-wave-p: 0.08;
-    --bg-art-wave-half: 2.5%;
-    --bg-art-wave-feather: 0.8%;
+    --bg-art-wave-angle: 135deg;
+    --bg-art-wave-p: 0;
+    --bg-art-wave-half: 1%;
+    --bg-art-wave-feather: 0.25%;
   }
 
   .bg-art--wave .bg-art__layer {

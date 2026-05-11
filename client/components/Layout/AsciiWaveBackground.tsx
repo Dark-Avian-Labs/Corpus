@@ -20,8 +20,8 @@ export function AsciiWaveBackground() {
     }
 
     const periodMs = 22_000;
-    const pMin = 0.08;
-    const pMax = 0.92;
+    const pMin = 0;
+    const pMax = 1;
     const t0 = performance.now();
     let frame = 0;
 
@@ -43,7 +43,7 @@ export function AsciiWaveBackground() {
       ref={rootRef}
       className="bg-art bg-art--wave"
       aria-hidden="true"
-      style={{ '--bg-art-wave-p': 0.08 } as CSSProperties}
+      style={{ '--bg-art-wave-p': 0 } as CSSProperties}
     >
       <pre className="bg-art__layer bg-art__layer--base">{bgArt}</pre>
       <pre className="bg-art__layer bg-art__layer--alt">{bgArt2}</pre>
