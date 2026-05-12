@@ -1,6 +1,12 @@
+import {
+  VALENCE_COMPLETE_THRESHOLD,
+  VALENCE_PERCENT_MAX_STORED,
+  VALENCE_PERCENT_MIN,
+  warframeQueries,
+} from '@codex/game-warframe';
 import { describe, expect, it } from 'vitest';
 
-import { resolveAdvancedProgressState } from '../packages/games/warframe/src/db/queries.js';
+const { resolveAdvancedProgressState } = warframeQueries;
 
 function baseRow(overrides: Partial<Record<string, number | null>> = {}) {
   return {
@@ -54,6 +60,12 @@ describe('Warframe advanced progress', () => {
     expect(state.normal.has_arcane).toBe(false);
   });
 
+  it('clears stored arcane when autoArcane does not apply and arcane is irrelevant', () => {
+    const current = baseRow({ has_arcane: 1 });
+    const state = resolveAdvancedProgressState('Companions', 'Helios', false, current, {});
+    expect(state.normal.has_arcane).toBe(false);
+  });
+
   it('leaves unrelated advanced fields unchanged when only element is patched (non-Warframe)', () => {
     const current = baseRow();
     const next = resolveAdvancedProgressState('Primary Weapons', 'Boltor', false, current, { has_element: false });
@@ -66,8 +78,19 @@ describe('Warframe advanced progress', () => {
     expect(next.normal.has_exilus).toBe(true);
   });
 
-  it('normalizes valence inputs at or above the complete threshold to 60', () => {
-    const state = resolveAdvancedProgressState('Primary Weapons', 'Kuva Bramma', false, null, { valence_percent: 58 });
-    expect(state.normal.valence_percent).toBe(60);
+  describe('valence_percent normalization (Kuva / Tenet)', () => {
+    it.each([
+      { input: 57, expected: 57, note: 'below complete threshold stays clamped value' },
+      { input: VALENCE_COMPLETE_THRESHOLD, expected: VALENCE_PERCENT_MAX_STORED, note: 'at threshold snaps to max' },
+      { input: 59, expected: VALENCE_PERCENT_MAX_STORED, note: 'between threshold and max snaps to max' },
+      { input: VALENCE_PERCENT_MAX_STORED, expected: VALENCE_PERCENT_MAX_STORED, note: 'already max stays max' },
+      { input: 24, expected: VALENCE_PERCENT_MIN, note: 'below min clamps then stays below threshold' },
+      { input: 61, expected: VALENCE_PERCENT_MAX_STORED, note: 'above max clamps to max' },
+    ])('$note ($input -> $expected)', ({ input, expected }) => {
+      const state = resolveAdvancedProgressState('Primary Weapons', 'Kuva Bramma', false, null, {
+        valence_percent: input,
+      });
+      expect(state.normal.valence_percent).toBe(expected);
+    });
   });
 });

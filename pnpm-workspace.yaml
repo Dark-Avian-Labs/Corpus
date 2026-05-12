@@ -30,8 +30,8 @@ catalog:
   express-session: ^1.19.0
   globals: ^17.6.0
   helmet: ^8.1.0
-  oxfmt: ^0.48.0
-  oxlint: ^1.63.0
+  oxfmt: ^0.49.0
+  oxlint: ^1.64.0
   react: ^19.2.6
   react-dom: ^19.2.6
   react-router-dom: ^7.15.0
@@ -39,7 +39,7 @@ catalog:
   tailwindcss: ^4.3.0
   typescript: ^6.0.3
   vite: ^8.0.12
-  vitest: ^4.1.5
+  vitest: ^4.1.6
   zod: ^4.4.3
 overrides:
   glob: ^13.0.6
