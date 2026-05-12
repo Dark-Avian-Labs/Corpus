@@ -68,6 +68,7 @@
     transparent
   );
   --ascii-canvas-fg-bright: color-mix(in oklab, var(--color-foreground) 12%, transparent);
+  --ascii-canvas-fg-accent: color-mix(in oklab, #ff0000 12%, transparent);
 }
 
 html:not(.dark) {
@@ -89,6 +90,7 @@ html:not(.dark) {
   --shadow-panel: 0 8px 28px oklch(21% 0.04 266 / 0.16);
   --ascii-opacity: 0.1;
   --ascii-canvas-fg-bright: color-mix(in oklab, var(--color-foreground) 18%, transparent);
+  --ascii-canvas-fg-accent: color-mix(in oklab, #ff0000 18%, transparent);
 }
 
 html.dark {

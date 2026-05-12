@@ -28,6 +28,8 @@ export function drawAsciiOverlayFrame(
   angleDeg: number,
   fgA: string,
   fgB: string,
+  fgMask: string,
+  asciiMaskRows?: string[],
 ): void {
   ctx.clearRect(0, 0, w, h);
   ctx.globalAlpha = 1;
@@ -58,7 +60,9 @@ export function drawAsciiOverlayFrame(
         continue;
       }
       ctx.globalAlpha = blend;
-      ctx.fillStyle = fgB;
+      const maskCh = asciiMaskRows?.[r]?.[c] ?? ' ';
+      const useMaskColor = /\S/.test(maskCh);
+      ctx.fillStyle = useMaskColor ? fgMask : fgB;
       ctx.fillText(ac, c * cellW, y);
     }
   }

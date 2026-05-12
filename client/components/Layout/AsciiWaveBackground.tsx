@@ -2,7 +2,9 @@ import { useMemo, useRef } from 'react';
 
 import bgArt from '../../../packages/core/assets/background.txt?raw';
 import bgArt2 from '../../../packages/core/assets/background2.txt?raw';
+import bgArt3 from '../../../packages/core/assets/background3.txt?raw';
 import { normalizeAsciiPair } from '../../lib/asciiBackground/normalizeAsciiPair';
+import { prepareAsciiMask } from '../../lib/asciiBackground/prepareAsciiMask';
 import { useAsciiBackgroundCanvas } from '../../lib/asciiBackground/useAsciiBackgroundCanvas';
 
 function splitLines(raw: string): string[] {
@@ -15,7 +17,8 @@ export function AsciiWaveBackground() {
     () => normalizeAsciiPair(splitLines(bgArt), splitLines(bgArt2)),
     [bgArt, bgArt2],
   );
-  useAsciiBackgroundCanvas(canvasRef, base, alt);
+  const asciiMaskRows = useMemo(() => prepareAsciiMask(bgArt3, base), [base, bgArt3]);
+  useAsciiBackgroundCanvas(canvasRef, base, alt, { asciiMaskRows });
 
   return (
     <div className="bg-art" aria-hidden="true">

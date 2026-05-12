@@ -9,26 +9,30 @@ import { drawAsciiOverlayFrame, phaseFromClock } from './drawAsciiOverlayFrame';
 const PERIOD_SEC = 22;
 const ANGLE_DEG = 135;
 
-function readAsciiCanvasColors(): { fgA: string; fgB: string } {
+function readAsciiCanvasColors(): { fgA: string; fgB: string; fgMask: string } {
   const root = getComputedStyle(document.documentElement);
   let fgA = root.getPropertyValue('--ascii-canvas-fg').trim();
   let fgB = root.getPropertyValue('--ascii-canvas-fg-bright').trim();
+  const fgMask =
+    root.getPropertyValue('--ascii-canvas-fg-accent').trim() ||
+    'color-mix(in oklab, #ff0000 12%, transparent)';
   if (!fgA) {
     fgA = 'rgba(200,200,200,0.35)';
   }
   if (!fgB) {
     fgB = 'rgba(255,255,255,0.5)';
   }
-  return { fgA, fgB };
+  return { fgA, fgB, fgMask };
 }
 
 export function useAsciiBackgroundCanvas(
   canvasRef: RefObject<HTMLCanvasElement | null>,
   asciiRows: string[],
   asciiRowsAlt: string[],
-  options?: { direction?: 'down' | 'up' },
+  options?: { direction?: 'down' | 'up'; asciiMaskRows?: string[] },
 ): void {
   const direction = options?.direction ?? 'down';
+  const asciiMaskRows = options?.asciiMaskRows;
 
   useEffect(() => {
     const rows = asciiRows.length;
@@ -71,7 +75,7 @@ export function useAsciiBackgroundCanvas(
     const t0 = performance.now();
 
     const paint = (now: number) => {
-      const { fgA, fgB } = readAsciiCanvasColors();
+      const { fgA, fgB, fgMask } = readAsciiCanvasColors();
       const phase = phaseFromClock(now, t0, PERIOD_SEC, direction);
       drawAsciiOverlayFrame(
         ctx,
@@ -87,6 +91,8 @@ export function useAsciiBackgroundCanvas(
         ANGLE_DEG,
         fgA,
         fgB,
+        fgMask,
+        asciiMaskRows,
       );
     };
 
@@ -104,5 +110,5 @@ export function useAsciiBackgroundCanvas(
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [asciiRows, asciiRowsAlt, direction]);
+  }, [asciiRows, asciiRowsAlt, asciiMaskRows, direction]);
 }
