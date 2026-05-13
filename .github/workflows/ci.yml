@@ -18,7 +18,6 @@ on:
       - 'client/**'
       - 'index.html'
       - 'package.json'
-      - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - 'tsconfig*.json'
       - 'vite.config.ts'
@@ -84,21 +83,35 @@ jobs:
 
           tmp_old=$(mktemp)
           tmp_new=$(mktemp)
+          tmp_sub_old=$(mktemp)
+          tmp_sub_new=$(mktemp)
 
-          git show "$BEFORE:package.json" 2>/dev/null > "$tmp_old" || echo '{}' > "$tmp_old"
-          git show "$AFTER:package.json" 2>/dev/null > "$tmp_new" || echo '{}' > "$tmp_new"
+          prod_subset() {
+            jq -cS '{
+              dependencies: (.dependencies // {}),
+              optionalDependencies: (.optionalDependencies // {}),
+              peerDependencies: (.peerDependencies // {})
+            }'
+          }
 
-          if ! jq -e --slurp \
-            '.[0] as $new | .[1] as $old |
-             ($new | del(.devDependencies)) == ($old | del(.devDependencies))' \
-            "$tmp_new" "$tmp_old" >/dev/null; then
-            echo "deploy=true" >> "$GITHUB_OUTPUT"
-            echo "Reason: Production dependencies changed"
-            exit 0
-          fi
+          while IFS= read -r pkg; do
+            [ -z "$pkg" ] && continue
+            git show "$BEFORE:$pkg" 2>/dev/null > "$tmp_old" || echo '{}' > "$tmp_old"
+            git show "$AFTER:$pkg" 2>/dev/null > "$tmp_new" || echo '{}' > "$tmp_new"
+            prod_subset < "$tmp_old" > "$tmp_sub_old"
+            prod_subset < "$tmp_new" > "$tmp_sub_new"
+            if ! cmp -s "$tmp_sub_old" "$tmp_sub_new"; then
+              rm -f "$tmp_old" "$tmp_new" "$tmp_sub_old" "$tmp_sub_new"
+              echo "deploy=true" >> "$GITHUB_OUTPUT"
+              echo "Reason: Production-style dependencies changed in $pkg"
+              exit 0
+            fi
+          done < <(echo "$changed_files" | grep -E '(^|/)package\.json$' || true)
+
+          rm -f "$tmp_old" "$tmp_new" "$tmp_sub_old" "$tmp_sub_new"
 
           echo "deploy=false" >> "$GITHUB_OUTPUT"
-          echo "Reason: Only devDependencies or lockfile changed"
+          echo "Reason: Only devDependencies, lockfile, or non-runtime package.json edits"
 
   version:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -128,8 +141,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Install dependencies (fresh lockfile)
+        uses: ./.github/actions/pnpm-install-fresh
 
       - name: Bump version
         run: pnpm exec semantic-release
@@ -168,8 +181,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Install dependencies (fresh lockfile)
+        uses: ./.github/actions/pnpm-install-fresh
 
       - name: Check formatting
         run: pnpm run check-format
@@ -205,8 +218,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Install dependencies (fresh lockfile)
+        uses: ./.github/actions/pnpm-install-fresh
 
       - name: Build project
         env:
@@ -279,7 +292,7 @@ jobs:
           printf 'DOTENV_PRIVATE_KEY_PRODUCTION=%s\n' "$DOTENV_PRIVATE_KEY_PRODUCTION" > /tmp/deploy/.env.keys
           chmod 600 /tmp/deploy/.env.keys
           test -s /tmp/deploy/.env.keys || { echo "ERROR: Failed to create .env.keys in deployment bundle."; exit 1; }
-          cd /tmp/deploy && pnpm install --prod --no-frozen-lockfile
+          cd /tmp/deploy && pnpm install --prod
 
       - name: Deploy to server
         env:
