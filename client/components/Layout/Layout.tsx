@@ -16,10 +16,10 @@ import { APP_DISPLAY_NAME, APP_VERSION, LEGAL_ENTITY_NAME, LEGAL_PAGE_URL } from
 import { APP_PATHS } from '../../app/paths';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../features/auth/AuthContext';
-import { useStaleBundlePrompt } from '../../hooks/useStaleBundlePrompt';
 import { MaterialSymbol } from '../ui/MaterialSymbol';
 import { Menu } from '../ui/Menu';
 import { AsciiWaveBackground } from './AsciiWaveBackground';
+import { StaleClientUpdateBanner } from './StaleClientUpdateBanner';
 export type LayoutOutletContext = {
   setHeaderCenter: (node: ReactNode | null) => void;
   setHeaderActions: (node: ReactNode | null) => void;
@@ -59,8 +59,6 @@ export function Layout() {
       : APP_PATHS.admin;
   const brandTitle = isWarframeRoute ? 'Warframe' : isEpic7Route ? 'Epic7' : '';
   const baseTitle = APP_DISPLAY_NAME;
-  const bundleStale = useStaleBundlePrompt(APP_VERSION);
-
   const setMenuItemRef = (id: string) => (node: HTMLElement | null) => {
     menuItemNodeMap.current[id] = node;
   };
@@ -214,17 +212,6 @@ export function Layout() {
               >
                 v{APP_VERSION}
               </span>
-              {bundleStale ? (
-                <button
-                  type="button"
-                  className="text-muted hover:text-foreground rounded px-1.5 py-0.5 font-mono text-[10px] leading-none tracking-wide underline decoration-current/25 underline-offset-2 transition-colors hover:decoration-current/45"
-                  onClick={() => {
-                    window.location.reload();
-                  }}
-                >
-                  Reload
-                </button>
-              ) : null}
             </div>
           </div>
 
@@ -341,6 +328,8 @@ export function Layout() {
           </a>
         </div>
       </footer>
+
+      <StaleClientUpdateBanner appVersion={APP_VERSION} />
     </div>
   );
 }
