@@ -66,12 +66,45 @@ type RemoteAuthState = {
     is_admin: boolean;
   } | null;
   permissions: string[];
+  app_roles: Array<{ app_id: string; role: 'user' | 'admin' }>;
   auth_service_error?: boolean;
   auth_rate_limited?: boolean;
   auth_retry_after_sec?: number;
 };
 
 type AuthStateCache = Partial<Record<string, Promise<RemoteAuthState>>>;
+
+function parseAppRolesFromAuthBody(
+  appRolesRaw: unknown,
+): Array<{ app_id: string; role: 'user' | 'admin' }> {
+  if (!Array.isArray(appRolesRaw)) {
+    return [];
+  }
+  const out: Array<{ app_id: string; role: 'user' | 'admin' }> = [];
+  for (const entry of appRolesRaw) {
+    if (entry === null || typeof entry !== 'object') continue;
+    const raw = entry as { app_id?: unknown; role?: unknown };
+    if (typeof raw.app_id !== 'string' || typeof raw.role !== 'string') continue;
+    const app_id = raw.app_id.trim().toLowerCase();
+    if (app_id === '') continue;
+    const roleNorm = raw.role.trim().toLowerCase();
+    let role: 'user' | 'admin';
+    if (roleNorm === 'admin') {
+      role = 'admin';
+    } else if (roleNorm === 'user') {
+      role = 'user';
+    } else {
+      console.warn('[auth middleware] Unknown app_roles.role; treating as user.', {
+        offending_entry: entry,
+        app_id,
+        role: raw.role,
+      });
+      role = 'user';
+    }
+    out.push({ app_id, role });
+  }
+  return out;
+}
 
 function cacheKeyForGame(gameId?: string): string {
   return gameId ?? '__global__';
@@ -114,6 +147,7 @@ async function fetchRemoteAuthState(req: Request, gameId?: string): Promise<Remo
             has_game_access: false,
             user: null,
             permissions: [],
+            app_roles: [],
             auth_service_error: true,
             auth_rate_limited: true,
             auth_retry_after_sec: retryAfterSec,
@@ -125,6 +159,7 @@ async function fetchRemoteAuthState(req: Request, gameId?: string): Promise<Remo
             has_game_access: false,
             user: null,
             permissions: [],
+            app_roles: [],
             auth_service_error: true,
           };
         }
@@ -133,27 +168,31 @@ async function fetchRemoteAuthState(req: Request, gameId?: string): Promise<Remo
           has_game_access: false,
           user: null,
           permissions: [],
+          app_roles: [],
         };
       }
-      const body = (await upstream.json()) as Partial<RemoteAuthState>;
+      const body = (await upstream.json()) as Record<string, unknown>;
       const user = body.user;
+      const app_roles = parseAppRolesFromAuthBody(body.app_roles);
       return {
         authenticated: body.authenticated === true,
         has_game_access: body.has_game_access === true,
         user:
           user &&
-          typeof user.id === 'number' &&
-          typeof user.username === 'string' &&
-          typeof user.is_admin === 'boolean'
+          typeof user === 'object' &&
+          typeof (user as { id?: unknown }).id === 'number' &&
+          typeof (user as { username?: unknown }).username === 'string' &&
+          typeof (user as { is_admin?: unknown }).is_admin === 'boolean'
             ? {
-                id: user.id,
-                username: user.username,
-                is_admin: user.is_admin,
+                id: (user as { id: number }).id,
+                username: (user as { username: string }).username,
+                is_admin: (user as { is_admin: boolean }).is_admin,
               }
             : null,
         permissions: Array.isArray(body.permissions)
           ? body.permissions.filter((p): p is string => typeof p === 'string')
           : [],
+        app_roles,
       };
     } catch (err) {
       console.error('[auth middleware] Failed to fetch remote auth state:', err);
@@ -162,6 +201,7 @@ async function fetchRemoteAuthState(req: Request, gameId?: string): Promise<Remo
         has_game_access: false,
         user: null,
         permissions: [],
+        app_roles: [],
         auth_service_error: true,
       };
     } finally {
