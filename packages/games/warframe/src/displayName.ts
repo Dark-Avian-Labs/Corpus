@@ -9,11 +9,24 @@ export function stripKnownModeQualifier(value: string): string {
   );
 }
 
+const PAREN_PRIME_SUFFIX = '(prime)';
+
 export function stripPrimeSuffix(value: string): string {
-  return value
-    .replace(/\s*\(prime\)\s*$/i, '')
-    .replace(/\s+prime$/i, '')
-    .trim();
+  let s = value.trimEnd();
+  const lower = s.toLowerCase();
+  if (lower.endsWith(PAREN_PRIME_SUFFIX)) {
+    return s.slice(0, s.length - PAREN_PRIME_SUFFIX.length).trimEnd();
+  }
+  if (lower.endsWith('prime')) {
+    const pIdx = s.length - 'prime'.length;
+    if (pIdx <= 0) return s;
+    let j = pIdx;
+    while (j > 0 && /\s/u.test(s[j - 1])) j -= 1;
+    if (j < pIdx) {
+      return s.slice(0, j).trimEnd();
+    }
+  }
+  return s;
 }
 
 export function normalizeDisplayName(value: string): string {
@@ -29,7 +42,15 @@ export function normalizeNameForKey(value: string): string {
 
 export function isPrimeVariantName(value: string): boolean {
   const n = normalizeDisplayName(value);
-  return /\s*\(prime\)\s*$/i.test(n) || /\s+prime$/i.test(n);
+  let s = n.trimEnd();
+  const lower = s.toLowerCase();
+  if (lower.endsWith(PAREN_PRIME_SUFFIX)) return true;
+  if (!lower.endsWith('prime')) return false;
+  const pIdx = s.length - 'prime'.length;
+  if (pIdx <= 0) return false;
+  let j = pIdx;
+  while (j > 0 && /\s/u.test(s[j - 1])) j -= 1;
+  return j < pIdx;
 }
 
 export function resolveCanonicalKey(value: string, aliases?: ReadonlyMap<string, string>): string {
