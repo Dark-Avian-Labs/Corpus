@@ -6,6 +6,7 @@ import {
   resolveCanonicalKey as resolveCanonicalKeyWithAliases,
   resolveVariantColumns,
   stripPrimeSuffix,
+  warframeMarketSellHrefUsesPrimeOnlyItemSlug,
   type VariantColumns,
 } from '@codex/game-warframe';
 import Database from 'better-sqlite3';
@@ -174,8 +175,12 @@ function refreshWorksheetMarketHrefs(
         const hit = sel.get(key, worksheet) as
           | { market_href: string | null; market_href_prime: string | null }
           | undefined;
-        const href = hit?.market_href ?? null;
-        const hrefPrime = hit?.market_href_prime ?? null;
+        let href = hit?.market_href ?? null;
+        let hrefPrime = hit?.market_href_prime ?? null;
+        if (href && !hrefPrime && warframeMarketSellHrefUsesPrimeOnlyItemSlug(href)) {
+          hrefPrime = href;
+          href = null;
+        }
         stmt.run(href, hrefPrime, row.id);
         rowsProcessed += 1;
         const hasAny =

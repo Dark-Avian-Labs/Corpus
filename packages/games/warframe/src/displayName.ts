@@ -10,7 +10,10 @@ export function stripKnownModeQualifier(value: string): string {
 }
 
 export function stripPrimeSuffix(value: string): string {
-  return value.replace(/\s+prime$/i, '');
+  return value
+    .replace(/\s*\(prime\)\s*$/i, '')
+    .replace(/\s+prime$/i, '')
+    .trim();
 }
 
 export function normalizeDisplayName(value: string): string {
@@ -25,7 +28,8 @@ export function normalizeNameForKey(value: string): string {
 }
 
 export function isPrimeVariantName(value: string): boolean {
-  return /\s+prime$/i.test(normalizeDisplayName(value));
+  const n = normalizeDisplayName(value);
+  return /\s*\(prime\)\s*$/i.test(n) || /\s+prime$/i.test(n);
 }
 
 export function resolveCanonicalKey(value: string, aliases?: ReadonlyMap<string, string>): string {
