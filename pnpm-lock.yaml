@@ -8,7 +8,7 @@ catalogs:
   default:
     '@dotenvx/dotenvx':
       specifier: ^1.65.0
-      version: 1.65.1
+      version: 1.66.0
     '@fontsource-variable/cascadia-mono':
       specifier: ^5.2.2
       version: 5.2.2
@@ -261,7 +261,7 @@ importers:
     dependencies:
       '@dotenvx/dotenvx':
         specifier: 'catalog:'
-        version: 1.65.1
+        version: 1.66.0
       better-sqlite3:
         specifier: 'catalog:'
         version: 12.10.0
@@ -371,8 +371,8 @@ packages:
     resolution: {integrity: sha512-v4FA/Lw3pTEloLxBqTOaYDX6MNo0Jo7lGBsPZhwnJBqRJp0AzQg1ZZNxrFsh6HVC6QWeWrfIKLn0y2eyIXaVDg==}
     hasBin: true
 
-  '@dotenvx/dotenvx@1.65.1':
-    resolution: {integrity: sha512-mOr9TV+DFQR0PqNAWdonSS8YWM77Y2HIVCokFs4U5GnKFNViCsMFsSzDGz1aiflI0Iu55lhZd9CgLWCkVtoVYg==}
+  '@dotenvx/dotenvx@1.66.0':
+    resolution: {integrity: sha512-qlQFhHUjhRDybrinqLAD0MClVZDOrsq80O8eD5iSjz3Qa/4f3Jg7SQrOaSobrRyP1QaWIYLGtGpj2c7H0D8NUw==}
     hasBin: true
 
   '@ecies/ciphers@0.2.6':
@@ -3001,7 +3001,7 @@ snapshots:
       which: 4.0.0
       yocto-spinner: 1.2.0
 
-  '@dotenvx/dotenvx@1.65.1':
+  '@dotenvx/dotenvx@1.66.0':
     dependencies:
       commander: 11.1.0
       dotenv: 17.4.2
