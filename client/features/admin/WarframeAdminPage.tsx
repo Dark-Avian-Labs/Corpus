@@ -190,7 +190,7 @@ function SyncFromArmoryReportBody({
           ) : marketLinkSync.failedWorksheets.length > 0 &&
             marketLinkSync.rowsProcessed === 0 &&
             marketLinkSync.rowsWithLink === 0 ? (
-            <span className="text-amber-400">
+            <span className="text-warning">
               Import failed for every worksheet — check server logs.
             </span>
           ) : (
@@ -203,7 +203,7 @@ function SyncFromArmoryReportBody({
                 {marketLinkSync.rowsProcessed} Codex rows updated)
               </span>
               {marketLinkSync.failedWorksheets.length > 0 ? (
-                <span className="mt-1 block text-amber-400">
+                <span className="text-warning mt-1 block">
                   {marketLinkSync.failedWorksheets.length} worksheet
                   {marketLinkSync.failedWorksheets.length === 1 ? '' : 's'} could not be refreshed
                   (User{' '}
@@ -222,7 +222,7 @@ function SyncFromArmoryReportBody({
         <div
           className={`mt-4 rounded-lg border px-3 py-2 text-sm ${
             cleanupReview > 0
-              ? 'border-amber-500/40 bg-amber-500/10'
+              ? 'border-warning/40 bg-warning/10'
               : 'border-[var(--color-glass-border)] bg-[var(--color-glass)]'
           }`}
         >
@@ -582,7 +582,7 @@ export function WarframeAdminPage() {
         Opening this page loads a preview only. Import runs from the header action button.
       </p>
       {error ? (
-        <p className="text-sm text-red-400" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {error}
         </p>
       ) : null}
@@ -603,7 +603,7 @@ export function WarframeAdminPage() {
         </div>
       ) : null}
       {cleanup && cleanup.requiresConfirmationRows.length > 0 ? (
-        <p className="text-sm text-yellow-300" role="status">
+        <p className="text-warning text-sm" role="status">
           Some duplicate rows contain user progress and were not deleted. Review required before
           manual cleanup.
         </p>

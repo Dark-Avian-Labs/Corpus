@@ -262,7 +262,7 @@ export function AdminPage() {
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Epic7 Admin: Base Tables</h1>
       {error ? (
-        <p className="text-sm text-red-400" role="alert">
+        <p className="text-danger text-sm" role="alert">
           {error}
         </p>
       ) : null}

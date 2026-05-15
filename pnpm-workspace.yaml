@@ -5,7 +5,7 @@ packages:
 allowBuilds:
   better-sqlite3: true
 catalog:
-  "@dotenvx/dotenvx": ^1.65.0
+  "@dotenvx/dotenvx": ^1.66.0
   "@fontsource-variable/geist": ^5.2.8
   "@fontsource-variable/geist-mono": ^5.2.7
   "@fontsource-variable/cascadia-mono": ^5.2.2
@@ -26,7 +26,7 @@ catalog:
   cookie-parser: ^1.4.7
   csrf-sync: ^4.2.1
   express: ^5.2.1
-  express-rate-limit: ^8.5.1
+  express-rate-limit: ^8.5.2
   express-session: ^1.19.0
   globals: ^17.6.0
   helmet: ^8.1.0
@@ -34,11 +34,11 @@ catalog:
   oxlint: ^1.64.0
   react: ^19.2.6
   react-dom: ^19.2.6
-  react-router-dom: ^7.15.0
+  react-router-dom: ^7.15.1
   tailwind-merge: ^3.6.0
   tailwindcss: ^4.3.0
   typescript: ^6.0.3
-  vite: ^8.0.12
+  vite: ^8.0.13
   vitest: ^4.1.6
   zod: ^4.4.3
 overrides:
