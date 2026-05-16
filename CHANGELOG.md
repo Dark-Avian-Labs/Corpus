@@ -1,0 +1,247 @@
+# Changelog
+
+Notable work on `main` is summarized **by merged pull request**, one line each, conventional-commit style.
+
+## SemVer (baseline **1.0.0**)
+
+Existing package/release numbers are ignored for this backfill.
+
+Rules:
+
+- `feat` → **minor** (patch resets to 0)
+- `fix`, `perf`, `revert` → **patch**
+- `chore` → **patch** (project rule)
+- `ci` alone → **patch** (same as chore for this simulation)
+- **BREAKING CHANGE** / `!` → **major** (not inferred from branch names here)
+
+## Early `main` (before merge commits)
+
+- `chore`: initial Codex release, dependency bumps, CSRF/rate-limit hardening, and Express/TS setup before the first `Merge pull request` on this line
+
+## Pull requests (oldest → newest)
+
+- **v1.0.1** `chore(deps)` [#3](https://github.com/Dark-Avian-Labs/Codex/pull/3): bump dependencies (Dependabot)
+- **v1.0.2** `chore(deps)` [#2](https://github.com/Dark-Avian-Labs/Codex/pull/2): bump dependencies (Dependabot)
+- **v1.0.3** `chore(deps)` [#1](https://github.com/Dark-Avian-Labs/Codex/pull/1): bump dependencies (Dependabot)
+- **v1.0.4** `fix(security)` [#4](https://github.com/Dark-Avian-Labs/Codex/pull/4): Code scanning autofix
+- **v1.0.5** `fix` [#5](https://github.com/Dark-Avian-Labs/Codex/pull/5): Rate limiting
+- **v1.0.6** `fix` [#6](https://github.com/Dark-Avian-Labs/Codex/pull/6): Dependencies
+- **v1.0.7** `fix` [#7](https://github.com/Dark-Avian-Labs/Codex/pull/7): Node reference
+- **v1.1.0** `feat` [#8](https://github.com/Dark-Avian-Labs/Codex/pull/8): Use better sqlite3 session store
+- **v1.1.1** `fix` [#9](https://github.com/Dark-Avian-Labs/Codex/pull/9): Fix package lock
+- **v1.1.2** `fix` [#10](https://github.com/Dark-Avian-Labs/Codex/pull/10): Linting
+- **v1.1.3** `fix` [#11](https://github.com/Dark-Avian-Labs/Codex/pull/11): Views
+- **v1.1.4** `fix` [#12](https://github.com/Dark-Avian-Labs/Codex/pull/12): Login token
+- **v1.1.5** `fix` [#13](https://github.com/Dark-Avian-Labs/Codex/pull/13): Login
+- **v1.1.6** `fix` [#14](https://github.com/Dark-Avian-Labs/Codex/pull/14): Fix login
+- **v1.1.7** `fix` [#15](https://github.com/Dark-Avian-Labs/Codex/pull/15): Api fixes
+- **v1.1.8** `chore(deps)` [#1](https://github.com/Dark-Avian-Labs/Codex/pull/1): bump dependencies (Dependabot)
+- **v1.1.9** `chore(deps)` [#2](https://github.com/Dark-Avian-Labs/Codex/pull/2): bump dependencies (Dependabot)
+- **v1.1.10** `chore(deps)` [#3](https://github.com/Dark-Avian-Labs/Codex/pull/3): bump dependencies (Dependabot)
+- **v1.1.11** `fix` [#4](https://github.com/Dark-Avian-Labs/Codex/pull/4): Login issues
+- **v1.1.12** `chore` [#5](https://github.com/Dark-Avian-Labs/Codex/pull/5): Remove import script
+- **v1.1.13** `fix` [#6](https://github.com/Dark-Avian-Labs/Codex/pull/6): CodeQL
+- **v1.1.14** `fix(security)` [#7](https://github.com/Dark-Avian-Labs/Codex/pull/7): Code scanning autofix
+- **v1.1.15** `fix(security)` [#8](https://github.com/Dark-Avian-Labs/Codex/pull/8): Code scanning autofix
+- **v1.1.16** `fix` [#9](https://github.com/Dark-Avian-Labs/Codex/pull/9): CodeQL
+- **v1.1.17** `fix` [#10](https://github.com/Dark-Avian-Labs/Codex/pull/10): Background image
+- **v1.1.18** `fix` [#11](https://github.com/Dark-Avian-Labs/Codex/pull/11): Update dependencies
+- **v1.1.19** `fix` [#16](https://github.com/Dark-Avian-Labs/Codex/pull/16): Update dependencies
+- **v1.1.20** `fix` [#12](https://github.com/Dark-Avian-Labs/Codex/pull/12): Linting and formatting
+- **v1.1.21** `fix` [#17](https://github.com/Dark-Avian-Labs/Codex/pull/17): Ip rate limiting ipv6
+- **v1.1.22** `fix` [#18](https://github.com/Dark-Avian-Labs/Codex/pull/18): Fix background image
+- **v1.1.23** `fix` [#19](https://github.com/Dark-Avian-Labs/Codex/pull/19): Fix background image
+- **v1.1.24** `fix` [#20](https://github.com/Dark-Avian-Labs/Codex/pull/20): Feat change packages
+- **v1.2.0** `feat` [#13](https://github.com/Dark-Avian-Labs/Codex/pull/13): Change packages
+- **v1.2.1** `fix` [#21](https://github.com/Dark-Avian-Labs/Codex/pull/21): Formatting
+- **v1.2.2** `fix(security)` [#14](https://github.com/Dark-Avian-Labs/Codex/pull/14): Code scanning autofix
+- **v1.2.3** `fix(security)` [#22](https://github.com/Dark-Avian-Labs/Codex/pull/22): Code scanning autofix
+- **v1.2.4** `fix` [#23](https://github.com/Dark-Avian-Labs/Codex/pull/23): Fixed linting
+- **v1.2.5** `fix` [#15](https://github.com/Dark-Avian-Labs/Codex/pull/15): Fix formatting
+- **v1.2.6** `fix` [#16](https://github.com/Dark-Avian-Labs/Codex/pull/16): Split checks and build
+- **v1.2.7** `fix` [#24](https://github.com/Dark-Avian-Labs/Codex/pull/24): Split lint and formatting from build
+- **v1.2.8** `fix` [#25](https://github.com/Dark-Avian-Labs/Codex/pull/25): Formatting
+- **v1.2.9** `fix` [#17](https://github.com/Dark-Avian-Labs/Codex/pull/17): Formatting
+- **v1.3.0** `feat` [#26](https://github.com/Dark-Avian-Labs/Codex/pull/26): Script and style use nonces
+- **v1.4.0** `feat` [#18](https://github.com/Dark-Avian-Labs/Codex/pull/18): Add script and style nonce
+- **v1.4.1** `fix` [#27](https://github.com/Dark-Avian-Labs/Codex/pull/27): Csp
+- **v1.4.2** `fix` [#19](https://github.com/Dark-Avian-Labs/Codex/pull/19): Csp
+- **v1.4.3** `fix` [#20](https://github.com/Dark-Avian-Labs/Codex/pull/20): Csp this time for real
+- **v1.4.4** `fix` [#28](https://github.com/Dark-Avian-Labs/Codex/pull/28): Csp this time for real
+- **v1.4.5** `fix` [#29](https://github.com/Dark-Avian-Labs/Codex/pull/29): Public exposure
+- **v1.4.6** `fix` [#21](https://github.com/Dark-Avian-Labs/Codex/pull/21): Public exposure
+- **v1.4.7** `chore` [#22](https://github.com/Dark-Avian-Labs/Codex/pull/22): Auth
+- **v1.4.8** `chore` [#30](https://github.com/Dark-Avian-Labs/Codex/pull/30): Auth
+- **v1.4.9** `chore` [#23](https://github.com/Dark-Avian-Labs/Codex/pull/23): Several fixes and reworks
+- **v1.5.0** `feat` [#31](https://github.com/Dark-Avian-Labs/Codex/pull/31): Several fixes and reworks
+- **v1.5.1** `fix` [#32](https://github.com/Dark-Avian-Labs/Codex/pull/32): Error
+- **v1.5.2** `fix` [#33](https://github.com/Dark-Avian-Labs/Codex/pull/33): Remove — migration script
+- **v1.5.3** `chore(deps)` [#24](https://github.com/Dark-Avian-Labs/Codex/pull/24): bump dependencies (Dependabot)
+- **v1.5.4** `chore(deps)` [#34](https://github.com/Dark-Avian-Labs/Codex/pull/34): bump dependencies (Dependabot)
+- **v1.5.5** `chore` [#35](https://github.com/Dark-Avian-Labs/Codex/pull/35): Add helminth option
+- **v1.5.6** `fix` [#36](https://github.com/Dark-Avian-Labs/Codex/pull/36): Helminth styling
+- **v1.5.7** `fix` [#37](https://github.com/Dark-Avian-Labs/Codex/pull/37): Table styling
+- **v1.5.8** `chore` [#4](https://github.com/Dark-Avian-Labs/Codex/pull/4): Tailwind css
+- **v1.5.9** `chore` [#5](https://github.com/Dark-Avian-Labs/Codex/pull/5): Css
+- **v1.5.10** `chore` [#6](https://github.com/Dark-Avian-Labs/Codex/pull/6): Adding vite, zod and vitest
+- **v1.5.11** `chore` [#7](https://github.com/Dark-Avian-Labs/Codex/pull/7): Table width
+- **v1.5.12** `chore` [#8](https://github.com/Dark-Avian-Labs/Codex/pull/8): Table collapse
+- **v1.5.13** `chore` [#9](https://github.com/Dark-Avian-Labs/Codex/pull/9): Better styling
+- **v1.5.14** `chore` [#10](https://github.com/Dark-Avian-Labs/Codex/pull/10): Color accent
+- **v1.5.15** `chore` [#11](https://github.com/Dark-Avian-Labs/Codex/pull/11): Fix game loading
+- **v1.5.16** `chore(deps)` [#12](https://github.com/Dark-Avian-Labs/Codex/pull/12): bump dependencies (Dependabot)
+- **v1.5.17** `chore(deps)` [#13](https://github.com/Dark-Avian-Labs/Codex/pull/13): bump dependencies (Dependabot)
+- **v1.5.18** `chore` [#15](https://github.com/Dark-Avian-Labs/Codex/pull/15): Minimax vuln
+- **v1.5.19** `fix` [#17](https://github.com/Dark-Avian-Labs/Codex/pull/17): Auth
+- **v1.5.20** `chore(deps)` [#18](https://github.com/Dark-Avian-Labs/Codex/pull/18): migrate CI workflows to Blacksmith
+- **v1.5.21** `ci` [#19](https://github.com/Dark-Avian-Labs/Codex/pull/19): Update blacksmith runners
+- **v1.6.0** `feat` [#20](https://github.com/Dark-Avian-Labs/Codex/pull/20): Move to new url
+- **v1.7.0** `feat` [#21](https://github.com/Dark-Avian-Labs/Codex/pull/21): Add change pwd function
+- **v1.8.0** `feat` [#22](https://github.com/Dark-Avian-Labs/Codex/pull/22): Scaffolding base
+- **v1.8.1** `fix` [#23](https://github.com/Dark-Avian-Labs/Codex/pull/23): Env and deploy
+- **v1.8.2** `fix` [#24](https://github.com/Dark-Avian-Labs/Codex/pull/24): Auth and env
+- **v1.8.3** `fix` [#25](https://github.com/Dark-Avian-Labs/Codex/pull/25): Profile icons and missed stuff
+- **v1.8.4** `fix` [#26](https://github.com/Dark-Avian-Labs/Codex/pull/26): More fixes missed by migration
+- **v1.8.5** `fix` [#27](https://github.com/Dark-Avian-Labs/Codex/pull/27): Messed up migration
+- **v1.8.6** `fix` [#28](https://github.com/Dark-Avian-Labs/Codex/pull/28): More stuff missed at migration
+- **v1.9.0** `feat` [#29](https://github.com/Dark-Avian-Labs/Codex/pull/29): Add db import from parametric
+- **v1.9.1** `fix` [#30](https://github.com/Dark-Avian-Labs/Codex/pull/30): Small styling fixes
+- **v1.9.2** `fix` [#31](https://github.com/Dark-Avian-Labs/Codex/pull/31): Import script
+- **v1.9.3** `chore(merge)` [#32](https://github.com/Dark-Avian-Labs/Codex/pull/32): Development
+- **v1.9.4** `chore(merge)` [#33](https://github.com/Dark-Avian-Labs/Codex/pull/33): Development
+- **v1.9.5** `chore(deps)` [#34](https://github.com/Dark-Avian-Labs/Codex/pull/34): bump dependencies (Dependabot)
+- **v1.9.6** `chore(merge)` [#35](https://github.com/Dark-Avian-Labs/Codex/pull/35): Development
+- **v1.9.7** `chore(merge)` [#36](https://github.com/Dark-Avian-Labs/Codex/pull/36): Development
+- **v1.9.8** `chore(merge)` [#37](https://github.com/Dark-Avian-Labs/Codex/pull/37): Development
+- **v1.9.9** `chore(merge)` [#38](https://github.com/Dark-Avian-Labs/Codex/pull/38): Development
+- **v1.9.10** `chore(merge)` [#39](https://github.com/Dark-Avian-Labs/Codex/pull/39): Development
+- **v1.9.11** `chore(merge)` [#40](https://github.com/Dark-Avian-Labs/Codex/pull/40): Development
+- **v1.9.12** `chore(merge)` [#41](https://github.com/Dark-Avian-Labs/Codex/pull/41): Development
+- **v1.9.13** `chore(merge)` [#42](https://github.com/Dark-Avian-Labs/Codex/pull/42): Development
+- **v1.9.14** `chore(quality)` [#43](https://github.com/Dark-Avian-Labs/Codex/pull/43): Coderabbit audit
+- **v1.9.15** `chore(merge)` [#44](https://github.com/Dark-Avian-Labs/Codex/pull/44): Development
+- **v1.9.16** `fix` [#45](https://github.com/Dark-Avian-Labs/Codex/pull/45): Search
+- **v1.10.0** `feat` [#47](https://github.com/Dark-Avian-Labs/Codex/pull/47): Checkbox styling
+- **v1.11.0** `feat` [#48](https://github.com/Dark-Avian-Labs/Codex/pull/48): Filter styling
+- **v1.12.0** `feat` [#49](https://github.com/Dark-Avian-Labs/Codex/pull/49): Styling
+- **v1.12.1** `fix` [#50](https://github.com/Dark-Avian-Labs/Codex/pull/50): Styling
+- **v1.13.0** `feat` [#51](https://github.com/Dark-Avian-Labs/Codex/pull/51): Completed animation
+- **v1.14.0** `feat` [#52](https://github.com/Dark-Avian-Labs/Codex/pull/52): Complete animation
+- **v1.14.1** `fix` [#53](https://github.com/Dark-Avian-Labs/Codex/pull/53): Import script
+- **v1.15.0** `feat` [#54](https://github.com/Dark-Avian-Labs/Codex/pull/54): Validation script
+- **v1.15.1** `fix` [#55](https://github.com/Dark-Avian-Labs/Codex/pull/55): Vite_env
+- **v1.15.2** `fix` [#56](https://github.com/Dark-Avian-Labs/Codex/pull/56): Updated express rate limit
+- **v1.16.0** `feat` [#57](https://github.com/Dark-Avian-Labs/Codex/pull/57): Rate limiting modal
+- **v1.17.0** `feat` [#60](https://github.com/Dark-Avian-Labs/Codex/pull/60): Cleaned up dependencies and version bump
+- **v1.17.1** `fix` [#61](https://github.com/Dark-Avian-Labs/Codex/pull/61): Modular parts
+- **v1.18.0** `feat` [#62](https://github.com/Dark-Avian-Labs/Codex/pull/62): Adding companions
+- **v1.19.0** `feat` [#63](https://github.com/Dark-Avian-Labs/Codex/pull/63): Companion weapons
+- **v1.19.1** `fix` [#64](https://github.com/Dark-Avian-Labs/Codex/pull/64): Companion weapons
+- **v1.20.0** `feat` [#65](https://github.com/Dark-Avian-Labs/Codex/pull/65): Typographics
+- **v1.21.0** `feat` [#66](https://github.com/Dark-Avian-Labs/Codex/pull/66): Typography
+- **v1.21.1** `chore` [#67](https://github.com/Dark-Avian-Labs/Codex/pull/67): Update deploy workflows
+- **v1.22.0** `feat` [#68](https://github.com/Dark-Avian-Labs/Codex/pull/68): Add dotenvx
+- **v1.22.1** `fix` [#69](https://github.com/Dark-Avian-Labs/Codex/pull/69): Auth loop
+- **v1.22.2** `chore` [#72](https://github.com/Dark-Avian-Labs/Codex/pull/72): Update dependencies
+- **v1.22.3** `fix` [#73](https://github.com/Dark-Avian-Labs/Codex/pull/73): Env deployment
+- **v1.23.0** `feat` [#74](https://github.com/Dark-Avian-Labs/Codex/pull/74): Upgrade to vite8, oxlint, oxfmt
+- **v1.24.0** `feat` [#75](https://github.com/Dark-Avian-Labs/Codex/pull/75): Move to pnpm
+- **v1.24.1** `fix` [#76](https://github.com/Dark-Avian-Labs/Codex/pull/76): Dependencies
+- **v1.24.2** `fix` [#77](https://github.com/Dark-Avian-Labs/Codex/pull/77): Overrides
+- **v1.24.3** `chore` [#78](https://github.com/Dark-Avian-Labs/Codex/pull/78): Update readme
+- **v1.24.4** `chore` [#79](https://github.com/Dark-Avian-Labs/Codex/pull/79): Finding autofix a1c56fdc
+- **v1.24.5** `chore` [#80](https://github.com/Dark-Avian-Labs/Codex/pull/80): Ai findings autofix/run quality checks.mjs
+- **v1.24.6** `chore` [#81](https://github.com/Dark-Avian-Labs/Codex/pull/81): Fix ai stuff =D
+- **v1.24.7** `chore` [#84](https://github.com/Dark-Avian-Labs/Codex/pull/84): Dependency updates and vscode fixes
+- **v1.24.8** `chore(merge)` [#85](https://github.com/Dark-Avian-Labs/Codex/pull/85): Development
+- **v1.24.9** `chore(merge)` [#86](https://github.com/Dark-Avian-Labs/Codex/pull/86): Development
+- **v1.24.10** `chore(deps)` [#83](https://github.com/Dark-Avian-Labs/Codex/pull/83): bump dependencies (Dependabot)
+- **v1.25.0** `feat` [#87](https://github.com/Dark-Avian-Labs/Codex/pull/87): Add better sync reporting
+- **v1.25.1** `chore` [#88](https://github.com/Dark-Avian-Labs/Codex/pull/88): Update dependencies
+- **v1.26.0** `feat` [#89](https://github.com/Dark-Avian-Labs/Codex/pull/89): Add theme support
+- **v1.26.1** `fix` [#90](https://github.com/Dark-Avian-Labs/Codex/pull/90): Theme implementation
+- **v1.26.2** `fix` [#91](https://github.com/Dark-Avian-Labs/Codex/pull/91): Theme fixes
+- **v1.26.3** `fix` [#92](https://github.com/Dark-Avian-Labs/Codex/pull/92): Theme selection
+- **v1.27.0** `feat` [#93](https://github.com/Dark-Avian-Labs/Codex/pull/93): Skill review
+- **v1.27.1** `fix` [#94](https://github.com/Dark-Avian-Labs/Codex/pull/94): Completed animation
+- **v1.27.2** `chore(deps)` [#95](https://github.com/Dark-Avian-Labs/Codex/pull/95): bump dependencies (Dependabot)
+- **v1.27.3** `chore` [#96](https://github.com/Dark-Avian-Labs/Codex/pull/96): Clean up CI workflows
+- **v1.27.4** `chore(deps)` [#97](https://github.com/Dark-Avian-Labs/Codex/pull/97): bump dependencies (Dependabot)
+- **v1.27.5** `chore` [#98](https://github.com/Dark-Avian-Labs/Codex/pull/98): Fix GH actions
+- **v1.27.6** `fix` [#99](https://github.com/Dark-Avian-Labs/Codex/pull/99): GH runners
+- **v1.27.7** `fix` [#100](https://github.com/Dark-Avian-Labs/Codex/pull/100): GH runners
+- **v1.27.8** `fix` [#101](https://github.com/Dark-Avian-Labs/Codex/pull/101): Loading script
+- **v1.27.9** `fix` [#102](https://github.com/Dark-Avian-Labs/Codex/pull/102): CI deploy
+- **v1.28.0** `feat` [#106](https://github.com/Dark-Avian-Labs/Codex/pull/106): New deploy workflow
+- **v1.28.1** `chore` [#108](https://github.com/Dark-Avian-Labs/Codex/pull/108): Update dependencies
+- **v1.28.2** `chore(security)` [#109](https://github.com/Dark-Avian-Labs/Codex/pull/109): CodeQL findings
+- **v1.28.3** `fix` [#110](https://github.com/Dark-Avian-Labs/Codex/pull/110): Remove comments
+- **v1.28.4** `chore` [#112](https://github.com/Dark-Avian-Labs/Codex/pull/112): Update dependencies
+- **v1.28.5** `chore` [#113](https://github.com/Dark-Avian-Labs/Codex/pull/113): Update dependencies
+- **v1.28.6** `chore` [#114](https://github.com/Dark-Avian-Labs/Codex/pull/114): CodeQL
+- **v1.28.7** `chore` [#115](https://github.com/Dark-Avian-Labs/Codex/pull/115): CodeQL
+- **v1.28.8** `chore` [#118](https://github.com/Dark-Avian-Labs/Codex/pull/118): Update dependencies
+- **v1.28.9** `chore` [#120](https://github.com/Dark-Avian-Labs/Codex/pull/120): Updated CI script
+- **v1.28.10** `chore` [#121](https://github.com/Dark-Avian-Labs/Codex/pull/121): Remove comments
+- **v1.28.11** `chore` [#122](https://github.com/Dark-Avian-Labs/Codex/pull/122): Upgrade dependencies
+- **v1.28.12** `chore` [#123](https://github.com/Dark-Avian-Labs/Codex/pull/123): Update dependencies
+- **v1.28.13** `chore` [#126](https://github.com/Dark-Avian-Labs/Codex/pull/126): Update dependencies
+- **v1.28.14** `chore(deps)` [#127](https://github.com/Dark-Avian-Labs/Codex/pull/127): bump dependencies (Dependabot)
+- **v1.29.0** `feat` [#128](https://github.com/Dark-Avian-Labs/Codex/pull/128): Updated CI/CD and Validation workflow
+- **v1.29.1** `chore(deps)` [#129](https://github.com/Dark-Avian-Labs/Codex/pull/129): bump dependencies (Dependabot)
+- **v1.29.2** `chore` [#130](https://github.com/Dark-Avian-Labs/Codex/pull/130): Update dependencies
+- **v1.29.3** `chore` [#131](https://github.com/Dark-Avian-Labs/Codex/pull/131): Update dependencies
+- **v1.29.4** `chore` [#132](https://github.com/Dark-Avian-Labs/Codex/pull/132): Update dependencies
+- **v1.29.5** `chore` [#133](https://github.com/Dark-Avian-Labs/Codex/pull/133): Fix pnpm lock formatting
+- **v1.29.6** `chore` [#134](https://github.com/Dark-Avian-Labs/Codex/pull/134): Update pnpm
+- **v1.29.7** `fix` [#135](https://github.com/Dark-Avian-Labs/Codex/pull/135): Auth
+- **v1.29.8** `chore` [#136](https://github.com/Dark-Avian-Labs/Codex/pull/136): Opus review
+- **v1.29.9** `fix` [#137](https://github.com/Dark-Avian-Labs/Codex/pull/137): Legal page redirect
+- **v1.30.0** `feat` [#138](https://github.com/Dark-Avian-Labs/Codex/pull/138): App rename
+- **v1.30.1** `fix` [#139](https://github.com/Dark-Avian-Labs/Codex/pull/139): Renaming
+- **v1.30.2** `chore` [#140](https://github.com/Dark-Avian-Labs/Codex/pull/140): Version bump
+- **v1.30.3** `chore` [#141](https://github.com/Dark-Avian-Labs/Codex/pull/141): Update dependencies
+- **v1.30.4** `chore(legal)` [#142](https://github.com/Dark-Avian-Labs/Codex/pull/142): Relicense
+- **v1.31.0** `feat` [#143](https://github.com/Dark-Avian-Labs/Codex/pull/143): Upgrade runner
+- **v1.31.1** `chore` [#144](https://github.com/Dark-Avian-Labs/Codex/pull/144): Update dependencies
+- **v1.32.0** `feat` [#145](https://github.com/Dark-Avian-Labs/Codex/pull/145): Upgrade to pnpm 11
+- **v1.33.0** `feat` [#146](https://github.com/Dark-Avian-Labs/Codex/pull/146): Better tests
+- **v1.34.0** `feat` [#147](https://github.com/Dark-Avian-Labs/Codex/pull/147): Discord notification in CI workflow
+- **v1.35.0** `feat` [#148](https://github.com/Dark-Avian-Labs/Codex/pull/148): Add warframe market links
+- **v1.35.1** `fix` [#149](https://github.com/Dark-Avian-Labs/Codex/pull/149): Import and layout
+- **v1.35.2** `fix` [#150](https://github.com/Dark-Avian-Labs/Codex/pull/150): Prime & normal market links
+- **v1.36.0** `feat` [#151](https://github.com/Dark-Avian-Labs/Codex/pull/151): Helminth Unavailable for Excalibur Umbra
+- **v1.37.0** `feat` [#152](https://github.com/Dark-Avian-Labs/Codex/pull/152): Material icons
+- **v1.38.0** `feat` [#153](https://github.com/Dark-Avian-Labs/Codex/pull/153): Removed profile icons
+- **v1.39.0** `feat` [#155](https://github.com/Dark-Avian-Labs/Codex/pull/155): Adding K Drives
+- **v1.39.1** `chore` [#157](https://github.com/Dark-Avian-Labs/Codex/pull/157): Update dependencies
+- **v1.40.0** `feat` [#160](https://github.com/Dark-Avian-Labs/Codex/pull/160): Advanced Details
+- **v1.40.1** `fix` [#161](https://github.com/Dark-Avian-Labs/Codex/pull/161): Advanced style
+- **v1.40.2** `fix` [#162](https://github.com/Dark-Avian-Labs/Codex/pull/162): Advanced styling
+- **v1.40.3** `chore` [#163](https://github.com/Dark-Avian-Labs/Codex/pull/163): Update dependencies
+- **v1.40.4** `fix` [#165](https://github.com/Dark-Avian-Labs/Codex/pull/165): Advanced styling
+- **v1.40.5** `fix` [#166](https://github.com/Dark-Avian-Labs/Codex/pull/166): Advanced styling
+- **v1.40.6** `fix` [#167](https://github.com/Dark-Avian-Labs/Codex/pull/167): Further styling
+- **v1.40.7** `fix` [#168](https://github.com/Dark-Avian-Labs/Codex/pull/168): Colors
+- **v1.40.8** `chore` [#169](https://github.com/Dark-Avian-Labs/Codex/pull/169): Update dependencies
+- **v1.41.0** `feat` [#171](https://github.com/Dark-Avian-Labs/Codex/pull/171): Audit
+- **v1.42.0** `feat` [#172](https://github.com/Dark-Avian-Labs/Codex/pull/172): Auto arcane complete on warframe
+- **v1.43.0** `feat` [#173](https://github.com/Dark-Avian-Labs/Codex/pull/173): New CI versioning workflow
+- **v1.44.0** `feat` [#175](https://github.com/Dark-Avian-Labs/Codex/pull/175): Version display and reload on new version
+- **v1.45.0** `feat` [#178](https://github.com/Dark-Avian-Labs/Codex/pull/178): Background animation
+- **v1.45.1** `fix` [#180](https://github.com/Dark-Avian-Labs/Codex/pull/180): Background animation
+- **v1.45.2** `fix` [#181](https://github.com/Dark-Avian-Labs/Codex/pull/181): Background animation
+- **v1.45.3** `fix` [#182](https://github.com/Dark-Avian-Labs/Codex/pull/182): Background animation
+- **v1.45.4** `chore` [#183](https://github.com/Dark-Avian-Labs/Codex/pull/183): CodeQL
+- **v1.45.5** `fix` [#184](https://github.com/Dark-Avian-Labs/Codex/pull/184): Background animation
+- **v1.46.0** `feat` [#185](https://github.com/Dark-Avian-Labs/Codex/pull/185): New background animation
+- **v1.47.0** `feat` [#187](https://github.com/Dark-Avian-Labs/Codex/pull/187): Background animation color overlay
+- **v1.47.1** `fix` [#189](https://github.com/Dark-Avian-Labs/Codex/pull/189): Correct background ascii art
+- **v1.47.2** `chore` [#190](https://github.com/Dark-Avian-Labs/Codex/pull/190): Update dependencies and codeQL
+- **v1.48.0** `feat` [#192](https://github.com/Dark-Avian-Labs/Codex/pull/192): Rework permission system
+- **v1.48.1** `chore(deps)` [#193](https://github.com/Dark-Avian-Labs/Codex/pull/193): bump dependencies (Dependabot)
+- **v1.48.2** `chore` [#194](https://github.com/Dark-Avian-Labs/Codex/pull/194): New ci workflow
+- **v1.48.3** `fix` [#195](https://github.com/Dark-Avian-Labs/Codex/pull/195): Login and refresh button
+- **v1.48.4** `fix` [#196](https://github.com/Dark-Avian-Labs/Codex/pull/196): Warframe market links
+- **v1.48.5** `fix` [#198](https://github.com/Dark-Avian-Labs/Codex/pull/198): Colors
+- **v1.48.6** `chore` [#199](https://github.com/Dark-Avian-Labs/Codex/pull/199): Update dependencies
