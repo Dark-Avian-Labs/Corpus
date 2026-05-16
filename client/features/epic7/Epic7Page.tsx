@@ -813,7 +813,9 @@ export function Epic7Page() {
         <input
           id="codex-epic7-header-search"
           name="search"
-          type="search"
+          type="text"
+          role="searchbox"
+          enterKeyHint="search"
           autoComplete="off"
           className="search-box"
           value={search}

@@ -895,7 +895,9 @@ export function WarframePage() {
         <input
           id="codex-warframe-header-search"
           name="search"
-          type="search"
+          type="text"
+          role="searchbox"
+          enterKeyHint="search"
           autoComplete="off"
           className="search-box"
           value={search}
