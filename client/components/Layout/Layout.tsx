@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
-import feathers from '../../../packages/core/assets/feathers.png';
+import feathers from '../../../packages/core/assets/feathers.svg';
 import epic7Favicon from '../../../packages/games/epic7/favicon.ico';
 import warframeFavicon from '../../../packages/games/warframe/favicon.ico';
 import { APP_DISPLAY_NAME, APP_VERSION, LEGAL_ENTITY_NAME, LEGAL_PAGE_URL } from '../../app/config';

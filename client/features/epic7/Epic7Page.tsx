@@ -134,7 +134,7 @@ const GAUGE_COLORS: Record<number, string> = {
   5: '#ef4444',
 };
 
-const ICON_MODULES = import.meta.glob('../../../packages/games/epic7/assets/icons/*.png', {
+const ICON_MODULES = import.meta.glob('../../../packages/games/epic7/assets/*.png', {
   eager: true,
   import: 'default',
 }) as Record<string, string>;

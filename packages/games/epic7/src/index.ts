@@ -36,7 +36,7 @@ export const epic7Game: GameModule = {
     const assetsPath = getAssetsPath();
     const pkgRoot = path.join(__dirname, '..');
     const icoPath = path.join(pkgRoot, 'favicon.ico');
-    const pngFallback = path.join(assetsPath, 'icons', 'favicon.png');
+    const pngFallback = path.join(assetsPath, 'favicon.png');
     let cachedFaviconPath: string | null = null;
     let cachedFaviconIsPng = false;
     if (fs.existsSync(icoPath)) {
