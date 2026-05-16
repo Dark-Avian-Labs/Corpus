@@ -38,7 +38,7 @@ const ELEMENT_NAMES: Record<(typeof ELEMENTS)[number], string> = {
   dark: 'Dark',
 };
 
-const ICON_MODULES = import.meta.glob('../../../packages/games/epic7/assets/icons/*.png', {
+const ICON_MODULES = import.meta.glob('../../../packages/games/epic7/assets/*.png', {
   eager: true,
   import: 'default',
 }) as Record<string, string>;
