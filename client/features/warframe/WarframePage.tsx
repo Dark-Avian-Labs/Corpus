@@ -41,6 +41,7 @@ type Row = {
       orokin: boolean;
       arcane: boolean;
       exilus: boolean;
+      auto_orokin: boolean;
     };
     prime: {
       max_level: number;
@@ -49,6 +50,7 @@ type Row = {
       orokin: boolean;
       arcane: boolean;
       exilus: boolean;
+      auto_orokin: boolean;
     };
     has_prime_variant: boolean;
   };
@@ -1376,18 +1378,18 @@ export function WarframePage() {
                                       >['normal']
                                     ],
                                   );
-                                  const lockedPrimeAuto =
-                                    isPrime &&
-                                    (field === 'has_element' || field === 'has_orokin') &&
-                                    Boolean(row.advanced_relevance?.has_prime_variant);
+                                  const variantRelevance = row.advanced_relevance?.[variant];
+                                  const lockedOrokinAuto =
+                                    field === 'has_orokin' &&
+                                    checked &&
+                                    Boolean(variantRelevance?.auto_orokin);
                                   const lockedWarframeArcaneAuto =
                                     field === 'has_arcane' &&
                                     relevant &&
                                     currentWorksheetName === 'Warframes';
                                   const interactive =
-                                    relevant && !lockedPrimeAuto && !lockedWarframeArcaneAuto;
-                                  const lockedOrokinPrimeAuto =
-                                    lockedPrimeAuto && field === 'has_orokin' && checked;
+                                    relevant && !lockedOrokinAuto && !lockedWarframeArcaneAuto;
+                                  const lockedOrokinPrimeAuto = lockedOrokinAuto;
                                   const lockedActive =
                                     lockedOrokinPrimeAuto || (lockedWarframeArcaneAuto && checked);
                                   const key = isPrime ? `${field}_prime` : field;

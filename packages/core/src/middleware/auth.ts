@@ -50,6 +50,45 @@ const AUTH_FETCH_TIMEOUT_MS = Number.parseInt(process.env.AUTH_FETCH_TIMEOUT_MS 
 const SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 const AUTH_STATE_CACHE_KEY = Symbol('authStateCache');
 
+function isFetchAborted(err: unknown): boolean {
+  if (err instanceof Error) {
+    if (err.name === 'AbortError') return true;
+    const message = err.message.toLowerCase();
+    return message.includes('abort');
+  }
+  return false;
+}
+
+function isClientDisconnected(req: Request): boolean {
+  if ('aborted' in req && Boolean((req as Request & { aborted?: boolean }).aborted)) {
+    return true;
+  }
+  return req.socket.destroyed;
+}
+
+function createAuthUpstreamSignal(req: Request): {
+  signal: AbortSignal;
+  cleanup: () => void;
+  abortedByTimeout: () => boolean;
+} {
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, AUTH_FETCH_TIMEOUT_MS);
+  const onClose = () => controller.abort();
+  req.once('close', onClose);
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      clearTimeout(timeout);
+      req.off('close', onClose);
+    },
+    abortedByTimeout: () => timedOut,
+  };
+}
+
 function getLoginRedirectUrl(req: Request, gameId?: string): string {
   const nextPath = gameId ? `/games/${gameId}` : req.originalUrl || '/';
   const next = new URL(nextPath, getAppPublicBaseUrl()).toString();
@@ -129,8 +168,7 @@ async function fetchRemoteAuthState(req: Request, gameId?: string): Promise<Remo
   cache[cacheKey] = (async () => {
     const meUrl = new URL(`${AUTH_SERVICE_URL}/api/auth/me`);
     if (gameId) meUrl.searchParams.set('app', gameId);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), AUTH_FETCH_TIMEOUT_MS);
+    const upstreamSignal = createAuthUpstreamSignal(req);
     try {
       const upstream = await fetch(meUrl, {
         method: 'GET',
@@ -138,7 +176,7 @@ async function fetchRemoteAuthState(req: Request, gameId?: string): Promise<Remo
           cookie: req.headers.cookie ?? '',
           accept: 'application/json',
         },
-        signal: controller.signal,
+        signal: upstreamSignal.signal,
       });
       if (!upstream.ok) {
         if (upstream.status === 429) {
@@ -196,9 +234,21 @@ async function fetchRemoteAuthState(req: Request, gameId?: string): Promise<Remo
         app_roles,
       };
     } catch (err) {
-      log('error', 'Failed to fetch remote auth state', {
-        err: err instanceof Error ? err.message : String(err),
-      });
+      if (isFetchAborted(err)) {
+        if (!isClientDisconnected(req)) {
+          const reason = upstreamSignal.abortedByTimeout() ? 'timeout' : 'aborted';
+          log('warn', 'Auth service fetch did not complete', {
+            reason,
+            gameId: gameId ?? null,
+            timeoutMs: AUTH_FETCH_TIMEOUT_MS,
+          });
+        }
+      } else {
+        log('error', 'Failed to fetch remote auth state', {
+          err: err instanceof Error ? err.message : String(err),
+          gameId: gameId ?? null,
+        });
+      }
       return {
         authenticated: false,
         has_game_access: false,
@@ -208,7 +258,7 @@ async function fetchRemoteAuthState(req: Request, gameId?: string): Promise<Remo
         auth_service_error: true,
       };
     } finally {
-      clearTimeout(timeout);
+      upstreamSignal.cleanup();
     }
   })();
 

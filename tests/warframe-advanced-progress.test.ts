@@ -38,9 +38,33 @@ describe('Warframe advanced progress', () => {
     expect(state.prime.has_arcane).toBe(true);
   });
 
-  it('sets prime Orokin when primeAutoElementOrokin applies (prime Warframe variant)', () => {
-    const state = resolveAdvancedProgressState('Warframes', 'Excalibur', true, null, {});
+  it('does not auto-complete Orokin for prime Warframe variants', () => {
+    const state = resolveAdvancedProgressState('Warframes', 'Excalibur', true, null, {
+      has_orokin: false,
+      has_orokin_prime: false,
+    });
+    expect(state.normal.has_orokin).toBe(false);
+    expect(state.prime.has_orokin).toBe(false);
+  });
+
+  it('auto-completes Orokin on normal and prime for exalted weapons', () => {
+    const state = resolveAdvancedProgressState('Melee Weapons', 'Exalted Blade', true, null, {
+      has_orokin: false,
+      has_orokin_prime: false,
+    });
+    expect(state.normal.has_orokin).toBe(true);
     expect(state.prime.has_orokin).toBe(true);
+    expect(state.relevance.normal.auto_orokin).toBe(true);
+    expect(state.relevance.prime.auto_orokin).toBe(true);
+  });
+
+  it('does not auto-complete Orokin on ordinary prime weapons', () => {
+    const state = resolveAdvancedProgressState('Primary Weapons', 'Braton', true, null, {
+      has_orokin: false,
+      has_orokin_prime: false,
+    });
+    expect(state.normal.has_orokin).toBe(false);
+    expect(state.prime.has_orokin).toBe(false);
   });
 
   it('does not force arcane via autoArcane on non-Warframe worksheets when patch turns it off', () => {

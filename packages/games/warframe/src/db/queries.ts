@@ -93,6 +93,7 @@ export type AdvancedVariantRelevanceState = {
   orokin: boolean;
   arcane: boolean;
   exilus: boolean;
+  auto_orokin: boolean;
 };
 
 export type AdvancedProgressState = {
@@ -161,6 +162,7 @@ export function resolveAdvancedProgressState(
     orokin: available && raw.orokin,
     arcane: available && raw.arcane,
     exilus: available && raw.exilus,
+    auto_orokin: available && raw.autoOrokin,
   });
   const normalRelevance = normalizeRelevance(normalRelevanceRaw, true);
   const primeRelevance = normalizeRelevance(primeRelevanceRaw, hasPrimeVariant);
@@ -176,7 +178,7 @@ export function resolveAdvancedProgressState(
       has_exilus: number | null | undefined;
     },
     variantPatch: Partial<AdvancedProgressPatch>,
-    autoPrimeFlags = false,
+    autoOrokin = false,
     autoArcane = false,
   ): AdvancedVariantProgressState => {
     let level = clamp(source.level ?? 0, 0, relevance.max_level);
@@ -211,7 +213,7 @@ export function resolveAdvancedProgressState(
     if (!relevance.arcane) hasArcane = false;
     if (!relevance.exilus) hasExilus = false;
     if (!relevance.valence) valencePercent = null;
-    if (autoPrimeFlags) {
+    if (autoOrokin) {
       hasOrokin = true;
     }
     if (autoArcane && relevance.arcane) {
@@ -246,7 +248,7 @@ export function resolveAdvancedProgressState(
       has_arcane: patch?.has_arcane,
       has_exilus: patch?.has_exilus,
     },
-    normalRelevanceRaw.primeAutoElementOrokin,
+    normalRelevanceRaw.autoOrokin,
     normalRelevanceRaw.autoArcane,
   );
   const prime = normalizeVariantState(
@@ -267,7 +269,7 @@ export function resolveAdvancedProgressState(
       has_arcane: patch?.has_arcane_prime,
       has_exilus: patch?.has_exilus_prime,
     },
-    primeRelevanceRaw.primeAutoElementOrokin,
+    hasPrimeVariant && normalRelevanceRaw.autoOrokin,
     primeRelevanceRaw.autoArcane,
   );
 

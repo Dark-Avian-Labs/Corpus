@@ -1,3 +1,5 @@
+import { shouldAutoCompleteOrokin } from './exaltedWeapons.js';
+
 const NECRAMECH_NAMES = new Set(['Bonewidow', 'Voidrig']);
 const MAX_RANK_40_EXACT_NAMES = new Set(['Paracesis']);
 const WEAPON_WORKSHEETS = new Set([
@@ -61,7 +63,7 @@ export type AdvancedRowRelevance = {
   orokin: boolean;
   arcane: boolean;
   exilus: boolean;
-  primeAutoElementOrokin: boolean;
+  autoOrokin: boolean;
   autoArcane: boolean;
 };
 
@@ -73,7 +75,6 @@ export function resolveAdvancedRowRelevance(
   worksheetName: string,
   itemName: string,
 ): AdvancedRowRelevance {
-  const primeAuto = isPrimeWarframeOrWeapon(worksheetName, itemName);
   const autoArcane = worksheetName === 'Warframes';
   return {
     maxLevel: maxLevelForRow(worksheetName, itemName),
@@ -82,7 +83,7 @@ export function resolveAdvancedRowRelevance(
     orokin: true,
     arcane: isArcaneRelevant(worksheetName, itemName),
     exilus: isExilusRelevant(worksheetName),
-    primeAutoElementOrokin: primeAuto,
+    autoOrokin: shouldAutoCompleteOrokin(worksheetName, itemName),
     autoArcane,
   };
 }

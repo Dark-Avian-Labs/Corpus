@@ -108,3 +108,8 @@ export {
   maxLevelForRow,
   resolveAdvancedRowRelevance,
 } from './advancedRules.js';
+export {
+  isExaltedWeaponItem,
+  isExaltedWeaponWorksheet,
+  shouldAutoCompleteOrokin,
+} from './exaltedWeapons.js';
