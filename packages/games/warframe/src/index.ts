@@ -1,7 +1,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import type { GameModule, GameMountOptions } from '@codex/core';
+import { log, type GameModule, type GameMountOptions } from '@codex/core';
 import express, { type Application } from 'express';
 
 import { WARFRAME_DB_PATH } from './config.js';
@@ -39,22 +39,18 @@ export const warframeGame: GameModule = {
     app.use(`${base}/assets`, express.static(assetsPath));
   },
 
-  applyDefaultsForNewUser(userId: number): Promise<void> {
-    let db: ReturnType<typeof getDb> | null = null;
+  async applyDefaultsForNewUser(userId: number): Promise<void> {
     try {
-      db = getDb();
-      db?.prepare(
+      const db = getDb();
+      db.prepare(
         'INSERT OR IGNORE INTO worksheets (user_id, name, display_order) VALUES (?, ?, ?)',
       ).run(userId, 'Warframes', 0);
-      return Promise.resolve();
-    } finally {
-      if (db) {
-        try {
-          db.close();
-        } catch {
-          // ignore
-        }
-      }
+    } catch (err) {
+      log('error', 'Failed to apply Warframe defaults for new user', {
+        userId,
+        err: err instanceof Error ? (err.stack ?? err.message) : String(err),
+      });
+      throw err;
     }
   },
 };
@@ -74,7 +70,7 @@ export {
   isHelminthValue,
   isValidStatus,
 } from './config.js';
-export { getDb as getWarframeDb } from './db/schema.js';
+export { closeDb as closeWarframeDb, getDb as getWarframeDb } from './db/schema.js';
 export * as warframeQueries from './db/queries.js';
 export {
   addRowSchema as warframeAddRowSchema,

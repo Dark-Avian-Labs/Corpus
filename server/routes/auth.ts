@@ -1,5 +1,11 @@
-import { getGamesForUser, requireAuthApi } from '@codex/core';
-import { Router } from 'express';
+import {
+  type AuthSession,
+  effectiveAppAdmin,
+  getGamesForUser,
+  requireAuthApi,
+  syncSessionFromAuth,
+} from '@codex/core';
+import { Router, type Request } from 'express';
 
 import { buildAuthLoginUrl, buildAuthLogoutUrl, proxyAuthLogout } from '../auth/remoteAuth.js';
 import { APP_ID, COOKIE_DOMAIN, SECURE_COOKIES, SESSION_COOKIE_NAME } from '../config.js';
@@ -7,38 +13,49 @@ import { getGameMetadata, unknownGameMetadata } from '../games/metadataRegistry.
 
 export const authRouter = Router();
 
+function codexSession(req: Request): AuthSession {
+  return req.session as AuthSession;
+}
+
 authRouter.get('/csrf', (_req, res) => {
   res.json({
     csrfToken: (res.locals as { csrfToken?: string }).csrfToken || '',
   });
 });
 
-authRouter.get('/me', requireAuthApi, (req, res) => {
-  const userId = req.session.user_id;
-  if (typeof userId !== 'number' || userId <= 0) {
-    res.status(401).json({ authenticated: false, user: null, apps: [] });
-    return;
+authRouter.get('/me', requireAuthApi, async (req, res) => {
+  try {
+    const state = await syncSessionFromAuth(req);
+    const session = codexSession(req);
+    const userId = session?.user_id;
+    if (typeof userId !== 'number' || userId <= 0 || !state.authenticated || !state.user) {
+      res.status(401).json({ authenticated: false, user: null, apps: [] });
+      return;
+    }
+    const apps = getGamesForUser(userId).map((id) => {
+      const metadata = getGameMetadata(id) ?? {
+        ...unknownGameMetadata,
+        url: `/${id}`,
+      };
+      return {
+        id,
+        ...metadata,
+      };
+    });
+    res.json({
+      authenticated: true,
+      user: {
+        id: userId,
+        username: session?.username ?? state.user.username,
+        is_admin: effectiveAppAdmin(state, APP_ID),
+        app: APP_ID,
+      },
+      app_roles: state.app_roles,
+      apps,
+    });
+  } catch {
+    res.status(500).json({ authenticated: false, user: null, apps: [] });
   }
-  const apps = getGamesForUser(userId).map((id) => {
-    const metadata = getGameMetadata(id) ?? {
-      ...unknownGameMetadata,
-      url: `/${id}`,
-    };
-    return {
-      id,
-      ...metadata,
-    };
-  });
-  res.json({
-    authenticated: true,
-    user: {
-      id: userId,
-      username: req.session.username ?? 'user',
-      is_admin: req.session.is_admin === true,
-      app: APP_ID,
-    },
-    apps,
-  });
 });
 
 authRouter.post('/logout', async (req, res) => {

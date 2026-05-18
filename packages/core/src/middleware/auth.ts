@@ -1,7 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 
 import { type AuthSession } from '../auth.js';
-import { AUTH_SERVICE_URL } from '../config.js';
+import { AUTH_SERVICE_URL, CODEX_APP_ID } from '../config.js';
+import { log } from '../logger.js';
 import { getAppPublicBaseUrl } from './appPublicBaseUrl.js';
 
 function getSession(req: Request): AuthSession {
@@ -57,7 +58,7 @@ function getLoginRedirectUrl(req: Request, gameId?: string): string {
   return authUrl.toString();
 }
 
-type RemoteAuthState = {
+export type RemoteAuthState = {
   authenticated: boolean;
   has_game_access: boolean;
   user: {
@@ -94,7 +95,7 @@ function parseAppRolesFromAuthBody(
     } else if (roleNorm === 'user') {
       role = 'user';
     } else {
-      console.warn('[auth middleware] Unknown app_roles.role; treating as user.', {
+      log('warn', 'Unknown app_roles.role; treating as user', {
         offending_entry: entry,
         app_id,
         role: raw.role,
@@ -195,7 +196,9 @@ async function fetchRemoteAuthState(req: Request, gameId?: string): Promise<Remo
         app_roles,
       };
     } catch (err) {
-      console.error('[auth middleware] Failed to fetch remote auth state:', err);
+      log('error', 'Failed to fetch remote auth state', {
+        err: err instanceof Error ? err.message : String(err),
+      });
       return {
         authenticated: false,
         has_game_access: false,
@@ -212,7 +215,7 @@ async function fetchRemoteAuthState(req: Request, gameId?: string): Promise<Remo
   return await cache[cacheKey];
 }
 
-async function syncSessionFromAuth(req: Request, gameId?: string): Promise<RemoteAuthState> {
+export async function syncSessionFromAuth(req: Request, gameId?: string): Promise<RemoteAuthState> {
   const state = await fetchRemoteAuthState(req, gameId);
   const session = getSession(req);
   if (!session) {
@@ -238,6 +241,14 @@ async function syncSessionFromAuth(req: Request, gameId?: string): Promise<Remot
     session.login_time = Date.now();
   }
   return state;
+}
+
+export function effectiveAppAdmin(state: RemoteAuthState, appId: string = CODEX_APP_ID): boolean {
+  if (!state.authenticated || !state.user) return false;
+  if (state.user.is_admin) return true;
+  const normalizedAppId = appId.trim().toLowerCase();
+  const forApp = (state.app_roles ?? []).find((role) => role.app_id === normalizedAppId);
+  return forApp?.role === 'admin';
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -282,11 +293,11 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): P
       res.redirect(getLoginRedirectUrl(req));
       return;
     }
-    if (!state.user.is_admin) {
+    if (!effectiveAppAdmin(state)) {
       if (wantsJson(req)) {
-        res.status(403).json({ error: 'Admin access required' });
+        res.status(403).json({ error: 'Game admin access required' });
       } else {
-        res.status(403).send('Admin access required');
+        res.status(403).send('Game admin access required');
       }
       return;
     }

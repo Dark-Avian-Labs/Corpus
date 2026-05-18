@@ -55,10 +55,13 @@ export const APP_NAME = process.env.APP_NAME?.trim() || 'Codex';
 export const APP_ID = process.env.APP_ID?.trim() || 'codex';
 export const NODE_ENV = process.env.NODE_ENV || 'production';
 
-export const SESSION_SECRET = process.env.SESSION_SECRET?.trim() || '';
-if (SESSION_SECRET.length < 32) {
-  throw new Error('SESSION_SECRET must be set and at least 32 characters.');
+const DEV_SESSION_SECRET = 'codex-dev-only-session-secret-32ch';
+const rawSessionSecret =
+  process.env.SESSION_SECRET?.trim() || (NODE_ENV === 'production' ? '' : DEV_SESSION_SECRET);
+if (NODE_ENV === 'production' && rawSessionSecret.length < 32) {
+  throw new Error('SESSION_SECRET must be set and at least 32 characters in production.');
 }
+export const SESSION_SECRET = rawSessionSecret;
 
 function parseBooleanEnv(value: string | undefined): boolean | undefined {
   if (value == null) return undefined;

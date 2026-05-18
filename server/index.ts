@@ -2,8 +2,8 @@ import { createRequire } from 'module';
 import path from 'path';
 
 import { requireAuth, requireAdmin } from '@codex/core';
-import { getEpic7Db } from '@codex/game-epic7';
-import { getWarframeDb } from '@codex/game-warframe';
+import { closeEpic7Db, getEpic7Db } from '@codex/game-epic7';
+import { closeWarframeDb, getWarframeDb } from '@codex/game-warframe';
 import cookieParser from 'cookie-parser';
 import { csrfSync } from 'csrf-sync';
 import express, { type Request, type Response } from 'express';
@@ -11,6 +11,7 @@ import { rateLimit } from 'express-rate-limit';
 import session from 'express-session';
 import helmet from 'helmet';
 
+import { pingAuthServiceHealth } from './auth/authHealth.js';
 import { buildAuthLoginUrl, proxyAuthLogout } from './auth/remoteAuth.js';
 import {
   APP_NAME,
@@ -30,8 +31,12 @@ import {
 } from './config.js';
 import { ensureCentralSchema } from './db/centralSchema.js';
 import { closeCentralDb, getCentralDb } from './db/connection.js';
+import { refreshEpic7DbAvailability } from './epic7DbState.js';
+import { getRequestId, requestIdMiddleware } from './http/requestId.js';
+import { log } from './logger.js';
 import { apiRouter } from './routes/api.js';
 import { authRouter } from './routes/auth.js';
+import { waitForWarframeSyncIdle } from './services/warframeSyncState.js';
 
 const require = createRequire(import.meta.url);
 const SQLiteStore = require('better-sqlite3-session-store')(session);
@@ -63,23 +68,19 @@ function assertTableExists(db: { prepare: (sql: string) => unknown }, tableName:
 function ensureGameSchemasReady(): void {
   const warframeDb = getWarframeDb();
   const epic7Db = getEpic7Db();
-  try {
-    assertTableExists(warframeDb, 'worksheets');
-    assertTableExists(warframeDb, 'columns');
-    assertTableExists(warframeDb, 'rows');
-    assertTableExists(warframeDb, 'cell_values');
+  assertTableExists(warframeDb, 'worksheets');
+  assertTableExists(warframeDb, 'columns');
+  assertTableExists(warframeDb, 'rows');
+  assertTableExists(warframeDb, 'cell_values');
 
-    assertTableExists(epic7Db, 'game_accounts');
-    assertTableExists(epic7Db, 'base_heroes');
-    assertTableExists(epic7Db, 'base_artifacts');
-    assertTableExists(epic7Db, 'account_heroes');
-    assertTableExists(epic7Db, 'account_artifacts');
-  } finally {
-    warframeDb.close();
-    epic7Db.close();
-  }
+  assertTableExists(epic7Db, 'game_accounts');
+  assertTableExists(epic7Db, 'base_heroes');
+  assertTableExists(epic7Db, 'base_artifacts');
+  assertTableExists(epic7Db, 'account_heroes');
+  assertTableExists(epic7Db, 'account_artifacts');
 }
 ensureGameSchemasReady();
+void refreshEpic7DbAvailability();
 
 const app = express();
 if (TRUST_PROXY) app.set('trust proxy', 1);
@@ -90,6 +91,7 @@ if (NODE_ENV === 'production' && SECURE_COOKIES && !TRUST_PROXY) {
 }
 
 app.use(helmet());
+app.use(requestIdMiddleware);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -299,9 +301,16 @@ app.get('/favicon.ico', publicPageLimiter, (_req, res) => {
 app.get('/healthz', (_req, res) => {
   res.json({ status: 'ok', app: APP_NAME });
 });
-app.get('/readyz', (_req, res) => {
+app.get('/readyz', async (_req, res) => {
   try {
     centralDb.prepare('SELECT 1').get();
+    getWarframeDb().prepare('SELECT 1').get();
+    getEpic7Db().prepare('SELECT 1').get();
+    const authOk = await pingAuthServiceHealth(AUTH_SERVICE_URL);
+    if (!authOk) {
+      res.status(503).json({ status: 'not_ready', app: APP_NAME, reason: 'auth_unavailable' });
+      return;
+    }
     res.json({ status: 'ready', app: APP_NAME });
   } catch {
     res.status(503).json({ status: 'not_ready', app: APP_NAME });
@@ -389,7 +398,10 @@ app.use((err: unknown, _req: Request, res: Response, _next: express.NextFunction
   if (isCsrfError) {
     res.setHeader('X-CSRF-Error', '1');
   }
-  console.error('[Error]', error.stack ?? error.message);
+  log('error', 'Unhandled request error', {
+    requestId: getRequestId(res),
+    err: error.stack ?? error.message,
+  });
   const status =
     typeof error.status === 'number'
       ? error.status
@@ -411,7 +423,7 @@ app.use((err: unknown, _req: Request, res: Response, _next: express.NextFunction
 });
 
 const server = app.listen(PORT, HOST, () => {
-  console.log(`[${APP_NAME}] Server running on http://${HOST}:${PORT} (${NODE_ENV})`);
+  log('info', `${APP_NAME} server listening`, { host: HOST, port: PORT, nodeEnv: NODE_ENV });
 });
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -419,20 +431,55 @@ let shutdownStarted = false;
 function shutdown(): void {
   if (shutdownStarted) return;
   shutdownStarted = true;
-  function closeAndExit(): void {
+
+  function closeAndExit(exitCode: number): void {
     try {
       closeCentralDb();
+      closeWarframeDb();
+      closeEpic7Db();
     } catch (err) {
-      console.error('[Shutdown] Failed to close DB:', err);
+      log('error', 'Failed to close DB connections during shutdown', {
+        err: err instanceof Error ? err.message : String(err),
+      });
+      exitCode = 1;
     }
     // eslint-disable-next-line n/no-process-exit -- explicit process exit required for shutdown lifecycle
-    process.exit(0);
+    process.exit(exitCode);
   }
-  const timeout = setTimeout(() => closeAndExit(), SHUTDOWN_TIMEOUT_MS);
-  server.close(() => {
-    clearTimeout(timeout);
-    closeAndExit();
-  });
+
+  const hardTimeout = setTimeout(() => {
+    log('warn', 'Shutdown timeout reached; forcing exit', { timeoutMs: SHUTDOWN_TIMEOUT_MS });
+    closeAndExit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+
+  void (async () => {
+    try {
+      const syncFinished = await waitForWarframeSyncIdle(
+        Math.max(SHUTDOWN_TIMEOUT_MS - 2000, 1000),
+      );
+      if (!syncFinished) {
+        log('warn', 'Warframe sync still running; proceeding with shutdown');
+      }
+
+      server.close((err) => {
+        clearTimeout(hardTimeout);
+        if (err) {
+          log('error', 'HTTP server close failed', {
+            err: err instanceof Error ? err.message : String(err),
+          });
+          closeAndExit(1);
+          return;
+        }
+        closeAndExit(0);
+      });
+    } catch (err) {
+      log('error', 'Unexpected shutdown error', {
+        err: err instanceof Error ? (err.stack ?? err.message) : String(err),
+      });
+      clearTimeout(hardTimeout);
+      closeAndExit(1);
+    }
+  })();
 }
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);

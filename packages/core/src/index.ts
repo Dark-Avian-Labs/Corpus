@@ -1,5 +1,7 @@
+export { log, type LogLevel } from './logger.js';
 export {
   APP_NAME,
+  CODEX_APP_ID,
   resolveEnvFilePath,
   CENTRAL_DB_PATH,
   COOKIE_DOMAIN,
@@ -24,7 +26,10 @@ export {
   requireGameAccess,
   requireAuthApi,
   redirectIfAuthenticated,
+  syncSessionFromAuth,
+  effectiveAppAdmin,
 } from './middleware/auth.js';
+export type { RemoteAuthState } from './middleware/auth.js';
 export { getAppPublicBaseUrl } from './middleware/appPublicBaseUrl.js';
 export type { GameModule, GameMountOptions, GameTheme } from './types/game.js';
 export { createDbSingleton } from './db/singleton.js';

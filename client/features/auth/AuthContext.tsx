@@ -9,7 +9,8 @@ import {
 } from 'react';
 
 import { apiFetch, clearCsrfToken } from '../../utils/api';
-import type { AuthErrorDetail, AuthState, UserSummary } from './types';
+import { isCodexGameAdmin } from './codexAdmin';
+import type { AppRoleAssignment, AuthErrorDetail, AuthState, UserSummary } from './types';
 
 interface AuthContextValue {
   auth: AuthState;
@@ -122,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           is_admin: boolean;
           app: string;
         };
+        app_roles?: AppRoleAssignment[];
         apps?: {
           id: string;
           label: string;
@@ -144,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const user: UserSummary = {
         id: body.user.id,
         username: body.user.username,
-        isAdmin: body.user.is_admin,
+        isAdmin: isCodexGameAdmin(body.user, body.app_roles),
         app: body.user.app,
       };
       setAuth({

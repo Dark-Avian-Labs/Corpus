@@ -448,7 +448,9 @@ export function getWorksheetData(
   db: Database.Database,
   worksheetId: number,
   userId: number,
+  options?: { includeAdvanced?: boolean },
 ): WorksheetData | null {
+  const includeAdvanced = options?.includeAdvanced !== false;
   const worksheet = getWorksheetById(db, worksheetId, userId);
   if (!worksheet) return null;
 
@@ -501,35 +503,37 @@ export function getWorksheetData(
     }, {}),
   }));
 
-  const rowIds = dataRows.map((row) => row.id);
-  const advancedRowsByRowId = new Map<number, AdvancedProgressRow>();
-  if (rowIds.length > 0) {
-    const placeholders = rowIds.map(() => '?').join(',');
-    const advancedRows = db
-      .prepare(
-        `SELECT row_id, level, level_prime, valence_percent, valence_percent_prime, has_element, has_element_prime, has_orokin, has_orokin_prime, has_arcane, has_arcane_prime, has_exilus, has_exilus_prime
-         FROM row_advanced_progress
-         WHERE row_id IN (${placeholders})`,
-      )
-      .all(...rowIds) as AdvancedProgressRow[];
-    for (const row of advancedRows) {
-      advancedRowsByRowId.set(row.row_id, row);
+  if (includeAdvanced) {
+    const rowIds = dataRows.map((row) => row.id);
+    const advancedRowsByRowId = new Map<number, AdvancedProgressRow>();
+    if (rowIds.length > 0) {
+      const placeholders = rowIds.map(() => '?').join(',');
+      const advancedRows = db
+        .prepare(
+          `SELECT row_id, level, level_prime, valence_percent, valence_percent_prime, has_element, has_element_prime, has_orokin, has_orokin_prime, has_arcane, has_arcane_prime, has_exilus, has_exilus_prime
+           FROM row_advanced_progress
+           WHERE row_id IN (${placeholders})`,
+        )
+        .all(...rowIds) as AdvancedProgressRow[];
+      for (const row of advancedRows) {
+        advancedRowsByRowId.set(row.row_id, row);
+      }
     }
-  }
 
-  for (const row of dataRows) {
-    const hasPrimeVariant = rowHasVariant(row.values, columns, true);
-    const state = resolveAdvancedProgressState(
-      worksheet.name,
-      row.name,
-      hasPrimeVariant,
-      advancedRowsByRowId.get(row.id),
-    );
-    row.advanced_progress = {
-      normal: state.normal,
-      prime: state.prime,
-    };
-    row.advanced_relevance = state.relevance;
+    for (const row of dataRows) {
+      const hasPrimeVariant = rowHasVariant(row.values, columns, true);
+      const state = resolveAdvancedProgressState(
+        worksheet.name,
+        row.name,
+        hasPrimeVariant,
+        advancedRowsByRowId.get(row.id),
+      );
+      row.advanced_progress = {
+        normal: state.normal,
+        prime: state.prime,
+      };
+      row.advanced_relevance = state.relevance;
+    }
   }
 
   dataRows.sort((a, b) =>

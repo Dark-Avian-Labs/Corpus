@@ -61,11 +61,9 @@ export const epic7Game: GameModule = {
     app.use(`${base}/assets`, express.static(assetsPath));
   },
 
-  applyDefaultsForNewUser(userId: number): Promise<void> {
-    let db: ReturnType<typeof getDb> | null = null;
+  async applyDefaultsForNewUser(userId: number): Promise<void> {
     try {
       const dbInstance = getDb();
-      db = dbInstance;
       const run = dbInstance.transaction(() => {
         const accounts = getGameAccountsByUserId(dbInstance, userId);
         if (accounts.length > 0) return;
@@ -73,8 +71,7 @@ export const epic7Game: GameModule = {
         seedAccountHeroesFromBase(dbInstance, accountId);
         seedAccountArtifactsFromBase(dbInstance, accountId);
       });
-      run();
-      return Promise.resolve();
+      await run();
     } catch (err) {
       if (
         err &&
@@ -82,17 +79,9 @@ export const epic7Game: GameModule = {
         'code' in err &&
         (err as { code: string }).code === 'SQLITE_CONSTRAINT_UNIQUE'
       ) {
-        return Promise.resolve();
+        return;
       }
-      return Promise.reject(err);
-    } finally {
-      if (db) {
-        try {
-          db.close();
-        } catch {
-          // ignore
-        }
-      }
+      throw err;
     }
   },
 };
@@ -112,7 +101,7 @@ export {
   RATING_COLORS,
   STAR_RATINGS,
 } from './config.js';
-export { getDb as getEpic7Db } from './db/schema.js';
+export { closeDb as closeEpic7Db, getDb as getEpic7Db } from './db/schema.js';
 export * as epic7Queries from './db/queries.js';
 export {
   addAccountSchema as epic7AddAccountSchema,

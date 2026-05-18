@@ -20,8 +20,10 @@ import {
 } from '@codex/game-warframe';
 import { Router, type Request, type Response } from 'express';
 
-import { requireAdmin } from '../auth/middleware.js';
+import { requireGameAdmin } from '../auth/middleware.js';
+import { log } from '../logger.js';
 import { runWarframeSync } from '../services/warframeSync.js';
+import { runWarframeSyncGuarded, SyncAlreadyRunningError } from '../services/warframeSyncState.js';
 
 export const warframeApiRouter = Router();
 
@@ -157,8 +159,6 @@ warframeApiRouter.get('/worksheets', (req, res) => {
     } catch (error) {
       console.error('Failed to fetch worksheets:', error);
       res.status(500).json({ error: 'Internal Server Error' });
-    } finally {
-      db.close();
     }
   })();
 });
@@ -199,8 +199,6 @@ warframeApiRouter.get('/settings', (req, res) => {
     } catch (error) {
       console.error('Failed to load Warframe settings:', error);
       res.status(500).json({ error: 'Failed to load settings.' });
-    } finally {
-      db.close();
     }
   })();
 });
@@ -256,8 +254,6 @@ warframeApiRouter.patch('/settings', (req, res) => {
     } catch (error) {
       console.error('Failed to save Warframe settings:', error);
       res.status(500).json({ error: 'Failed to save settings.' });
-    } finally {
-      db.close();
     }
   })();
 });
@@ -290,8 +286,6 @@ warframeApiRouter.get('/worksheets/:worksheetId', (req, res) => {
     } catch (error) {
       console.error('Failed to fetch worksheet data:', error);
       res.status(500).json({ error: 'Failed to fetch worksheet.' });
-    } finally {
-      db.close();
     }
   })();
 });
@@ -345,12 +339,10 @@ warframeApiRouter.patch('/cells', (req, res) => {
         return;
       }
       res.status(200).json({ success: true, value: data.value });
-    } catch (error) {
+    } catch {
       res.status(400).json({
-        error: error instanceof Error ? error.message : 'Failed to update cell.',
+        error: 'Failed to update cell.',
       });
-    } finally {
-      db.close();
     }
   })();
 });
@@ -382,12 +374,10 @@ warframeApiRouter.patch('/advanced-progress', (req, res) => {
         has_exilus_prime: data.has_exilus_prime,
       });
       res.status(200).json({ success: true, advanced_progress: next });
-    } catch (error) {
+    } catch {
       res.status(400).json({
-        error: error instanceof Error ? error.message : 'Failed to update advanced progress.',
+        error: 'Failed to update advanced progress.',
       });
-    } finally {
-      db.close();
     }
   })();
 });
@@ -420,11 +410,12 @@ warframeApiRouter.post('/rows', (req, res) => {
       } catch (error) {
         console.error('Failed to add row:', error);
         res.status(500).json({
-          error: error instanceof Error ? error.message : 'Failed to add row.',
+          error: 'Failed to add row.',
         });
       }
-    } finally {
-      db.close();
+    } catch (error) {
+      console.error('Failed to add row:', error);
+      res.status(500).json({ error: 'Failed to add row.' });
     }
   })();
 });
@@ -470,8 +461,6 @@ warframeApiRouter.patch('/rows/:rowId', (req, res) => {
     } catch (error) {
       console.error('Failed to edit row:', error);
       res.status(500).json({ error: 'Internal Server Error' });
-    } finally {
-      db.close();
     }
   })();
 });
@@ -497,13 +486,11 @@ warframeApiRouter.delete('/rows/:rowId', (req, res) => {
     } catch (error) {
       console.error('Failed to delete row:', error);
       res.status(500).json({ error: 'Internal Server Error' });
-    } finally {
-      db.close();
     }
   })();
 });
 
-warframeApiRouter.patch('/admin/cells', requireAdmin, (req, res) => {
+warframeApiRouter.patch('/admin/cells', requireGameAdmin, (req, res) => {
   void (async () => {
     const data = validateBody(warframeAdminUpdateSchema, req.body, res);
     if (!data) return;
@@ -516,17 +503,15 @@ warframeApiRouter.patch('/admin/cells', requireAdmin, (req, res) => {
         return;
       }
       res.status(200).json({ success: true, value: data.value });
-    } catch (error) {
+    } catch {
       res.status(400).json({
-        error: error instanceof Error ? error.message : 'Invalid status value.',
+        error: 'Invalid status value.',
       });
-    } finally {
-      db.close();
     }
   })();
 });
 
-warframeApiRouter.get('/admin/sync-preview', requireAdmin, (req, res) => {
+warframeApiRouter.get('/admin/sync-preview', requireGameAdmin, (req, res) => {
   void (async () => {
     const userId = extractUserIdFromRequest(req);
     if (!userId) {
@@ -536,23 +521,27 @@ warframeApiRouter.get('/admin/sync-preview', requireAdmin, (req, res) => {
     const db = await getDbOrFail(res);
     if (!db) return;
     try {
-      const result = runWarframeSync(db, {
-        execute: false,
-        userIds: [userId],
-      });
+      const result = await runWarframeSyncGuarded(() =>
+        runWarframeSync(db, {
+          execute: false,
+          userIds: [userId],
+        }),
+      );
       res.status(200).json(result);
     } catch (error) {
-      console.error('Failed to build Warframe sync preview:', error);
-      res.status(500).json({
-        error: error instanceof Error ? error.message : 'Failed to build Warframe sync preview.',
+      if (error instanceof SyncAlreadyRunningError) {
+        res.status(409).json({ error: error.message });
+        return;
+      }
+      log('error', 'Failed to build Warframe sync preview', {
+        err: error instanceof Error ? error.message : String(error),
       });
-    } finally {
-      db.close();
+      res.status(500).json({ error: 'Failed to build Warframe sync preview.' });
     }
   })();
 });
 
-warframeApiRouter.post('/admin/sync-source', requireAdmin, (req, res) => {
+warframeApiRouter.post('/admin/sync-source', requireGameAdmin, (req, res) => {
   void (async () => {
     const adminUserId = extractUserIdFromRequest(req);
     if (!adminUserId) {
@@ -562,22 +551,24 @@ warframeApiRouter.post('/admin/sync-source', requireAdmin, (req, res) => {
     const db = await getDbOrFail(res);
     if (!db) return;
     try {
-      console.info('Starting Warframe sync execution', { userId: adminUserId });
-      const result = runWarframeSync(db, {
-        execute: true,
-        initiatedByUserId: adminUserId,
-      });
+      log('info', 'Starting Warframe sync execution', { userId: adminUserId });
+      const result = await runWarframeSyncGuarded(() =>
+        runWarframeSync(db, {
+          execute: true,
+          initiatedByUserId: adminUserId,
+        }),
+      );
       res.status(200).json(result);
     } catch (error) {
-      console.error('Failed to execute Warframe sync:', {
+      if (error instanceof SyncAlreadyRunningError) {
+        res.status(409).json({ error: error.message });
+        return;
+      }
+      log('error', 'Failed to execute Warframe sync', {
         userId: adminUserId,
-        error,
+        err: error instanceof Error ? error.message : String(error),
       });
-      res.status(500).json({
-        error: error instanceof Error ? error.message : 'Failed to execute Warframe sync.',
-      });
-    } finally {
-      db.close();
+      res.status(500).json({ error: 'Failed to execute Warframe sync.' });
     }
   })();
 });

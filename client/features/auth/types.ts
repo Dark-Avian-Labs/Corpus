@@ -1,3 +1,5 @@
+export type AppRoleAssignment = { app_id: string; role: 'user' | 'admin' };
+
 export interface UserSummary {
   id: number;
   username: string;

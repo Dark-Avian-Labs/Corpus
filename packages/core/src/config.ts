@@ -54,6 +54,7 @@ if (envPath) {
 }
 
 export const APP_NAME = 'Codex';
+export const CODEX_APP_ID = process.env.APP_ID?.trim().toLowerCase() || 'codex';
 
 const _centralDbPath = process.env.CENTRAL_DB_PATH?.trim();
 if (!_centralDbPath) {
