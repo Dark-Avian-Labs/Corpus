@@ -248,4 +248,5 @@ Rules:
 - **v1.48.7** `chore` [#200](https://github.com/Dark-Avian-Labs/Codex/pull/200): version reset to 1.0.0 in package.json
 - **v1.48.8** `chore` [#201](https://github.com/Dark-Avian-Labs/Codex/pull/201): replace PNG assets with SVG; update icon imports
 - **v1.48.9** `chore` [#202](https://github.com/Dark-Avian-Labs/Codex/pull/202): update oxfmt and oxlint
-- **v1.48.10** `chore`: Update dependencies
+- **v1.48.10** `chore` [#203](https://github.com/Dark-Avian-Labs/Codex/pull/203): Update dependencies
+- **v1.48.11** `hore(quality)` [#204](https://github.com/Dark-Avian-Labs/Codex/pull/204): Composer & Coderabbit audit
