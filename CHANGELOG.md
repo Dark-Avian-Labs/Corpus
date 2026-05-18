@@ -250,3 +250,4 @@ Rules:
 - **v1.48.9** `chore` [#202](https://github.com/Dark-Avian-Labs/Codex/pull/202): update oxfmt and oxlint
 - **v1.48.10** `chore` [#203](https://github.com/Dark-Avian-Labs/Codex/pull/203): Update dependencies
 - **v1.48.11** `chore(quality)` [#204](https://github.com/Dark-Avian-Labs/Codex/pull/204): Composer & Coderabbit audit
+- **v1.48.12** `fix` [#205](https://github.com/Dark-Avian-Labs/Codex/pull/205): fixed missing initialization of dbRows for new users

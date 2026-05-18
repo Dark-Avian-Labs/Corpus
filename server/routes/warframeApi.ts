@@ -22,6 +22,7 @@ import { Router, type Request, type Response } from 'express';
 
 import { requireGameAdmin } from '../auth/middleware.js';
 import { log } from '../logger.js';
+import { provisionWarframeUserIfNeeded } from '../services/warframeProvision.js';
 import { runWarframeSync } from '../services/warframeSync.js';
 import { runWarframeSyncGuarded, SyncAlreadyRunningError } from '../services/warframeSyncState.js';
 
@@ -154,6 +155,7 @@ warframeApiRouter.get('/worksheets', (req, res) => {
     const db = await getDbOrFail(res);
     if (!db) return;
     try {
+      provisionWarframeUserIfNeeded(db, userId);
       const worksheets = await q.getWorksheets(db, userId);
       res.status(200).json({ worksheets });
     } catch (error) {

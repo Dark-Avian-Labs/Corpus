@@ -350,6 +350,12 @@ function ensureWorksheetExistsForSync(
   return q.getWorksheetByName(codexDb, userId, worksheet);
 }
 
+export function ensureWarframeWorksheetsForUser(codexDb: Database.Database, userId: number): void {
+  for (const worksheet of WORKSHEET_NAMES) {
+    ensureWorksheetExistsForSync(codexDb, userId, worksheet, true);
+  }
+}
+
 function loadWorksheetSource(armoryDb: Database.Database): Record<WorksheetName, Set<string>> {
   const warframes = new Set(
     loadNames(armoryDb, "SELECT name FROM warframes WHERE product_category = 'Suits'"),
