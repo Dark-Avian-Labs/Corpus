@@ -252,3 +252,4 @@ Rules:
 - **v1.48.11** `chore(quality)` [#204](https://github.com/Dark-Avian-Labs/Codex/pull/204): Composer & Coderabbit audit
 - **v1.48.12** `fix` [#205](https://github.com/Dark-Avian-Labs/Codex/pull/205): fixed missing initialization of dbRows for new users
 - **v1.48.13** `fix` [#206](https://github.com/Dark-Avian-Labs/Codex/pull/206): fixed orokin reactor auto-complete on primes
+- **v1.48.14** `chore` [#207](https://github.com/Dark-Avian-Labs/Codex/pull/207): Updated stale animation

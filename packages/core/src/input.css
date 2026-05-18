@@ -1709,6 +1709,82 @@ html.dark.ui-shadow .account-dropdown {
   box-shadow: var(--shadow-panel);
 }
 
+.stale-update-banner {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-shadow:
+    var(--shadow-panel),
+    inset 0 1px 0 color-mix(in oklab, var(--color-foreground) 14%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, var(--color-foreground) 5%, transparent);
+}
+
+.stale-update-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--color-foreground) 5%, transparent) 0,
+    color-mix(in oklab, var(--color-foreground) 5%, transparent) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.stale-update-banner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  width: 240%;
+  height: 5px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 44%,
+    var(--stale-update-shine) 48.5%,
+    var(--stale-update-shine-hot) 50%,
+    var(--stale-update-shine) 51.5%,
+    transparent 56%,
+    transparent 100%
+  );
+  transform: translate(-50%, -50%) rotate(135deg) translateX(-130%);
+  animation: stale-update-metal-scan 6s linear infinite;
+  pointer-events: none;
+}
+
+.stale-update-banner > * {
+  position: relative;
+  z-index: 1;
+}
+
+:root {
+  --stale-update-shine: color-mix(in oklab, var(--color-foreground) 28%, transparent);
+  --stale-update-shine-hot: color-mix(in oklab, var(--color-foreground) 52%, transparent);
+}
+
+html:not(.dark) {
+  --stale-update-shine: color-mix(in oklab, var(--color-foreground) 16%, transparent);
+  --stale-update-shine-hot: color-mix(in oklab, var(--color-foreground) 32%, transparent);
+}
+
+@keyframes stale-update-metal-scan {
+  0% {
+    transform: translate(-50%, -50%) rotate(135deg) translateX(-130%);
+  }
+  16.666% {
+    transform: translate(-50%, -50%) rotate(135deg) translateX(130%);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(135deg) translateX(130%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

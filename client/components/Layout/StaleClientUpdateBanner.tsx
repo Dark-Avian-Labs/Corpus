@@ -17,7 +17,7 @@ export function StaleClientUpdateBanner({ appVersion }: StaleClientUpdateBannerP
       role="status"
       aria-live="polite"
     >
-      <div className="pointer-events-auto ml-auto max-w-sm rounded-2xl border border-[var(--color-glass-border)] bg-[var(--color-glass)] p-4 shadow-[var(--shadow-panel)] backdrop-blur-xl backdrop-saturate-150">
+      <div className="stale-update-banner pointer-events-auto ml-auto max-w-sm rounded-2xl border border-[var(--color-glass-border)] bg-[var(--color-glass)] p-4 backdrop-blur-xl backdrop-saturate-150">
         <h2 className="text-foreground text-base font-semibold tracking-tight">
           Client out of date
         </h2>
